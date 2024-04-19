@@ -47,3 +47,8 @@ def generate_input():
             if np.random.random() < 0.05:
                 grid[i][j] = 5
     return np.array(grid)
+
+if __name__ == '__main__':
+    input_grid = generate_input()
+    print(input_grid)
+    print(main(input_grid))
