@@ -149,6 +149,8 @@ def generate_input() -> np.ndarray:
 
     return grid
 
+# ============= remove below this point for prompting =============
+
 if __name__ == '__main__':
     input_grid = generate_input()
     # # print the input and force numpy to display the entire grid

@@ -78,6 +78,8 @@ def generate_input() -> np.ndarray:
                 grid[i][j] = black
     return grid
 
+# ============= remove below this point for prompting =============
+
 if __name__ == '__main__':
     input_grid = generate_input()
     print(input_grid)

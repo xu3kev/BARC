@@ -63,6 +63,8 @@ def generate_input() -> np.ndarray:
     grid = np.concatenate((grid1, grid3, grid2), axis=1)
     return grid
 
+# ============= remove below this point for prompting =============
+
 if __name__ == '__main__':
     input_grid = generate_input()
     print(input_grid)
