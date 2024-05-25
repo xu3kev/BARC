@@ -1,5 +1,7 @@
+from common import *
 import numpy as np
 from typing import *
+all_colors = range(10)
 black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
 def main(input_grid: np.ndarray) -> np.ndarray:
@@ -9,15 +11,11 @@ def main(input_grid: np.ndarray) -> np.ndarray:
 
 def find_color(grid: np.ndarray) -> int:
     """
-    Given a grid, this function finds the color of the line in the grid.
+    Given a grid, this function finds the color of a line that extends all the way horizontally or vertically (useful for problems with jail structures)
     
-    Args:
-    1. grid: np.ndarray - A numpy array representing the input grid.
-    
-    Returns:
-    An integer representing the color of the line.
+    The color of the line (int).
     """
-    for color in range(10):
+    for color in all_colors:
         if color != black:
             for i in range(grid.shape[0]):
                 row = grid[i, :]
@@ -92,21 +90,6 @@ def make_jail_cells(grid_size, cell_size, color):
         grid[:, i] = color
     return grid, r_offset_x, r_offset_y
 
-def flood_fill_at_coord(grid, x, y, color):
-    # check that the color at x, y is black
-    if grid[x, y] != black:
-        return
-    grid[x, y] = color
-    # flood fill in all directions
-    if x > 0:
-        flood_fill_at_coord(grid, x - 1, y, color)
-    if x < grid.shape[0] - 1:
-        flood_fill_at_coord(grid, x + 1, y, color)
-    if y > 0:
-        flood_fill_at_coord(grid, x, y - 1, color)
-    if y < grid.shape[1] - 1:
-        flood_fill_at_coord(grid, x, y + 1, color)
-    return
 
 
 def generate_input() -> np.ndarray:
@@ -128,7 +111,7 @@ def generate_input() -> np.ndarray:
         black_coords = np.argwhere(grid == black)
         # pick a random black cell
         x, y = black_coords[np.random.randint(0, len(black_coords))]
-        flood_fill_at_coord(grid, x, y, other_color)
+        flood_fill(grid, x, y, other_color)
 
         # flip a coin to decide if horizontal or vertical
         h_or_v = np.random.randint(0, 2)
@@ -138,35 +121,18 @@ def generate_input() -> np.ndarray:
             black_coords = np.argwhere(grid[x, :] == black)
             # pick a random black cell
             other_y = black_coords[np.random.randint(0, len(black_coords))]
-            flood_fill_at_coord(grid, x, other_y, other_color)
+            flood_fill(grid, x, other_y, other_color)
         else:
             # vertical
             # get all the black cells in the same column
             black_coords = np.argwhere(grid[:, y] == black)
             # pick a random black cell
             other_x = black_coords[np.random.randint(0, len(black_coords))]
-            flood_fill_at_coord(grid, other_x, y, other_color)
+            flood_fill(grid, other_x, y, other_color)
 
     return grid
 
 # ============= remove below this point for prompting =============
 
 if __name__ == '__main__':
-    input_grid = generate_input()
-    # # print the input and force numpy to display the entire grid
-    # with np.printoptions(threshold=np.inf):
-    #     print(input_grid)
-
-    # print the whole grid, and put color on their corresponding numbers in terminal
-    for row in input_grid:
-        for cell in row:
-            print(f"\033[9{cell}m{cell}\033[0m", end="")
-        print()
-
-    print ("---------------------")
-
-    output_grid = main(input_grid)
-    for row in output_grid:
-        for cell in row:
-            print(f"\033[9{cell}m{cell}\033[0m", end="")
-        print()
+    visualize(generate_input, main, 5)
