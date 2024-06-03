@@ -4,6 +4,10 @@ from common import *
 
 black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
+# concepts:
+# boolean logical operations, bitmasks with separator
+
+# description:
 # Compute the AND of where two 3x3 grids are both blue, turning the output red in those locations
 # The input grids are separated by a gray divider column in the middle
 # The output grid is a 3x3 grid

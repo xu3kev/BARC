@@ -5,9 +5,11 @@ from typing import *
 
 black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
-# Take in a np grid of integers, where each integer represents a color
-# detect the gray color
-# then surround it with blue in a 3x3 grid around it
+# concepts:
+# surrounding pixels
+
+# description:
+# surround every gray pixel with blue pixels
 
 def main(input_grid):
     output_grid = np.zeros_like(input_grid)
@@ -24,7 +26,6 @@ def main(input_grid):
     return output_grid
 
 
-# high level description of the input generator to the main function:
 # create a 9x9 grid of black (0) and then sparsely populate it with gray
 def generate_input():
     # create a 9x9 grid of black (0)

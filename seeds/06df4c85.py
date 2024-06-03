@@ -5,6 +5,10 @@ from typing import *
 
 black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
+# concepts:
+# rectangular cells, flood fill, connecting same color
+
+# description:
 # In the input you will see horizontal and vertical bars that divide the grid into rectangular cells
 # To make the output, find any pair of rectangular cells that are in the same row and column and have the same color, then color all the rectangular cells between them with that color
 

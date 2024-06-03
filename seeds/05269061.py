@@ -5,6 +5,10 @@ from typing import *
 
 black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
+# concepts:
+# diagonal lines, repeating patterns
+
+# description:
 # In the input you will see three diagonal lines that stretch from one end of the canvas to the other
 # Each line is a different color, and the colors are not black
 # The output should be the result of repeating every diagonal line on multiples of 3 offset from the original, which gives an interlacing pattern filling the output canvas
