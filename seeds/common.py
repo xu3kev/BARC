@@ -7,10 +7,18 @@ black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
 
 def flood_fill(grid, x, y, color, background=black):
-    # check that the color at x, y is black
+    """
+    Fill the connected region that contains the point (x, y) with the specified color.
+    """
+
+    assert color != background, "Color and background must be different."
+    
     if grid[x, y] != background:
         return
+    
+    # must be equal to the background, therefore we only recurse if that point is the background
     grid[x, y] = color
+
     # flood fill in all directions
     if x > 0:
         flood_fill(grid, x - 1, y, color, background)
@@ -20,14 +28,36 @@ def flood_fill(grid, x, y, color, background=black):
         flood_fill(grid, x, y - 1, color, background)
     if y < grid.shape[1] - 1:
         flood_fill(grid, x, y + 1, color, background)
-    return
+
+def draw_line(grid, x, y, length, color, direction):
+    """
+    Draws a line of the specified length in the specified direction starting at (x, y).
+    Direction should be a vector with elements -1, 0, or 1.
+    If length is None, then the line will continue until it hits the edge of the grid.
+
+    Example:
+    draw_line(grid, 0, 0, length=3, color=blue, direction=(1, 1)) will draw a diagonal line of blue pixels from (0, 0) to (2, 2).
+    """
+    
+    if length is None:
+        length = max(grid.shape)*2
+    
+    for i in range(length):
+        new_x = x + i * direction[0]
+        new_y = y + i * direction[1]
+        if 0 <= new_x < grid.shape[0] and 0 <= new_y < grid.shape[1]:
+            grid[new_x, new_y] = color
+        else:
+            break
+
+    return grid
 
 def blit(grid, sprite, x, y, transparent=None):
     """
-    Copies the sprite into the grid at the specified location. Returns a new grid, and does not modify the old grid.    
+    Copies the sprite into the grid at the specified location. Modifies the grid in place.
     """
 
-    new_grid = grid.copy()
+    new_grid = grid
 
     for i in range(sprite.shape[0]):
         for j in range(sprite.shape[1]):
@@ -87,10 +117,15 @@ def random_free_location_for_object(grid, sprite, background=black):
 def visualize(input_generator, transform, n_examples=5):
     """Not used by the language model. For us to help with debugging"""
 
+    color_names = ['black', 'blue', 'red', 'green', 'yellow', 'grey', 'pink', 'orange', 'teal', 'maroon']
+    color_8bit = {"black": 0, "blue": 4, "red": 1, "green": 2, "yellow": 3, "grey": 7, "pink": 13, "orange": 202, "teal": 6, "maroon": 196}
+
     def show_colored_grid(grid):
+        nonlocal color_8bit, color_names
         for row in grid:
             for cell in row:
-                print(f"\033[9{cell}m{cell}\033[0m", end="")
+                color_code = color_8bit[color_names[cell]]
+                print(f"\033[38;5;{color_code}m{cell}\033[0m", end="")
             print()
         
     for index in range(n_examples):

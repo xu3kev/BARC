@@ -28,7 +28,7 @@ def generate_input():
     # put the sprite somewhere random on the grid
     x, y = random_free_location_for_object(grid, sprite, background=black)
 
-    grid = blit(grid, sprite, x, y, transparent=black)    
+    blit(grid, sprite, x, y, transparent=black)    
 
     # check if a column has both colors or a row has both colors
     for i in range(n):
@@ -80,7 +80,7 @@ def main(input_grid):
             if collision(object1=blue_object, object2=red_object, x2=dx, y2=dy):
                 dx, dy = direction * (i-1)
                 output_grid = np.copy(blue_object)
-                output_grid = blit(output_grid, red_object, dx, dy, transparent=black)
+                blit(output_grid, red_object, dx, dy, transparent=black)
                 return output_grid
             
     assert 0, "No valid slide found"

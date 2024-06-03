@@ -1,82 +1,56 @@
 from common import *
+
 import numpy as np
 from typing import *
-all_colors = range(10)
+
 black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
+# In the input you will see horizontal and vertical bars that divide the grid into rectangular cells
+# To make the output, find any pair of rectangular cells that are in the same row and column and have the same color, then color all the rectangular cells between them with that color
+
 def main(input_grid: np.ndarray) -> np.ndarray:
-    line = find_color(input_grid)
-    out = color_between_same_color_pixels(input_grid, line)
-    return out
 
-def find_color(grid: np.ndarray) -> int:
-    """
-    Given a grid, this function finds the color of a line that extends all the way horizontally or vertically (useful for problems with jail structures)
+    # find the color of the horizontal and vertical bars that divide the rectangular cells
+    # this is the color of any line that extends all the way horizontally or vertically
+    jail_color = None
+    for i in range(input_grid.shape[0]):
+        for j in range(input_grid.shape[1]):
+            color = input_grid[i][j]
+            if np.all(input_grid[i, :] == color) or np.all(input_grid[:, j] == color):
+                jail_color = color
+                break
     
-    The color of the line (int).
-    """
-    for color in all_colors:
-        if color != black:
-            for i in range(grid.shape[0]):
-                row = grid[i, :]
-                col = grid[:, i]
-                if np.all(row == color) or np.all(col == color):
-                    return color
-    return black
+    assert jail_color is not None, "No jail color found"
 
-def color_between_same_color_pixels(grid: np.ndarray, line_color: int) -> np.ndarray:
-    for color in range(10):
-        if color != black and color != line_color:
-            p = find_pixels_in_color(grid, color)
-            grid = color_pixels_between_same_color_pixels(grid, p, color)
-    return grid
+    output_grid = input_grid.copy()
 
-def find_pixels_in_color(grid: np.ndarray, color: int) -> List[Tuple[int, int]]:
-    """
-    Given a grid and a color, this function returns a list of tuples representing the indices of all pixels in the grid
-    that have the given color.
-    
-    Args:
-    1. grid: np.ndarray - A numpy array representing the input grid.
-    2. color: int - An integer representing the color to search for.
-    
-    Returns:
-    A list of tuples representing the indices of all pixels in the grid that have the given color.
-    """
-    pixels = []
-    for i in range(grid.shape[0]):
-        for j in range(grid.shape[1]):
-            if grid[i][j] == color:
-                pixels.append((i, j))
-    return pixels
+    # color all the cells between the same color pixels
+    for x in range(input_grid.shape[0]):
+        for y in range(input_grid.shape[1]):
+            color = input_grid[x][y]
+            if color == jail_color or color == black:
+                continue
 
-def color_pixels_between_same_color_pixels(grid: np.ndarray, pixels: List[Tuple[int, int]], color: int) -> np.ndarray:
-    """
-    Given a grid, a list of pixels and a color, this function turns all black pixels between any two pixels in the list
-    that are in the same row or column into the given color.
-    
-    Args:
-    1. grid: np.ndarray - A numpy array representing the input grid.
-    2. pixels: List[Tuple[int, int]] - A list of tuples representing the indices of pixels.
-    3. color: int - An integer representing the color to turn the pixels into.
-    
-    Returns:
-    A numpy array representing the updated grid.
-    """
-    for i in range(len(pixels)):
-        for j in range(i + 1, len(pixels)):
-            if pixels[i][0] == pixels[j][0]:
-                for k in range(min(pixels[i][1], pixels[j][1]) + 1, max(pixels[i][1], pixels[j][1])):
-                    if grid[pixels[i][0]][k] == black:
-                        grid[pixels[i][0]][k] = color
-            elif pixels[i][1] == pixels[j][1]:
-                for k in range(min(pixels[i][0], pixels[j][0]) + 1, max(pixels[i][0], pixels[j][0])):
-                    if grid[k][pixels[i][1]] == black:
-                        grid[k][pixels[i][1]] = color
-    return grid
+            # check if there is a cell with the same color in the same X value
+            for y2 in range(y+1, input_grid.shape[1]):
+                if input_grid[x][y2] == color:
+                    for y3 in range(y+1, y2):
+                        if input_grid[x][y3] == black:
+                            output_grid[x][y3] = color
+                    break
+
+            # check if there is a cell with the same color in the same Y value
+            for x2 in range(x+1, input_grid.shape[0]):
+                if input_grid[x2][y] == color:
+                    for x3 in range(x+1, x2):
+                        if input_grid[x3][y] == black:
+                            output_grid[x3][y] = color
+                    break
+                
+    return output_grid
 
 
-# make a grid with cells of some kxk size
+# make a grid with rectangular cells of some kxk size, separated by horizontal and vertical bars
 # the grid is one color
 # the cells are black
 def make_jail_cells(grid_size, cell_size, color):
@@ -93,41 +67,43 @@ def make_jail_cells(grid_size, cell_size, color):
 
 
 def generate_input() -> np.ndarray:
-    # pick a non-black color
-    color = np.random.randint(1, 10)
+    # pick a non-black color for the divider
+    divider_color = np.random.randint(1, 10)
     # pick a random grid size
-    grid_size = np.random.randint(5, 10)
-    grid, offset_x, offset_y = make_jail_cells(32, 2, color)
+    grid, offset_x, offset_y = make_jail_cells(32, 2, divider_color)
 
-    for _ in range(4):
-        if np.random.random() < 0.3:
-            continue
-        # pick a different color not color
-        other_color = np.random.randint(1, 10)
-        while other_color == color:
-            other_color = np.random.randint(1, 10)
+    # pick a random number of cells to color
+    number_to_color = np.random.randint(1, 4)
+    for _ in range(number_to_color):
+
+        # pick what we're going to color the inside of the cell, which needs to be a different color from the divider
+        other_color = np.random.choice([c for c in range(10) if c != divider_color and c != black])
 
         # get all coords of black cells
         black_coords = np.argwhere(grid == black)
         # pick a random black cell
-        x, y = black_coords[np.random.randint(0, len(black_coords))]
+        x, y = random.choice(black_coords)
         flood_fill(grid, x, y, other_color)
 
+        # sometimes skip coloring the other side of the divider
+        if random.random() <= 0.2:
+            continue 
+
         # flip a coin to decide if horizontal or vertical
-        h_or_v = np.random.randint(0, 2)
-        if h_or_v == 0:
+        h_or_v = random.random() < 0.5
+        if h_or_v:
             # horizontal
             # get all the black cells in the same row
             black_coords = np.argwhere(grid[x, :] == black)
             # pick a random black cell
-            other_y = black_coords[np.random.randint(0, len(black_coords))]
+            other_y = random.choice(black_coords)
             flood_fill(grid, x, other_y, other_color)
         else:
             # vertical
             # get all the black cells in the same column
             black_coords = np.argwhere(grid[:, y] == black)
             # pick a random black cell
-            other_x = black_coords[np.random.randint(0, len(black_coords))]
+            other_x = random.choice(black_coords)
             flood_fill(grid, other_x, y, other_color)
 
     return grid
