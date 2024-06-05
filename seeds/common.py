@@ -5,7 +5,6 @@ import random
 black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
 
-
 def flood_fill(grid, x, y, color, background=black):
     """
     Fill the connected region that contains the point (x, y) with the specified color.
@@ -47,8 +46,6 @@ def draw_line(grid, x, y, length, color, direction):
         new_y = y + i * direction[1]
         if 0 <= new_x < grid.shape[0] and 0 <= new_y < grid.shape[1]:
             grid[new_x, new_y] = color
-        else:
-            break
 
     return grid
 
@@ -91,6 +88,7 @@ def collision(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, backgr
 
 def random_free_location_for_object(grid, sprite, background=black):
     """Find a random free location for the sprite in the grid."""
+
     n, m = grid.shape
     dim1, dim2 = sprite.shape
     possible_locations = [(x,y) for x in range(0, n - dim1) for y in range(0, m - dim2)]
@@ -114,19 +112,21 @@ def random_free_location_for_object(grid, sprite, background=black):
     return random.choice(pruned_locations)
 
 
-def visualize(input_generator, transform, n_examples=5):
-    """Not used by the language model. For us to help with debugging"""
+def show_colored_grid(grid):
+    """Not used by the language model, used by the rest of the code for debugging"""
 
     color_names = ['black', 'blue', 'red', 'green', 'yellow', 'grey', 'pink', 'orange', 'teal', 'maroon']
     color_8bit = {"black": 0, "blue": 4, "red": 1, "green": 2, "yellow": 3, "grey": 7, "pink": 13, "orange": 202, "teal": 6, "maroon": 196}
 
-    def show_colored_grid(grid):
-        nonlocal color_8bit, color_names
-        for row in grid:
-            for cell in row:
-                color_code = color_8bit[color_names[cell]]
-                print(f"\033[38;5;{color_code}m{cell}\033[0m", end="")
-            print()
+    for row in grid:
+        for cell in row:
+            color_code = color_8bit[color_names[cell]]
+            print(f"\033[38;5;{color_code}m{cell}\033[0m", end="")
+        print()
+
+    
+def visualize(input_generator, transform, n_examples=5):
+    """Not used by the language model. For us to help with debugging"""
         
     for index in range(n_examples):
         input_grid = input_generator()
