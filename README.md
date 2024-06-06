@@ -21,10 +21,8 @@ You can also visit [MC-LARC](https://mc-larc.github.io/) for a more interactive 
 Your solutions to ARC problems should be under `seeds/` and should consist of a Python file with the ID of the problem.
 For instance, one such file is `seeds/05f2a901.py`, which contains a seed solution to `05f2a901`.
 
-Keep track of which problems you are solving so that you do not overlap with others. The tracking spreadsheet is:
-```
-https://docs.google.com/spreadsheets/d/1uPeAawNicITtLnT2aEclD5Ee-47gnfdXjuzugtfqceM/edit?usp=sharing
-```
+Keep track of which problems you are solving so that you do not overlap with others. The tracking spreadsheet is [https://docs.google.com/spreadsheets/d/1uPeAawNicITtLnT2aEclD5Ee-47gnfdXjuzugtfqceM/edit?usp=sharing](https://docs.google.com/spreadsheets/d/1uPeAawNicITtLnT2aEclD5Ee-47gnfdXjuzugtfqceM/edit?usp=sharing)
+
 
 Seed files should be of this form:
 ```python
