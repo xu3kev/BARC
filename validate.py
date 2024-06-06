@@ -24,8 +24,9 @@ def validate(problem):
     failure = False
 
     for train_pair in problem.train_pairs + problem.test_pairs:
-        input_grid = train_pair.x
-        expected_output_grid = train_pair.y
+        # transpose the input and output grids, because we index them x,y and they are stored as r,c
+        input_grid = train_pair.x.T
+        expected_output_grid = train_pair.y.T
 
         try:
             output_grid = temporary_validation.main(input_grid)

@@ -14,8 +14,8 @@ black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
 def main(input_grid: np.ndarray) -> np.ndarray:
     # Extract the left and right 3x3 grids from the input
-    left_input = input_grid[:, :3]
-    right_input = input_grid[:, 4:7]
+    left_input = input_grid[:3, :]
+    right_input = input_grid[4:7, :]
 
     # Create an output grid
     output_grid = np.zeros((3,3), dtype=int)
@@ -32,26 +32,25 @@ def generate_input() -> np.ndarray:
     # create a 3x3 grid of black (0)
     grid1 = np.zeros((3, 3), dtype=int)
     # sparsely populate it with blue
-    for i in range(3):
-        for j in range(3):
-            if np.random.random() < 0.3:
-                grid1[i][j] = blue
+    for x in range(3):
+        for y in range(3):
+            if np.random.random() < 0.5:
+                grid1[x,y] = blue
 
     # create a 3x3 grid of black (0)
     grid2 = np.zeros((3, 3), dtype=int)
     # sparsely populate it with blue
-    for i in range(3):
-        for j in range(3):
+    for x in range(3):
+        for y in range(3):
             if np.random.random() < 0.3:
-                grid2[i][j] = blue
+                grid2[x,y] = blue
     
-    # create a 3x1 grid of gray
-    grid3 = np.zeros((3, 1), dtype=int)
-    for i in range(3):
-        grid3[i][0] = grey
+    # create a 1x3 grid of gray (the divider)
+    grid3 = np.zeros((1, 3), dtype=int)
+    grid3[0, :] = grey
 
     # concatenate the three grids
-    grid = np.concatenate((grid1, grid3, grid2), axis=1)
+    grid = np.concatenate((grid1, grid3, grid2), axis=0)
 
     return grid
 
