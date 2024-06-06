@@ -49,6 +49,38 @@ def draw_line(grid, x, y, length, color, direction):
 
     return grid
 
+def find_connected_components(grid, background=black, connectivity=4, monochromatic=True):
+    """
+    Find the connected components in the grid. Returns a list of connected components, where each connected component is a numpy array.
+
+    connectivity: 4 or 8, for 4-way or 8-way connectivity.
+    monochromatic: if True, each connected component is assumed to have only one color. If False, each connected component can include multiple colors.
+    """
+
+    from scipy.ndimage import label
+
+    if connectivity == 4:
+        structure = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+    elif connectivity == 8:
+        structure = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+    else:
+        raise ValueError("Connectivity must be 4 or 8.")
+    
+    if not monochromatic: # if we allow multiple colors in a connected component, we can ignore color except for whether it's the background
+        labeled, n_objects = label(grid != background, structure)
+    else:
+        labeled, n_objects = label((grid+1)*(grid != background), structure)
+
+    connected_components = []
+    for i in range(n_objects):
+        connected_component = grid * (labeled == i + 1)
+        connected_components.append(connected_component)
+
+    return connected_components
+
+
+
+
 def blit(grid, sprite, x, y, transparent=None):
     """
     Copies the sprite into the grid at the specified location. Modifies the grid in place.
@@ -229,7 +261,7 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
 
     return grid
 
-def random_sprite(n, m, symmetry = None, color_palette = None):
+def random_sprite(n, m, symmetry=None, color_palette=None):
     """
     Generate a sprite (an object), represented as a numpy array.
 
