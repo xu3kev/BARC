@@ -150,8 +150,9 @@ def show_colored_grid(grid):
     color_names = ['black', 'blue', 'red', 'green', 'yellow', 'grey', 'pink', 'orange', 'teal', 'maroon']
     color_8bit = {"black": 0, "blue": 4, "red": 1, "green": 2, "yellow": 3, "grey": 7, "pink": 13, "orange": 202, "teal": 6, "maroon": 196}
 
-    for row in grid:
-        for cell in row:
+    for y in range(grid.shape[1]):
+        for x in range(grid.shape[0]):
+            cell = grid[x, y]
             color_code = color_8bit[color_names[cell]]
             print(f"\033[38;5;{color_code}m{cell}\033[0m", end="")
         print()
