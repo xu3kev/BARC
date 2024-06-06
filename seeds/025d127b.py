@@ -9,8 +9,8 @@ black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 # objects
 
 # description:
-# In the input you will see a set of objects, each consisting of a horizontal top/bottom and diagonal left/right edges
-# To make the output shift the whole object right *except* for the bottom edge and the bottommost pixel of the right diagonal edge (which stay put)
+# In the input you will see a set of objects, each consisting of a horizontal top/bottom and diagonal left/right edges (but that structure is not important)
+# To make the output shift right each pixel in the object *except* when there are no other pixels down and to the right
 
 def main(input_grid: np.ndarray) -> np.ndarray:
     # find the connected components, which are monochromatic objects
@@ -19,30 +19,19 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     output_grid = np.zeros_like(input_grid)
 
     for obj in objects:
-        # separate the object into the part that moves right, and the part that stays put
-        # the part that moves right is everything except the bottom edge and the bottommost pixel of the right diagonal edge
-        object_mask = obj != black
-        staying_part = np.copy(object_mask)
-        color = np.unique(obj)[1]
+        transformed_object = np.zeros_like(obj)
 
-        # find the bottom right-hand corner
-        # this is the pixel that has the biggest x and the biggest y
-        biggest_x = np.argwhere(object_mask)[:,0].max()
-        biggest_y = np.argwhere(object_mask)[:,1].max()
+        for x in range(obj.shape[0]):
+            for y in range(obj.shape[1]):
+                if obj[x, y] != black:
+                    # check that there are other colored pixels down and to the right
+                    down_and_to_the_right = obj[x+1:, y+1:]
+                    if np.any(down_and_to_the_right != black):
+                        transformed_object[x+1, y] = obj[x, y]
+                    else:
+                        transformed_object[x, y] = obj[x, y]
 
-        # everything above the bottom bar doesn't stay put (except for the bottom pixel of the right diagonal edge)
-        staying_part[:, :biggest_y] = False
-        staying_part[biggest_x, biggest_y-1] = True 
-
-        # the part that moves right is the opposite of the part that stays put
-        moving_part = object_mask & ~staying_part
-
-        # move it right by one pixel
-        moved_part = np.roll(moving_part, 1, axis=0)
-
-        # combine the moving and staying parts
-        output_grid[moved_part] = color
-        output_grid[staying_part] = color
+        blit(output_grid, transformed_object, 0, 0, transparent=black)
 
     return output_grid
 
