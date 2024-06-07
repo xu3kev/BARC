@@ -5,6 +5,7 @@ from enum import Enum
 import hashlib
 import diskcache as dc
 import random
+from func_timeout import func_timeout, FunctionTimedOut
 
 class Provider(Enum):
     OPENAI = 'openai'
@@ -115,6 +116,7 @@ if __name__ == "__main__":
     seeds = [seed for seed in seeds if re.match(pattern, seed)]
 
     # print all files
+    print("Used the following seeds:")
     for seed in seeds:
         print(seed)
 
@@ -130,15 +132,92 @@ if __name__ == "__main__":
         common_lib = f.read()
     prompt = "The following code examples describe a function that generates a color grid input and a function that transforms the input grid to output grid. Later, the input and output grids will be given to students as puzzle. The puzzle is to figure out the rule that transforms the input grid to output grid. The puzzles should be interesting and challenging for students to solve. You will be creative and come up with similar and interesting problems. You can use the provided code examples as a reference to create your own problems."
 
-    prompt += "\n\n# Common Library:\n\n```python\n" + common_lib + "\n```\n"
-    for i in range(len(seed_content)):
-        prompt += "\n\n# Example:\n\n```python\n"+ seed_content[i] + "\n```\n"
+    prompt += "\n\nCommon Library:\n\n```python\n" + common_lib + "\n```\n"
 
-    prompt += "\n\n# Your task is to create similar and interesting problems. You can use the provided code examples as a reference to create your own problems."
+    prompt += "\nThe input generator function will be the function `generate_input`, and the transform function will be the function `main`.\n"
+
+    for i in range(len(seed_content)):
+        prompt += "\n\nExample:\n\n```python\n"+ seed_content[i] + "\n```\n"
+
+    prompt += "\n\nFollowing the above format, your task is to create similar and interesting problems. You can use the provided code examples as a reference to create your own problems. Be sure to include the input generator function `generate_input` and the transform function `main` in your code examples in the same single code block."
+    prompt += '\nMake use of the common library functions in your code examples. Come up with interesting visual or physic-inspired problems.'
 
     client = LLMClient()
-    samples = client.generate(prompt, 32)
+    samples = client.generate(prompt, 64)
 
     codes = []
     for sample in samples:
         codes.extend(parse_code(sample))
+    
+    from utils import extract_functions, extract_function_calls
+    common_lib_functions = extract_functions(common_lib)
+    common_lib_function_names = set([f["name"] for f in common_lib_functions])
+
+    from utils import remove_trailing_code
+    htmls = []
+    for code in codes:
+        code = remove_trailing_code(code)
+        try:
+            function_calls = extract_function_calls(code)
+            # set intersection to find common function names
+            common_functions_calls = common_lib_function_names.intersection(set(function_calls))
+        except:
+            print("Error in extracting function calls")
+
+        print(f"Code:\n{code}")
+        print(f"Funtion calls: {function_calls}")
+        print(f"Common functions calls: {common_functions_calls}")
+        pwd = os.getcwd()
+        global_vars = {}
+        try:
+            exec(f"""{code}
+examples_input_output = []
+for _ in range(4):
+    input_grid = generate_input()
+    output_grid = main(input_grid)
+    
+    example = {{'input': input_grid, 'output': output_grid}}
+    examples_input_output.append(example)
+#visualize(generate_input, main)
+""", global_vars)
+        except Exception as e:
+            print("Error in executing code")
+            print(f"Error: {e}")
+            continue
+        finally:
+            os.chdir(pwd)
+        
+
+        from utils import generate_html_grid
+        # an html string showing the Common Lib Function call names
+        info_html = f"""<div>Used Common Library Functions: {", ".join(list(common_functions_calls))}</div>"""
+        grid_html = generate_html_grid(global_vars["examples_input_output"])
+        # an html string showing the function calls in the code, use syntax highlighting
+        # Syntax highlighting for the code
+        from pygments import highlight
+        from pygments.lexers import PythonLexer
+        from pygments.formatters import HtmlFormatter
+        def highlight_code(code):
+            formatter = HtmlFormatter()
+            highlighted_code = highlight(code, PythonLexer(), formatter)
+            style = f"<style>{formatter.get_style_defs('.highlight')}</style>"
+            return style + highlighted_code
+        code_html = highlight_code(code)
+        htmls.append(grid_html + info_html + code_html)
+
+
+# Combining everything into a final HTML
+final_html = f"""
+<html>
+<head>
+<title>Code Visualization</title>
+</head>
+<body>
+{"<hr>".join(htmls)}
+</body>
+</html>
+"""
+
+with open("output.html", "w") as f:
+    f.write(final_html)
+
