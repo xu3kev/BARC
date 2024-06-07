@@ -6,7 +6,7 @@ from typing import *
 black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
 # concepts:
-# objects
+# objects, pixel manipulation
 
 # description:
 # In the input you will see a set of objects, each consisting of a horizontal top/bottom and diagonal left/right edges (but that structure is not important)
