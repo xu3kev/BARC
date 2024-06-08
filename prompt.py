@@ -144,13 +144,6 @@ if __name__ == "__main__":
             if func not in common_functions_calls_counter:
                 common_functions_calls_counter[func] = 0
             common_functions_calls_counter[func] += 1
-    import matplotlib.pyplot as plt
-    # ggplot
-    plt.style.use('ggplot')
-    plt.bar(common_functions_calls_counter.keys(), common_functions_calls_counter.values())
-    plt.xticks(rotation=90)
-    plt.tight_layout()
-    plt.show()
 
 
     prompt = "The following code examples describe a function that generates a color grid input and a function that transforms the input grid to output grid. Later, the input and output grids will be given to students as puzzle. The puzzle is to figure out the rule that transforms the input grid to output grid. The puzzles should be interesting and challenging for students to solve. You will be creative and come up with similar and interesting problems. You can use the provided code examples as a reference to create your own problems."
@@ -253,16 +246,3 @@ final_html = f"""
 
 with open("output.html", "w") as f:
     f.write(final_html)
-
-
-# plot it as a bar chart
-# ggplot style
-import matplotlib.pyplot as plt
-plt.style.use('ggplot')
-plt.bar(common_functions_calls_counter.keys(), common_functions_calls_counter.values())
-# Rotate x-axis labels
-plt.xticks(rotation=90)
-# make sure the labels are not cut off
-plt.tight_layout()
-plt.show()
-
