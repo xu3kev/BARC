@@ -3,8 +3,6 @@ from common import *
 import numpy as np
 from typing import *
 
-black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
-
 # concepts:
 # collision detection, sliding objects
 
@@ -16,26 +14,24 @@ def main(input_grid):
 
     # get just the teal object
     teal_object = np.zeros_like(input_grid)
-    teal_object[input_grid == teal] = teal
+    teal_object[input_grid == Color.TEAL] = Color.TEAL
 
     # get just the red object
     red_object = np.zeros_like(input_grid)
-    red_object[input_grid == red] = red
+    red_object[input_grid == Color.RED] = Color.RED
     
-    # the 4 sliding direction of left, up, down, right
-    directions = [np.array([0, -1]), np.array([-1, 0]), np.array([1, 0]), np.array([0, 1])]
+    # the 4 sliding direction of up, down, left, right
+    directions = [np.array([0, -1]), np.array([0, 1]), np.array([-1, 0]), np.array([1, 0])]
 
     # all directions by magnitudes 1, 2, 3, ... maximum amount
     for i in range(1, max(input_grid.shape)):
         for direction in directions:
             dx, dy = direction * i
-            if collision(object1=teal_object, object2=red_object, x2=dx, y2=dy):
-                # we have to subtract 1 from the magnitude because the last move made them collide, rather than just touch
-                i -= 1
-                dx, dy = direction * i
+            # check if the objects are touching after sliding
+            if contact(object1=teal_object, object2=red_object, x2=dx, y2=dy):
 
                 output_grid = np.copy(teal_object)
-                blit(output_grid, red_object, dx, dy, transparent=black)
+                blit(output_grid, red_object, dx, dy, transparent=Color.BLACK)
 
                 return output_grid
             
@@ -48,23 +44,23 @@ def generate_input():
 
     # make a 2x2 teal square, put it somewhere random on the grid
     x, y = random.randint(0, n - 2), random.randint(0, m - 2)
-    grid[x:x+2, y:y+2] = teal
+    grid[x:x+2, y:y+2] = Color.TEAL
 
     # make a random sprite of [3,4] x [3,4] with a random symmetry type and the color red
-    sprite = random_sprite([3,4], [3,4], symmetry="not_symmetric", color_palette=[red])
+    sprite = random_sprite([3,4], [3,4], symmetry="not_symmetric", color_palette=[Color.RED])
 
     # put the sprite somewhere random on the grid
-    x, y = random_free_location_for_object(grid, sprite, background=black)
+    x, y = random_free_location_for_object(grid, sprite, background=Color.BLACK)
 
-    blit(grid, sprite, x, y, transparent=black)    
+    blit(grid, sprite, x, y, transparent=Color.BLACK)    
 
     # check that we could slide the object either vertically or horizontally in order to touch the red square
     # this will be true if there is a row or column that has both red and blue
-    for i in range(n):
-        if teal in grid[i, :] and red in grid[i, :]:
+    for x in range(n):
+        if Color.TEAL in grid[x, :] and Color.RED in grid[x, :]:
             return grid
-    for j in range(m):
-        if teal in grid[:, j] and red in grid[:, j]:
+    for y in range(m):
+        if Color.TEAL in grid[:, y] and Color.RED in grid[:, y]:
             return grid
     
     # if not, try again

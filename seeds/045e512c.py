@@ -3,8 +3,6 @@ from common import *
 import numpy as np
 from typing import *
 
-black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
-
 # concepts:
 # sprites, color change, collision detection, repetition, overlap
 
@@ -17,10 +15,10 @@ black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
 def main(input_grid: np.ndarray) -> np.ndarray:
     # find the objects, which are monochromatic connected components
-    objects = find_connected_components(input_grid, background=black, connectivity=8, monochromatic=True)
+    objects = find_connected_components(input_grid, background=Color.BLACK, connectivity=8, monochromatic=True)
 
     # find the central object, which is the biggest
-    central_object = max(objects, key=lambda obj: np.sum(obj != black))
+    central_object = max(objects, key=lambda obj: np.sum(obj != Color.BLACK))
 
     # find the other objects
     other_objects = [obj for obj in objects if not np.array_equal(obj, central_object)]
@@ -36,7 +34,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
             translated_central_object = np.roll(central_object, displacement_vector, axis=(0, 1))
 
             # check if the translated object completely overlaps the other object
-            translated_mask, other_mask = translated_central_object != black, other_object != black
+            translated_mask, other_mask = translated_central_object != Color.BLACK, other_object != Color.BLACK
             overlaps = np.all(translated_mask & other_mask == other_mask)
 
             if overlaps:
@@ -48,12 +46,12 @@ def main(input_grid: np.ndarray) -> np.ndarray:
 
         # color change
         color_of_other_object = np.unique(other_object)[1]
-        central_object[central_object != black] = color_of_other_object
+        central_object[central_object != Color.BLACK] = color_of_other_object
 
         # repeat the displacement indefinitely until it falls off the canvas
         for i in range(1, 10):
             displacement = (displacement_vector[0] * i, displacement_vector[1] * i)
-            blit(output_grid, central_object, displacement[0], displacement[1], transparent=black)
+            blit(output_grid, central_object, displacement[0], displacement[1], transparent=Color.BLACK)
             
     return output_grid
 
@@ -65,12 +63,12 @@ def generate_input() -> np.ndarray:
     grid = np.zeros((n, m), dtype=int)
 
     # make a 3x3 object
-    central_color = np.random.choice([blue, red, green, yellow, pink, orange, teal, maroon])
+    central_color = np.random.choice(Color.NOT_BLACK)
     central_object = random_sprite(3, 3, color_palette=[central_color])
 
     # place the central object near the center
     x, y = np.random.randint(int(0.3*n), int(0.7*n)), np.random.randint(int(0.3*m), int(0.7*m))
-    blit(grid, central_object, x, y, transparent=black)
+    blit(grid, central_object, x, y, transparent=Color.BLACK)
 
     # possible displacement vectors can range in any of the eight different directions (cardinal directions and in between them)
     # they should be close to just a little more than the length of the central object, however
@@ -85,22 +83,22 @@ def generate_input() -> np.ndarray:
         # make a random object by recoloring the central object, translating by the vector,
         # and then randomly removing parts of it by flipping random pixels to black
         other_object = np.copy(central_object)
-        other_object[other_object != black] = np.random.choice(range(1, 10))
+        other_object[other_object != Color.BLACK] = np.random.choice(Color.NOT_BLACK)
 
         # flip some random pixels to black:
         # first find the foreground (nonblack) pixels,
         # then randomly sample a subset of them to color black
-        nonblack_pixels = np.argwhere(other_object != black)
+        nonblack_pixels = np.argwhere(other_object != Color.BLACK)
         num_nonblack = len(nonblack_pixels)
         num_to_flip = np.random.randint(1, num_nonblack-3)
         random_subset_of_nonblack_pixels = random.sample(list(nonblack_pixels), k=num_to_flip)
 
         # color black
         for pixel in random_subset_of_nonblack_pixels:
-            other_object[pixel[0], pixel[1]] = black        
+            other_object[pixel[0], pixel[1]] = Color.BLACK        
 
         # place the new object near the center, but offset by the vector
-        blit(grid, other_object, x + vector[0], y + vector[1], transparent=black)
+        blit(grid, other_object, x + vector[0], y + vector[1], transparent=Color.BLACK)
 
     return grid
 

@@ -3,8 +3,6 @@ from common import *
 import numpy as np
 from typing import *
 
-black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
-
 # concepts:
 # repetition, horizontal/vertical bars
 
@@ -15,7 +13,7 @@ black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
 def main(input_grid: np.ndarray) -> np.ndarray:
     # find the individual coloured pixels
-    colored_pixels = np.argwhere(input_grid != black)
+    colored_pixels = np.argwhere(input_grid != Color.BLACK)
 
     # there should be exactly two colored pixels
     assert len(colored_pixels) == 2
@@ -69,8 +67,8 @@ def generate_input() -> np.ndarray:
     grid = np.zeros((n, m), dtype=int)
 
     # place two colored pixels. They should be on the left/right edges, so that they give rise to horizontal bars
-    x1, y1, color1 = random.choice([0,n-1]), np.random.randint(m//2), np.random.randint(1, 10)
-    x2, y2, color2 = random.choice([0,n-1]), np.random.randint(y1+2, m), np.random.randint(1, 10)
+    x1, y1, color1 = random.choice([0,n-1]), np.random.randint(m//2), random.choice(Color.NOT_BLACK)
+    x2, y2, color2 = random.choice([0,n-1]), np.random.randint(y1+2, m), random.choice(Color.NOT_BLACK)
 
     grid[x1, y1] = color1
     grid[x2, y2] = color2

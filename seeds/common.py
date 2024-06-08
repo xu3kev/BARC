@@ -2,10 +2,35 @@
 import numpy as np
 import random
 
-black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
+class Color:
+    """
+    Enum for colors
+
+    Color.BLACK, Color.BLUE, Color.RED, Color.GREEN, Color.YELLOW, Color.GREY, Color.PINK, Color.ORANGE, Color.TEAL, Color.MAROON
+
+    Use Color.ALL_COLORS for all possible colors
+    Use Color.NOT_BLACK for all colors except black
+    """
+
+    BLACK = 0
+    BLUE = 1
+    RED = 2
+    GREEN = 3
+    YELLOW = 4
+    GREY = 5
+    GRAY = 5
+    PINK = 6
+    ORANGE = 7
+    TEAL = 8
+    MAROON = 9
+
+    ALL_COLORS = [BLACK, BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON]
+    NOT_BLACK = [BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON]
 
 
-def flood_fill(grid, x, y, color, background=black):
+
+
+def flood_fill(grid, x, y, color, background=Color.BLACK):
     """
     Fill the connected region that contains the point (x, y) with the specified color.
     """
@@ -49,7 +74,7 @@ def draw_line(grid, x, y, length, color, direction):
 
     return grid
 
-def find_connected_components(grid, background=black, connectivity=4, monochromatic=True):
+def find_connected_components(grid, background=Color.BLACK, connectivity=4, monochromatic=True):
     """
     Find the connected components in the grid. Returns a list of connected components, where each connected component is a numpy array.
 
@@ -97,9 +122,17 @@ def blit(grid, sprite, x, y, transparent=None):
 
     return new_grid
 
-def collision(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, background=black):
+def collision(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, background=Color.BLACK):
     """
     Check if object1 and object2 collide when object1 is at (x1, y1) and object2 is at (x2, y2).
+
+    Example usage:
+
+    # Check if a sprite can be placed onto a grid at (X,Y)
+    collision(object1=output_grid, object2=a_sprite, x2=X, y2=Y)
+
+    # Check if two objects collide
+    collision(object1=object1, object2=object2, x1=X1, y1=Y1, x2=X2, y2=Y2)
     """
     n1, m1 = object1.shape
     n2, m2 = object2.shape
@@ -117,9 +150,56 @@ def collision(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, backgr
     
     return False
 
+def contact(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, background=Color.BLACK, connectivity=4):
+    """
+    Check if object1 and object2 touch each other (have contact) when object1 is at (x1, y1) and object2 is at (x2, y2).
+    They are touching each other if they share a border, or if they overlap. Collision implies contact, but contact does not imply collision.
 
-def random_free_location_for_object(grid, sprite, background=black):
-    """Find a random free location for the sprite in the grid."""
+    connectivity: 4 or 8, for 4-way or 8-way connectivity. (8-way counts diagonals as touching, 4-way only counts cardinal directions as touching)
+
+    Example usage:
+
+    # Check if a sprite touches anything if it were to be placed at (X,Y)
+    contact(object1=output_grid, object2=a_sprite, x2=X, y2=Y)
+
+    # Check if two objects touch each other
+    contact(object1=object1, object2=object2, x1=X1, y1=Y1, x2=X2, y2=Y2)
+    """
+    n1, m1 = object1.shape
+    n2, m2 = object2.shape
+
+    dx = x2 - x1
+    dy = y2 - y1
+
+    if connectivity == 4:
+        moves = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0)]
+    elif connectivity == 8:
+        moves = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    else:
+        raise ValueError("Connectivity must be 4 or 8.")
+
+    for x in range(n1):
+        for y in range(m1):
+            if object1[x, y] != background:
+                for mx, my in moves:
+                    new_x = x - dx + mx
+                    new_y = y - dy + my
+                    if 0 <= new_x < n2 and 0 <= new_y < m2 and object2[new_x, new_y] != background:
+                        return True
+    
+    return False
+
+
+def random_free_location_for_object(grid, sprite, background=Color.BLACK):
+    """
+    Find a random free location for the sprite in the grid
+    Returns a tuple (x, y) of the top-left corner of the sprite in the grid, which can be passed to `blit`
+
+    Example usage:
+    x, y = random_free_location_for_object(grid, sprite) # find the location
+    assert not collision(object1=grid, object2=sprite, x2=x, y2=y) 
+    blit(grid, sprite, x, y)
+    """
 
     n, m = grid.shape
     dim1, dim2 = sprite.shape
@@ -145,7 +225,10 @@ def random_free_location_for_object(grid, sprite, background=black):
 
 
 def show_colored_grid(grid):
-    """Not used by the language model, used by the rest of the code for debugging"""
+    """
+    internal function not used by LLM
+    Not used by the language model, used by the rest of the code for debugging
+    """
 
     color_names = ['black', 'blue', 'red', 'green', 'yellow', 'grey', 'pink', 'orange', 'teal', 'maroon']
     color_8bit = {"black": 0, "blue": 4, "red": 1, "green": 2, "yellow": 3, "grey": 7, "pink": 13, "orange": 202, "teal": 6, "maroon": 196}
@@ -159,7 +242,9 @@ def show_colored_grid(grid):
 
     
 def visualize(input_generator, transform, n_examples=5):
-    """Not used by the language model. For us to help with debugging"""
+    """
+    internal function not used by LLM
+    """
         
     for index in range(n_examples):
         input_grid = input_generator()
@@ -173,13 +258,11 @@ def visualize(input_generator, transform, n_examples=5):
         if index < n_examples-1:
             print("\n\n---------------------\n\n")
 
-
-
-
-
-# ------------------- API for generating Sprites (in progress) -------------------
 def apply_symmetry(sprite, symmetry_type):
-    """Apply the specified symmetry within the bounds of the sprite."""
+    """
+    internal function not used by LLM
+    Apply the specified symmetry within the bounds of the sprite.
+    """
     n, m = sprite.shape
     if symmetry_type == 'horizontal':
         for y in range(m):
@@ -192,7 +275,10 @@ def apply_symmetry(sprite, symmetry_type):
     return sprite
 
 def apply_diagonal_symmetry(sprite):
-    """Apply diagonal symmetry within the bounds of the sprite. Assumes square sprite."""
+    """
+    internal function not used by LLM
+    Apply diagonal symmetry within the bounds of the sprite. Assumes square sprite.
+    """
     n, m = sprite.shape
     if n != m:
         raise ValueError("Diagonal symmetry requires a square sprite.")
@@ -201,14 +287,31 @@ def apply_diagonal_symmetry(sprite):
             sprite[x, y] = sprite[y, x] = sprite[x, y] or sprite[y, x]
     return sprite
 
-def is_contiguous(sprite):
-    """Check if a sprite is contiguous"""
+def is_contiguous(bitmask, transparent=Color.BLACK, connectivity=4):
+    """
+    Check if an array is contiguous.
+
+    transparent: Color that counts as transparent (default: Color.BLACK)
+    connectivity: 4 or 8, for 4-way (only cardinal directions) or 8-way connectivity (also diagonals) (default: 4)
+
+    Returns True/False
+    """
     from scipy.ndimage import label
-    labeled, n_objects = label(sprite)
+    if connectivity == 4:
+        structure = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+    elif connectivity == 8:
+        structure = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+    else:
+        raise ValueError("Connectivity must be 4 or 8.")
+    
+    labeled, n_objects = label(bitmask != transparent, structure)
     return n_objects == 1
     
 
 def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, color_palate=None):
+    """"
+    internal function not used by LLM
+    """
     # pick random colors, number of colors follows a geometric distribution truncated at 9
     if color_palate is None:
         n_colors = 1
@@ -270,7 +373,7 @@ def random_sprite(n, m, symmetry=None, color_palette=None):
     symmetry: optional type of symmetry to apply to the sprite. Can be 'horizontal', 'vertical', 'diagonal', 'not_symmetric'. If None, a random symmetry type will be chosen.
     color_palette: optional list of colors to use in the sprite. If None, a random color palette will be chosen.
 
-
+    Returns an (n,m) NumPy array representing the sprite.
     """
     # Decide on symmetry type before generating the sprites
     symmetry_types = ['horizontal', 'vertical', 'diagonal', "not_symmetric"]

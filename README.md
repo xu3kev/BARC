@@ -31,8 +31,6 @@ from common import *
 import numpy as np
 from typing import *
 
-black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
-
 # concepts:
 # <list of concepts, separated by commas>
 

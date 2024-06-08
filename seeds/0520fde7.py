@@ -2,8 +2,6 @@ import numpy as np
 from typing import *
 from common import *
 
-black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
-
 # concepts:
 # boolean logical operations, bitmasks with separator
 
@@ -22,8 +20,8 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     for i in range(3):
         for j in range(3):
             # If both the left and right grids are blue, set the output to red
-            if left_input[i][j] == blue and right_input[i][j] == blue:
-                output_grid[i][j] = red
+            if left_input[i][j] == Color.BLUE and right_input[i][j] == Color.BLUE:
+                output_grid[i][j] = Color.RED
 
     return output_grid
 
@@ -35,7 +33,7 @@ def generate_input() -> np.ndarray:
     for x in range(3):
         for y in range(3):
             if np.random.random() < 0.5:
-                grid1[x,y] = blue
+                grid1[x,y] = Color.BLUE
 
     # create a 3x3 grid of black (0)
     grid2 = np.zeros((3, 3), dtype=int)
@@ -43,11 +41,11 @@ def generate_input() -> np.ndarray:
     for x in range(3):
         for y in range(3):
             if np.random.random() < 0.3:
-                grid2[x,y] = blue
+                grid2[x,y] = Color.BLUE
     
     # create a 1x3 grid of gray (the divider)
     grid3 = np.zeros((1, 3), dtype=int)
-    grid3[0, :] = grey
+    grid3[0, :] = Color.GRAY
 
     # concatenate the three grids
     grid = np.concatenate((grid1, grid3, grid2), axis=0)

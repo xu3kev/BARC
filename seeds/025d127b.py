@@ -3,8 +3,6 @@ from common import *
 import numpy as np
 from typing import *
 
-black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
-
 # concepts:
 # objects, pixel manipulation
 
@@ -14,7 +12,7 @@ black, blue, red, green, yellow, grey, pink, orange, teal, maroon = range(10)
 
 def main(input_grid: np.ndarray) -> np.ndarray:
     # find the connected components, which are monochromatic objects
-    objects = find_connected_components(input_grid, background=black, connectivity=8, monochromatic=True)
+    objects = find_connected_components(input_grid, background=Color.BLACK, connectivity=8, monochromatic=True)
 
     output_grid = np.zeros_like(input_grid)
 
@@ -23,15 +21,15 @@ def main(input_grid: np.ndarray) -> np.ndarray:
 
         for x in range(obj.shape[0]):
             for y in range(obj.shape[1]):
-                if obj[x, y] != black:
+                if obj[x, y] != Color.BLACK:
                     # check that there are other colored pixels down and to the right
                     down_and_to_the_right = obj[x+1:, y+1:]
-                    if np.any(down_and_to_the_right != black):
+                    if np.any(down_and_to_the_right != Color.BLACK):
                         transformed_object[x+1, y] = obj[x, y]
                     else:
                         transformed_object[x, y] = obj[x, y]
 
-        blit(output_grid, transformed_object, 0, 0, transparent=black)
+        blit(output_grid, transformed_object, 0, 0, transparent=Color.BLACK)
 
     return output_grid
 
@@ -64,11 +62,11 @@ def generate_input() -> np.ndarray:
 
         # place the object randomly on the grid, assuming we can find a spot
         try:
-            x, y = random_free_location_for_object(grid, obj, background=black)
+            x, y = random_free_location_for_object(grid, obj, background=Color.BLACK)
         except:
             continue
 
-        blit(grid, obj, x, y, transparent=black)
+        blit(grid, obj, x, y, transparent=Color.BLACK)
 
     return grid
 
