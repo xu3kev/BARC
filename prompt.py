@@ -6,7 +6,10 @@ import hashlib
 import diskcache as dc
 import random
 from func_timeout import func_timeout, FunctionTimedOut
-from utils import extract_functions, extract_function_calls
+from utils import extract_functions, extract_function_calls, extract_class_definitions
+import sys
+# add seeds/ to the python path
+sys.path.append("seeds/")
 
 class Provider(Enum):
     OPENAI = 'openai'
@@ -126,14 +129,22 @@ if __name__ == "__main__":
         with open(f"seeds/{seed}") as f:
             content = f.read()
             assert "# ============= remove below this point for prompting =============" in content
-            content = content.split("# ============= remove below this point for prompting =============")[0]
+            content = content.split("# ============= remove below this point for prompting =============")[0].strip()
             seed_content.append(content)
 
     with open("seeds/common.py") as f:
         common_lib = f.read()
 
     common_lib_functions = extract_functions(common_lib)
+    # Clean the common lib by removing any functions whose docstring begins/contains "internal function not used by LLM"
+    common_lib_functions = [f for f in common_lib_functions if "internal function not used by LLM" not in f["docstring"]]
     common_lib_function_names = set([f["name"] for f in common_lib_functions])
+
+    common_lib_classes = extract_class_definitions(common_lib)
+    # Clean the common lib by removing any classes whose docstring begins/contains "internal class not used by LLM"
+    common_lib_classes = [c for c in common_lib_classes if "internal class not used by LLM" not in c["docstring"]]
+
+    common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
 
     common_functions_calls_counter = {}
     for content in seed_content:
@@ -145,18 +156,43 @@ if __name__ == "__main__":
                 common_functions_calls_counter[func] = 0
             common_functions_calls_counter[func] += 1
 
+    if False: # old prompt
+        prompt = "The following code examples describe a function that generates a color grid input and a function that transforms the input grid to output grid. Later, the input and output grids will be given to students as puzzle. The puzzle is to figure out the rule that transforms the input grid to output grid. The puzzles should be interesting and challenging for students to solve. You will be creative and come up with similar and interesting problems. You can use the provided code examples as a reference to create your own problems."
 
-    prompt = "The following code examples describe a function that generates a color grid input and a function that transforms the input grid to output grid. Later, the input and output grids will be given to students as puzzle. The puzzle is to figure out the rule that transforms the input grid to output grid. The puzzles should be interesting and challenging for students to solve. You will be creative and come up with similar and interesting problems. You can use the provided code examples as a reference to create your own problems."
+        prompt += "\n\nCommon Library:\n\n```python\n" + common_lib + "\n```\n"
 
-    prompt += "\n\nCommon Library:\n\n```python\n" + common_lib + "\n```\n"
+        prompt += "\nThe input generator function will be the function `generate_input`, and the transform function will be the function `main`.\n"
 
-    prompt += "\nThe input generator function will be the function `generate_input`, and the transform function will be the function `main`.\n"
+        for i in range(len(seed_content)):
+            prompt += "\n\nExample:\n\n```python\n"+ seed_content[i] + "\n```\n"
 
-    for i in range(len(seed_content)):
-        prompt += "\n\nExample:\n\n```python\n"+ seed_content[i] + "\n```\n"
+        prompt += "\n\nFollowing the above format, your task is to create similar and interesting problems. You can use the provided code examples as a reference to create your own problems. Be sure to include the input generator function `generate_input` and the transform function `main` in your code examples in the same single code block."
+        prompt += '\nMake use of the common library functions in your code examples. Come up with interesting visual or physic-inspired problems.'
+    else:
+        examples = "\n\n".join([f"Example puzzle:\n```python\n{content}\n```" for content in seed_content])
+        prompt = f"""You are a puzzle maker designing geometric and physical puzzles for curious middle-schoolers.
 
-    prompt += "\n\nFollowing the above format, your task is to create similar and interesting problems. You can use the provided code examples as a reference to create your own problems. Be sure to include the input generator function `generate_input` and the transform function `main` in your code examples in the same single code block."
-    prompt += '\nMake use of the common library functions in your code examples. Come up with interesting visual or physic-inspired problems.'
+Each puzzle consists of discovery a deterministic rule, pattern, procedure, algorithm, or transformation law that maps inputs to outputs.
+Both the inputs and outputs are 2D grids of colored pixels.
+
+The middle schoolers are trying to discover this deterministic transformation, which can be implemented as a Python function called `main`.
+Designing a puzzle involves also creating example inputs, which can be implemented as a Python function called `generate_input`. Unlike `main`, the `generate_input` function should be stochastic, so that every time you run it, you get another good example of what the transformation can be applied to.
+
+Please design a single puzzle by writing code containing the `generate_input` and `main` functions. You can use the following standard library (`common.py`):
+    
+```python
+{common_lib}
+```
+
+To give you ideas, here are some examples of other puzzles that middle schoolers enjoyed:
+{examples}
+
+Your task is to create a new puzzle that is similar to the examples provided, following these steps:
+1. First brainstorm possible puzzle ideas, think of the geometric/physical/algorithmic concepts you want to use,
+2. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you are using and `# description:` describing the inputs and transformation.
+
+Be sure to make the transformation `main` deterministic.
+"""
 
     client = LLMClient()
     samples = client.generate(prompt, 64)

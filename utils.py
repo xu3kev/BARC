@@ -9,10 +9,17 @@ def extract_functions(code):
             func_name = node.name
             docstring = ast.get_docstring(node)
             func_code = ast.get_source_segment(code, node)
+            # the api definition is just the source go to the function MINUS the actual implementation, so just the name, type signature/arguments, and docstring
+            api_definition = ast.FunctionDef(name=node.name, args=node.args, decorator_list=node.decorator_list, returns=node.returns,
+                                             type_comment=node.type_comment, body=node.body[:1] if docstring else node.body[:0])
+            api_definition = ast.unparse(ast.fix_missing_locations(api_definition))
+            if not docstring:
+                api_definition = api_definition + "\n    pass"
             self.functions.append({
                 'name': func_name,
                 'docstring': docstring,
-                'code': func_code
+                'code': func_code,
+                'api_definition': api_definition
             })
             self.generic_visit(node)
 
@@ -20,6 +27,31 @@ def extract_functions(code):
     extractor = FunctionExtractor()
     extractor.visit(tree)
     return extractor.functions
+
+def extract_class_definitions(code):
+    class ClassExtractor(ast.NodeVisitor):
+        def __init__(self):
+            self.classes = []
+
+        def visit_ClassDef(self, node):
+            class_name = node.name
+            docstring = ast.get_docstring(node)
+            class_code = ast.get_source_segment(code, node)
+            api_definition = ast.ClassDef(name=node.name, bases=node.bases, keywords=node.keywords, decorator_list=node.decorator_list,
+                                          body=node.body[:1] if docstring else node.body[:0])
+            api_definition = ast.unparse(ast.fix_missing_locations(api_definition))
+            self.classes.append({
+                'name': class_name,
+                'docstring': docstring,
+                'code': class_code,
+                'api_definition': api_definition
+            })
+            self.generic_visit(node)
+
+    tree = ast.parse(code)
+    extractor = ClassExtractor()
+    extractor.visit(tree)
+    return extractor.classes
 
 def extract_function_calls(function_code):
     class FunctionCallExtractor(ast.NodeVisitor):
@@ -118,17 +150,20 @@ def example_function(x):
         {
             'name': 'foo',
             'docstring': 'This is a docstring for foo.',
-            'code': 'def foo():\n    """\n    This is a docstring for foo.\n    """\n    return "foo"'
+            'code': 'def foo():\n    """\n    This is a docstring for foo.\n    """\n    return "foo"', 
+            'api_definition': 'def foo():\n    """\n    This is a docstring for foo.\n    """'
         },
         {
             'name': 'bar',
             'docstring': 'This is a docstring for bar.',
-            'code': 'def bar(x):\n    """\n    This is a docstring for bar.\n    """\n    return x * 2'
+            'code': 'def bar(x):\n    """\n    This is a docstring for bar.\n    """\n    return x * 2', 
+            'api_definition': 'def bar(x):\n    """\n    This is a docstring for bar.\n    """'
         },
         {
             'name': 'example_function',
             'docstring': None,
-            'code': 'def example_function(x):\n    y = foo(x)\n    z = bar(y)\n    return z'
+            'code': 'def example_function(x):\n    y = foo(x)\n    z = bar(y)\n    return z', 
+            'api_definition': 'def example_function(x):\n    pass'
         }
     ]
 

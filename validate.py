@@ -3,6 +3,9 @@ import os
 import importlib
 
 import sys
+# add seeds/ to the python path so we can import common
+sys.path.append("seeds/")
+from common import *
 
 import numpy as np
 
@@ -11,15 +14,13 @@ def validate(problem):
     # copy the file to temporary_validation.py
     os.system(f"cp seeds/{problem.uid}.py temporary_validation.py")
 
-    os.system(f"cp seeds/common.py .")
-
     # execute everything in temporary_validation.py, which is going to define a function called `main`
     # important that we are able to call this function here
     spec = importlib.util.spec_from_file_location("temporary_validation", "temporary_validation.py")
     temporary_validation = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(temporary_validation)    
     
-    from common import show_colored_grid # this has been copied. FIXME: Make it so you can import nonlocally, so we don't have to copy the file
+    #from common import show_colored_grid # this has been copied. FIXME: Make it so you can import nonlocally, so we don't have to copy the file
 
     failure = False
 
@@ -54,7 +55,7 @@ def validate(problem):
             failure = True
 
     # cleanup
-    os.system("rm temporary_validation.py common.py")
+    os.system("rm temporary_validation.py")
 
     if not failure: print(f"\t[+] passed")
 

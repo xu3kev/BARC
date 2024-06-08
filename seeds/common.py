@@ -10,6 +10,9 @@ class Color:
 
     Use Color.ALL_COLORS for all possible colors
     Use Color.NOT_BLACK for all colors except black
+
+    Colors are strings (NOT integers), so you can't do math/arithmetic/indexing on them.
+    (The exception is Color.BLACK, which is 0)
     """
 
     BLACK = 0

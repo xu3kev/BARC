@@ -51,16 +51,6 @@ def main(input_grid: np.ndarray) -> np.ndarray:
                 
     return output_grid
 
-
-# make a grid with rectangular cells of some kxk size, separated by horizontal and vertical bars
-# the grid is one color
-# the cells are black
-def make_jail_cells(grid_size, cell_size, color):
-    
-    
-    return grid, r_offset_x, r_offset_y
-
-
 def generate_input() -> np.ndarray:
 
     grid_size = 32
