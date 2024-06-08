@@ -6,6 +6,7 @@ import hashlib
 import diskcache as dc
 import random
 from func_timeout import func_timeout, FunctionTimedOut
+from utils import extract_functions, extract_function_calls
 
 class Provider(Enum):
     OPENAI = 'openai'
@@ -130,6 +131,28 @@ if __name__ == "__main__":
 
     with open("seeds/common.py") as f:
         common_lib = f.read()
+
+    common_lib_functions = extract_functions(common_lib)
+    common_lib_function_names = set([f["name"] for f in common_lib_functions])
+
+    common_functions_calls_counter = {}
+    for content in seed_content:
+        function_calls = extract_function_calls(content)
+        common_functions_calls = common_lib_function_names.intersection(set(function_calls))
+        print(f"Common functions calls: {common_functions_calls}")
+        for func in common_functions_calls:
+            if func not in common_functions_calls_counter:
+                common_functions_calls_counter[func] = 0
+            common_functions_calls_counter[func] += 1
+    import matplotlib.pyplot as plt
+    # ggplot
+    plt.style.use('ggplot')
+    plt.bar(common_functions_calls_counter.keys(), common_functions_calls_counter.values())
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+    plt.show()
+
+
     prompt = "The following code examples describe a function that generates a color grid input and a function that transforms the input grid to output grid. Later, the input and output grids will be given to students as puzzle. The puzzle is to figure out the rule that transforms the input grid to output grid. The puzzles should be interesting and challenging for students to solve. You will be creative and come up with similar and interesting problems. You can use the provided code examples as a reference to create your own problems."
 
     prompt += "\n\nCommon Library:\n\n```python\n" + common_lib + "\n```\n"
@@ -149,12 +172,11 @@ if __name__ == "__main__":
     for sample in samples:
         codes.extend(parse_code(sample))
     
-    from utils import extract_functions, extract_function_calls
-    common_lib_functions = extract_functions(common_lib)
-    common_lib_function_names = set([f["name"] for f in common_lib_functions])
 
     from utils import remove_trailing_code
     htmls = []
+
+    common_functions_calls_counter = {}
     for code in codes:
         code = remove_trailing_code(code)
         try:
@@ -169,24 +191,31 @@ if __name__ == "__main__":
         print(f"Common functions calls: {common_functions_calls}")
         pwd = os.getcwd()
         global_vars = {}
-        try:
+        def execute_code(code, global_vars):
             exec(f"""{code}
 examples_input_output = []
 for _ in range(4):
     input_grid = generate_input()
     output_grid = main(input_grid)
-    
+
     example = {{'input': input_grid, 'output': output_grid}}
     examples_input_output.append(example)
-#visualize(generate_input, main)
+    #visualize(generate_input, main)
 """, global_vars)
+
+        try:
+            func_timeout(5, execute_code, args=(code, global_vars))
+        except FunctionTimedOut:
+            print("Error: Code execution timed out after 10 seconds")
         except Exception as e:
             print("Error in executing code")
             print(f"Error: {e}")
-            continue
         finally:
             os.chdir(pwd)
-        
+
+        if "examples_input_output" not in global_vars or len(global_vars["examples_input_output"]) <= 2:
+            print("Error: Output not generated")
+            continue
 
         from utils import generate_html_grid
         # an html string showing the Common Lib Function call names
@@ -204,6 +233,10 @@ for _ in range(4):
             return style + highlighted_code
         code_html = highlight_code(code)
         htmls.append(grid_html + info_html + code_html)
+        for func in common_functions_calls:
+            if func not in common_functions_calls_counter:
+                common_functions_calls_counter[func] = 0
+            common_functions_calls_counter[func] += 1   
 
 
 # Combining everything into a final HTML
@@ -220,4 +253,16 @@ final_html = f"""
 
 with open("output.html", "w") as f:
     f.write(final_html)
+
+
+# plot it as a bar chart
+# ggplot style
+import matplotlib.pyplot as plt
+plt.style.use('ggplot')
+plt.bar(common_functions_calls_counter.keys(), common_functions_calls_counter.values())
+# Rotate x-axis labels
+plt.xticks(rotation=90)
+# make sure the labels are not cut off
+plt.tight_layout()
+plt.show()
 
