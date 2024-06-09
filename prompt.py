@@ -11,6 +11,7 @@ import sys
 # add seeds/ to the python path
 sys.path.append("seeds/")
 
+
 class Provider(Enum):
     OPENAI = 'openai'
     GROQ = 'groq'
@@ -112,17 +113,12 @@ def parse_code(paragraph):
 
     return code_blocks
 
-if __name__ == "__main__":
-    # get all files in seeds directory
-    seeds = os.listdir("seeds")
-    # filter files with .py extension and 8 hex value characters in the file name
-    pattern = r"[0-9a-f]{8}\.py"
-    seeds = [seed for seed in seeds if re.match(pattern, seed)]
+def make_prompt(seeds, rng_seed):
+    # make a random generator
+    rng = random.Random(rng_seed)
 
-    # print all files
-    print("Used the following seeds:")
-    for seed in seeds:
-        print(seed)
+    # Sort the seeds so that the order is consistent
+    seeds = list(sorted(seeds))
 
     seed_content = []
     for seed in seeds:
@@ -147,14 +143,24 @@ if __name__ == "__main__":
     common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
 
     common_functions_calls_counter = {}
+    concepts_in_seeds = []
     for content in seed_content:
         function_calls = extract_function_calls(content)
         common_functions_calls = common_lib_function_names.intersection(set(function_calls))
-        print(f"Common functions calls: {common_functions_calls}")
+
         for func in common_functions_calls:
             if func not in common_functions_calls_counter:
                 common_functions_calls_counter[func] = 0
             common_functions_calls_counter[func] += 1
+
+        # Extract the concepts, which come as a comment after the line containing "# concepts:"
+        lines = content.split("\n")
+        for i, line in enumerate(lines):
+            if "# concepts:" in line:
+                assert lines[i+1].startswith("# ")
+                concepts = lines[i+1][2:].split(",")
+                concepts = [c.strip() for c in concepts]
+                concepts_in_seeds.extend(concepts)
 
     if False: # old prompt
         prompt = "The following code examples describe a function that generates a color grid input and a function that transforms the input grid to output grid. Later, the input and output grids will be given to students as puzzle. The puzzle is to figure out the rule that transforms the input grid to output grid. The puzzles should be interesting and challenging for students to solve. You will be creative and come up with similar and interesting problems. You can use the provided code examples as a reference to create your own problems."
@@ -169,7 +175,14 @@ if __name__ == "__main__":
         prompt += "\n\nFollowing the above format, your task is to create similar and interesting problems. You can use the provided code examples as a reference to create your own problems. Be sure to include the input generator function `generate_input` and the transform function `main` in your code examples in the same single code block."
         prompt += '\nMake use of the common library functions in your code examples. Come up with interesting visual or physic-inspired problems.'
     else:
+        rng.shuffle(seed_content)
         examples = "\n\n".join([f"Example puzzle:\n```python\n{content}\n```" for content in seed_content])
+        # remove "color change" from the concepts, because it is problematic and easily misinterpreted
+        concepts_in_seeds = [c for c in concepts_in_seeds if c != "color change"]
+        # deduplicate and randomly permute
+        concepts_in_seeds = list(sorted(set(concepts_in_seeds)))
+        rng.shuffle(concepts_in_seeds)
+        concept_list = ", ".join(concepts_in_seeds)
         prompt = f"""You are a puzzle maker designing geometric and physical puzzles for curious middle-schoolers.
 
 Each puzzle consists of discovery a deterministic rule, pattern, procedure, algorithm, or transformation law that maps inputs to outputs.
@@ -188,14 +201,41 @@ To give you ideas, here are some examples of other puzzles that middle schoolers
 {examples}
 
 Your task is to create a new puzzle that is similar to the examples provided, following these steps:
-1. First brainstorm possible puzzle ideas, think of the geometric/physical/algorithmic concepts you want to use,
-2. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you are using and `# description:` describing the inputs and transformation.
+1. First pick some `# concepts` from the example puzzles. You can combine concepts from different examples. The concepts in the examples are:
+   {concept_list}
+2. Brainstorm a possible puzzle using those concepts, thinking of the physical/geometric/logical details
+3. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
 
 Be sure to make the transformation `main` deterministic.
 """
+        
+    return prompt
+
+if __name__ == "__main__":
+    # get all files in seeds directory
+    seeds = os.listdir("seeds")
+    # filter files with .py extension and 8 hex value characters in the file name
+    pattern = r"[0-9a-f]{8}\.py"
+    seeds = [seed for seed in seeds if re.match(pattern, seed)]
+
+    # print all files
+    print("Used the following seeds:")
+    for seed in seeds:
+        print(seed)
+
+    batch_size = 64
+    prompts = [ make_prompt(seeds, rng_seed) for rng_seed in range(batch_size) ]
 
     client = LLMClient()
-    samples = client.generate(prompt, 64)
+    samples = []
+    # use tqdm to go through the prompts and complete each of them
+    from tqdm import tqdm
+    for prompt in tqdm(prompts):
+        samples.extend(client.generate(prompt, num_samples=1, max_tokens=1024*2, model=OpenAIModels.GPT_4_TURBO))
+
+    for sample in samples:
+        print(sample)
+        input("Press enter to continue...")
 
     codes = []
     for sample in samples:
@@ -208,16 +248,16 @@ Be sure to make the transformation `main` deterministic.
     common_functions_calls_counter = {}
     for code in codes:
         code = remove_trailing_code(code)
-        try:
-            function_calls = extract_function_calls(code)
-            # set intersection to find common function names
-            common_functions_calls = common_lib_function_names.intersection(set(function_calls))
-        except:
-            print("Error in extracting function calls")
+        # try:
+        #     function_calls = extract_function_calls(code)
+        #     # set intersection to find common function names
+        #     common_functions_calls = common_lib_function_names.intersection(set(function_calls))
+        # except:
+        #     print("Error in extracting function calls")
 
         print(f"Code:\n{code}")
-        print(f"Funtion calls: {function_calls}")
-        print(f"Common functions calls: {common_functions_calls}")
+        # print(f"Funtion calls: {function_calls}")
+        # print(f"Common functions calls: {common_functions_calls}")
         pwd = os.getcwd()
         global_vars = {}
         def execute_code(code, global_vars):
@@ -248,7 +288,7 @@ for _ in range(4):
 
         from utils import generate_html_grid
         # an html string showing the Common Lib Function call names
-        info_html = f"""<div>Used Common Library Functions: {", ".join(list(common_functions_calls))}</div>"""
+        info_html = "" #f"""<div>Used Common Library Functions: {", ".join(list(common_functions_calls))}</div>"""
         grid_html = generate_html_grid(global_vars["examples_input_output"])
         # an html string showing the function calls in the code, use syntax highlighting
         # Syntax highlighting for the code
@@ -262,10 +302,10 @@ for _ in range(4):
             return style + highlighted_code
         code_html = highlight_code(code)
         htmls.append(grid_html + info_html + code_html)
-        for func in common_functions_calls:
-            if func not in common_functions_calls_counter:
-                common_functions_calls_counter[func] = 0
-            common_functions_calls_counter[func] += 1   
+        # for func in common_functions_calls:
+        #     if func not in common_functions_calls_counter:
+        #         common_functions_calls_counter[func] = 0
+        #     common_functions_calls_counter[func] += 1   
 
 
 # Combining everything into a final HTML

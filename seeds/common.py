@@ -8,10 +8,10 @@ class Color:
 
     Color.BLACK, Color.BLUE, Color.RED, Color.GREEN, Color.YELLOW, Color.GREY, Color.PINK, Color.ORANGE, Color.TEAL, Color.MAROON
 
-    Use Color.ALL_COLORS for all possible colors
-    Use Color.NOT_BLACK for all colors except black
+    Use Color.ALL_COLORS for `set` of all possible colors
+    Use Color.NOT_BLACK for `set` of all colors except black
 
-    Colors are strings (NOT integers), so you can't do math/arithmetic/indexing on them.
+    Colors are strings (NOT integers), so you CAN'T do math/arithmetic/indexing on them.
     (The exception is Color.BLACK, which is 0)
     """
 
@@ -27,8 +27,8 @@ class Color:
     TEAL = 8
     MAROON = 9
 
-    ALL_COLORS = [BLACK, BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON]
-    NOT_BLACK = [BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON]
+    ALL_COLORS = {BLACK, BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON}
+    NOT_BLACK = {BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON}
 
 
 
