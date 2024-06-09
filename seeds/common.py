@@ -15,6 +15,7 @@ class Color:
     (The exception is Color.BLACK, which is 0)
     """
 
+    # The above comments were lies to trick the language model into not treating the colours like ints
     BLACK = 0
     BLUE = 1
     RED = 2
@@ -33,28 +34,48 @@ class Color:
 
 
 
-def flood_fill(grid, x, y, color, background=Color.BLACK):
+def flood_fill(grid, x, y, color, connectivity=4):
     """
     Fill the connected region that contains the point (x, y) with the specified color.
+
+    connectivity: 4 or 8, for 4-way or 8-way connectivity. 8-way counts diagonals as connected, 4-way only counts cardinal directions as connected.
     """
 
-    assert color != background, "Color and background must be different."
-    
-    if grid[x, y] != background:
+    old_color = grid[x, y]
+
+    assert connectivity in [4, 8], "flood_fill: Connectivity must be 4 or 8."
+
+    _flood_fill(grid, x, y, color, old_color, connectivity)
+
+def _flood_fill(grid, x, y, color, old_color, connectivity):
+    """
+    internal function not used by LLM
+    """
+    if grid[x, y] != old_color:
         return
     
-    # must be equal to the background, therefore we only recurse if that point is the background
     grid[x, y] = color
 
     # flood fill in all directions
     if x > 0:
-        flood_fill(grid, x - 1, y, color, background)
+        _flood_fill(grid, x - 1, y, color, old_color, connectivity)
     if x < grid.shape[0] - 1:
-        flood_fill(grid, x + 1, y, color, background)
+        _flood_fill(grid, x + 1, y, color, old_color, connectivity)
     if y > 0:
-        flood_fill(grid, x, y - 1, color, background)
+        _flood_fill(grid, x, y - 1, color, old_color, connectivity)
     if y < grid.shape[1] - 1:
-        flood_fill(grid, x, y + 1, color, background)
+        _flood_fill(grid, x, y + 1, color, old_color, connectivity)
+    
+    if connectivity == 4: return
+
+    if x > 0 and y > 0:
+        _flood_fill(grid, x - 1, y - 1, color, old_color, connectivity)
+    if x > 0 and y < grid.shape[1] - 1:
+        _flood_fill(grid, x - 1, y + 1, color, old_color, connectivity)
+    if x < grid.shape[0] - 1 and y > 0:
+        _flood_fill(grid, x + 1, y - 1, color, old_color, connectivity)
+    if x < grid.shape[0] - 1 and y < grid.shape[1] - 1:
+        _flood_fill(grid, x + 1, y + 1, color, old_color, connectivity)
 
 def draw_line(grid, x, y, length, color, direction):
     """
