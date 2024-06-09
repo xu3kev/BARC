@@ -113,7 +113,10 @@ def parse_code(paragraph):
 
     return code_blocks
 
-def make_prompt(seeds, rng_seed):
+def make_prompt(seeds, rng_seed, remix=0):
+    """
+    remix: how many example seeds the prompt tells the LLM to remix (0 means no remixing, just shows all the seeds)
+    """
     # make a random generator
     rng = random.Random(rng_seed)
 
@@ -183,6 +186,17 @@ def make_prompt(seeds, rng_seed):
         concepts_in_seeds = list(sorted(set(concepts_in_seeds)))
         rng.shuffle(concepts_in_seeds)
         concept_list = ", ".join(concepts_in_seeds)
+
+        if remix == 0:
+            remix1 = ""
+            remix2 = ""
+        elif remix == 1:
+            remix1 = "in particular, making a new variation of the last example, by "
+            remix2 = ", but remembering it should be a variation of the last example"
+        else:
+            remix1 = f"in particular, making a new variation of the last {remix} examples, by "
+            remix2 = f", but remembering it should be a variation of the last {remix} examples"
+
         prompt = f"""You are a puzzle maker designing geometric and physical puzzles for curious middle-schoolers.
 
 Each puzzle consists of discovery a deterministic rule, pattern, procedure, algorithm, or transformation law that maps inputs to outputs.
@@ -200,8 +214,8 @@ Please design a single puzzle by writing code containing the `generate_input` an
 To give you ideas, here are some examples of other puzzles that middle schoolers enjoyed:
 {examples}
 
-Your task is to create a new puzzle that is similar to the examples provided, following these steps:
-1. First pick some `# concepts` from the example puzzles. You can combine concepts from different examples. The concepts in the examples are:
+Your task is to create a new puzzle that is similar to the examples provided, {remix1}following these steps:
+1. First pick some `# concepts` from the example puzzles{remix2}. You can combine concepts from different examples. The concepts in the examples are:
    {concept_list}
 2. Brainstorm a possible puzzle using those concepts, thinking of the physical/geometric/logical details
 3. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
@@ -224,7 +238,8 @@ if __name__ == "__main__":
         print(seed)
 
     batch_size = 64
-    prompts = [ make_prompt(seeds, rng_seed) for rng_seed in range(batch_size) ]
+    remix_level = 2
+    prompts = [ make_prompt(seeds, rng_seed, remix=remix_level) for rng_seed in range(batch_size) ]
 
     client = LLMClient()
     samples = []
@@ -232,11 +247,7 @@ if __name__ == "__main__":
     from tqdm import tqdm
     for prompt in tqdm(prompts):
         samples.extend(client.generate(prompt, num_samples=1, max_tokens=1024*2, model=OpenAIModels.GPT_4_TURBO))
-
-    for sample in samples:
-        print(sample)
-        input("Press enter to continue...")
-
+    
     codes = []
     for sample in samples:
         codes.extend(parse_code(sample))
@@ -320,5 +331,5 @@ final_html = f"""
 </html>
 """
 
-with open("output.html", "w") as f:
+with open(f"output_remix{remix_level}.html", "w") as f:
     f.write(final_html)
