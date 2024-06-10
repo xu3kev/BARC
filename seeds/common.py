@@ -146,6 +146,26 @@ def blit(grid, sprite, x, y, transparent=None):
 
     return new_grid
 
+def bounding_box(grid, background=Color.BLACK):
+    """
+    Find the bounding box of the non-background pixels in the grid.
+    Returns a tuple (x, y, width, height) of the bounding box.
+    """
+    n, m = grid.shape
+    x_min, x_max = n, -1
+    y_min, y_max = m, -1
+
+    for x in range(n):
+        for y in range(m):
+            if grid[x, y] != background:
+                x_min = min(x_min, x)
+                x_max = max(x_max, x)
+                y_min = min(y_min, y)
+                y_max = max(y_max, y)
+
+    return x_min, y_min, x_max - x_min + 1, y_max - y_min + 1
+
+
 def collision(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, background=Color.BLACK):
     """
     Check if object1 and object2 collide when object1 is at (x1, y1) and object2 is at (x2, y2).
