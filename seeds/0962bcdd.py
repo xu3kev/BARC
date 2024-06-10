@@ -27,12 +27,19 @@ def main(input_grid):
         cross_color = cross[cross != Color.BLACK][0]
 
         # grow the cross
-        for i in range(x-1, x+w+1):
-            for j in range(y-1, y+h+1):
-                if i == center_x or j == center_y:
-                    output_grid[i, j] = cross_color
-                if i - center_x == j - center_y or i - center_x == center_y - j:
-                    output_grid[i, j] = center_color
+        for output_x in range(x-1, x+w+1):
+            for output_y in range(y-1, y+h+1):
+                # skip if out of bounds
+                if output_x < 0 or output_y < 0 or output_x >= input_grid.shape[0] or output_y >= input_grid.shape[1]:
+                    continue
+                
+                # grow the cross north/south/east/west
+                if output_x == center_x or output_y == center_y:
+                    output_grid[output_x, output_y] = cross_color
+                
+                # grow the center diagonally
+                if (output_x - center_x) == (output_y - center_y) or (output_x - center_x) == (center_y - output_y):
+                    output_grid[output_x, output_y] = center_color
 
     return output_grid
 

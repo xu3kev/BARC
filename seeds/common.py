@@ -28,9 +28,8 @@ class Color:
     TEAL = 8
     MAROON = 9
 
-    ALL_COLORS = {BLACK, BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON}
-    NOT_BLACK = {BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON}
-
+    ALL_COLORS = [BLACK, BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON]
+    NOT_BLACK = [BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON]
 
 
 
@@ -164,6 +163,13 @@ def bounding_box(grid, background=Color.BLACK):
                 y_max = max(y_max, y)
 
     return x_min, y_min, x_max - x_min + 1, y_max - y_min + 1
+
+def crop(grid, background=Color.BLACK):
+    """
+    Crop the grid to the smallest bounding box that contains all non-background pixels.
+    """
+    x, y, w, h = bounding_box(grid, background)
+    return grid[x:x+w, y:y+h]
 
 
 def collision(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, background=Color.BLACK):
