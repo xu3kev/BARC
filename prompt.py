@@ -132,6 +132,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--remix", "-r", type=int, default=1, help="how many example seeds to remix (can be 0)")
     parser.add_argument("--batch_size", "-b", type=int, default=64, help="how many samples to draw")
+    parser.add_argument("--temperature", "-t", type=float, default=0.7)
     parser.add_argument("--model", "-m", type=str, default="gpt-4-turbo", help="which model to use", 
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
     
@@ -163,7 +164,7 @@ if __name__ == "__main__":
     # use tqdm to go through the prompts and complete each of them
     from tqdm import tqdm
     for prompt in tqdm(prompts):
-        samples.extend(client.generate(prompt, num_samples=1, max_tokens=1024*2, model=model))
+        samples.extend(client.generate(prompt, num_samples=1, max_tokens=1024*2, temperature=arguments.temperature, model=model))
     
     codes = []
     for sample in samples:
@@ -231,5 +232,5 @@ if __name__ == "__main__":
     </html>
     """
 
-    with open(f"self_instruct_remix{remix_level}_{arguments.model}.html", "w") as f:
+    with open(f"self_instruct_remix{remix_level}_{arguments.model}_temp{arguments.temperature:.2f}.html", "w") as f:
         f.write(final_html)
