@@ -1,15 +1,17 @@
 import os
 import re
 import random
+import numpy as np
 from func_timeout import func_timeout, FunctionTimedOut
+
 from utils import extract_functions, extract_function_calls, extract_class_definitions, parse_code, remove_trailing_code, generate_html_grid
-import sys
+from execution import execute_transformation, execute_input_generator
 from llm import *
 
+import sys
 # add seeds/ to the python path
 sys.path.append("seeds/")
-
-
+from common import *
 
 def make_self_instruct_prompt(seeds, rng_seed, remix=0):
     """
@@ -136,11 +138,10 @@ if __name__ == "__main__":
     arguments = parser.parse_args()
 
     # convert model into enum
-    for provider, model_list in LLMClient.AVAILABLE_MODELS.items():
-        for model in model_list:
-            if model.value == arguments.model:
-                # should break on the correct values of model and provider, so we can use those variables later
-                break
+    for provider, model in [(provider, model) for provider, model_list in LLMClient.AVAILABLE_MODELS.items() for model in model_list]:
+        if model.value == arguments.model:
+            # should break on the correct values of model and provider, so we can use those variables later
+            break
 
     # get all files in seeds directory
     seeds = os.listdir("seeds")
@@ -157,9 +158,7 @@ if __name__ == "__main__":
     remix_level = arguments.remix
     prompts = [ make_self_instruct_prompt(seeds, rng_seed, remix=remix_level) for rng_seed in range(batch_size) ]
 
-    key = os.getenv("OPENAI_API_KEY")
-    print("Using key", key)
-    client = LLMClient(provider=provider, key=key)
+    client = LLMClient(provider=provider)
     samples = []
     # use tqdm to go through the prompts and complete each of them
     from tqdm import tqdm
@@ -185,37 +184,23 @@ if __name__ == "__main__":
         print(f"Code:\n{code}")
         # print(f"Funtion calls: {function_calls}")
         # print(f"Common functions calls: {common_functions_calls}")
-        pwd = os.getcwd()
-        global_vars = {}
-        def execute_code(code, global_vars):
-            exec(f"""{code}
-examples_input_output = []
-for _ in range(4):
-    input_grid = generate_input()
-    output_grid = main(input_grid)
 
-    example = {{'input': input_grid, 'output': output_grid}}
-    examples_input_output.append(example)
-    #visualize(generate_input, main)
-""", global_vars)
-
-        try:
-            func_timeout(5, execute_code, args=(code, global_vars))
-        except FunctionTimedOut:
-            print("Error: Code execution timed out after 10 seconds")
-        except Exception as e:
-            print("Error in executing code")
-            print(f"Error: {e}")
-        finally:
-            os.chdir(pwd)
-
-        if "examples_input_output" not in global_vars or len(global_vars["examples_input_output"]) <= 2:
-            print("Error: Output not generated")
-            continue
+        input_grids = [ execute_input_generator(code) for _ in range(4)]
+        # Filter out the grids that are not 2D arrays
+        input_grids = [grid for grid in input_grids if isinstance(grid, np.ndarray) and len(grid.shape) == 2]
+        print("Have", len(input_grids), "input grids")
+        output_grids = [ execute_transformation(code, grid) for grid in input_grids]
+        print("Have", len(output_grids), "output grids")
+        examples_input_output = [ {"input": input_grid, "output": output_grid}
+                                    for input_grid, output_grid in zip(input_grids, output_grids) 
+                                    if isinstance(output_grid, np.ndarray) ]
+        if len(examples_input_output) == 0:
+            print("Bad code")
+            continue        
 
         # an html string showing the Common Lib Function call names
         info_html = "" #f"""<div>Used Common Library Functions: {", ".join(list(common_functions_calls))}</div>"""
-        grid_html = generate_html_grid(global_vars["examples_input_output"])
+        grid_html = generate_html_grid(examples_input_output)
         # an html string showing the function calls in the code, use syntax highlighting
         # Syntax highlighting for the code
         from pygments import highlight

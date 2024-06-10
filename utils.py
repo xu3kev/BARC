@@ -1,3 +1,4 @@
+import re
 import ast
 
 def extract_functions(code):

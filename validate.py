@@ -18,9 +18,7 @@ def validate(problem):
     # important that we are able to call this function here
     spec = importlib.util.spec_from_file_location("temporary_validation", "temporary_validation.py")
     temporary_validation = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(temporary_validation)    
-    
-    #from common import show_colored_grid # this has been copied. FIXME: Make it so you can import nonlocally, so we don't have to copy the file
+    spec.loader.exec_module(temporary_validation)
 
     failure = False
 
