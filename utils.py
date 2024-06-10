@@ -125,6 +125,25 @@ def remove_trailing_code(code_str):
 
     return '\n'.join(lines).strip()
 
+def parse_code(paragraph):
+    """
+    This function extracts all Markdown code blocks from a given paragraph.
+    Args:
+        paragraph (str): The input paragraph containing the Markdown code blocks.
+    Returns:
+        list: A list of extracted code blocks.
+    """
+    # Regular expression to match Markdown code blocks
+    code_block_pattern = re.compile(r"```python(.*?)```", re.DOTALL)
+
+    # Find all code blocks in the paragraph
+    matches = code_block_pattern.findall(paragraph)
+
+    # Strip any leading/trailing whitespace from each code block
+    code_blocks = [match.strip() for match in matches]
+
+    return code_blocks
+
 
 if __name__ == "__main__":
     code = """
