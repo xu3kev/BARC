@@ -1,24 +1,19 @@
 from arc import train_problems
 import os
-import importlib
 
-import sys
-# add seeds/ to the python path so we can import common
-sys.path.append("seeds/")
-from common import *
+from execution import execute_transformation
 
 import numpy as np
 
+import sys
+sys.path.append("seeds/")
+from common import *
+
 
 def validate(problem):
-    # copy the file to temporary_validation.py
-    os.system(f"cp seeds/{problem.uid}.py temporary_validation.py")
-
-    # execute everything in temporary_validation.py, which is going to define a function called `main`
-    # important that we are able to call this function here
-    spec = importlib.util.spec_from_file_location("temporary_validation", "temporary_validation.py")
-    temporary_validation = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(temporary_validation)
+    # load the source code
+    with open(f"seeds/{problem.uid}.py") as f:
+        source = f.read()
 
     failure = False
 
@@ -27,16 +22,16 @@ def validate(problem):
         input_grid = train_pair.x.T
         expected_output_grid = train_pair.y.T
 
-        try:
-            output_grid = temporary_validation.main(input_grid)
-        except Exception as e:
+        output_grid = execute_transformation(source, input_grid)
+
+        if isinstance(output_grid, str):
             print(f'Validation failure on {problem.uid}')
             print('Input:')
             show_colored_grid(input_grid)
             print('Expected output:')
             show_colored_grid(expected_output_grid)
             print('Error:')
-            print(e)
+            print(output_grid)
             print()
             failure = True
             continue
@@ -51,9 +46,6 @@ def validate(problem):
             show_colored_grid(output_grid)
             print()
             failure = True
-
-    # cleanup
-    os.system("rm temporary_validation.py")
 
     if not failure: print(f"\t[+] passed")
 
