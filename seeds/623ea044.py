@@ -36,8 +36,8 @@ def main(input_grid):
 
 
 def generate_input():
-    # make a black grid for the background first
-    n, m = np.random.randint(5, 10), np.random.randint(5, 10)
+    # make a square black grid for the background first
+    n = m = np.random.randint(5, 20)
     grid = np.zeros((n, m), dtype=int)
 
     # put a randomly colored pixel at a random point on the grid
