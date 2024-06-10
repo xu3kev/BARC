@@ -51,7 +51,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
         # repeat the displacement indefinitely until it falls off the canvas
         for i in range(1, 10):
             displacement = (displacement_vector[0] * i, displacement_vector[1] * i)
-            blit(output_grid, central_object, displacement[0], displacement[1], transparent=Color.BLACK)
+            blit(output_grid, central_object, displacement[0], displacement[1], background=Color.BLACK)
             
     return output_grid
 
@@ -68,7 +68,7 @@ def generate_input() -> np.ndarray:
 
     # place the central object near the center
     x, y = np.random.randint(int(0.3*n), int(0.7*n)), np.random.randint(int(0.3*m), int(0.7*m))
-    blit(grid, central_object, x, y, transparent=Color.BLACK)
+    blit(grid, central_object, x, y, background=Color.BLACK)
 
     # possible displacement vectors can range in any of the eight different directions (cardinal directions and in between them)
     # they should be close to just a little more than the length of the central object, however
@@ -98,7 +98,7 @@ def generate_input() -> np.ndarray:
             other_object[pixel[0], pixel[1]] = Color.BLACK        
 
         # place the new object near the center, but offset by the vector
-        blit(grid, other_object, x + vector[0], y + vector[1], transparent=Color.BLACK)
+        blit(grid, other_object, x + vector[0], y + vector[1], background=Color.BLACK)
 
     return grid
 

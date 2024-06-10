@@ -129,16 +129,18 @@ def find_connected_components(grid, background=Color.BLACK, connectivity=4, mono
 
 
 
-def blit(grid, sprite, x, y, transparent=None):
+def blit(grid, sprite, x, y, background=None):
     """
     Copies the sprite into the grid at the specified location. Modifies the grid in place.
+
+    background: color treated as transparent. If specified, only copies the non-background pixels of the sprite.
     """
 
     new_grid = grid
 
     for i in range(sprite.shape[0]):
         for j in range(sprite.shape[1]):
-            if transparent is None or sprite[i, j] != transparent:
+            if background is None or sprite[i, j] != background:
                 # check that it is inbounds
                 if 0 <= x + i < grid.shape[0] and 0 <= y + j < grid.shape[1]:
                     new_grid[x + i, y + j] = sprite[i, j]
@@ -337,11 +339,11 @@ def apply_diagonal_symmetry(sprite):
             sprite[x, y] = sprite[y, x] = sprite[x, y] or sprite[y, x]
     return sprite
 
-def is_contiguous(bitmask, transparent=Color.BLACK, connectivity=4):
+def is_contiguous(bitmask, background=Color.BLACK, connectivity=4):
     """
     Check if an array is contiguous.
 
-    transparent: Color that counts as transparent (default: Color.BLACK)
+    background: Color that counts as transparent (default: Color.BLACK)
     connectivity: 4 or 8, for 4-way (only cardinal directions) or 8-way connectivity (also diagonals) (default: 4)
 
     Returns True/False
@@ -354,7 +356,7 @@ def is_contiguous(bitmask, transparent=Color.BLACK, connectivity=4):
     else:
         raise ValueError("Connectivity must be 4 or 8.")
     
-    labeled, n_objects = label(bitmask != transparent, structure)
+    labeled, n_objects = label(bitmask != background, structure)
     return n_objects == 1
     
 

@@ -31,7 +31,7 @@ def main(input_grid):
             if contact(object1=teal_object, object2=red_object, x2=dx, y2=dy):
 
                 output_grid = np.copy(teal_object)
-                blit(output_grid, red_object, dx, dy, transparent=Color.BLACK)
+                blit(output_grid, red_object, dx, dy, background=Color.BLACK)
 
                 return output_grid
             
@@ -52,7 +52,7 @@ def generate_input():
     # put the sprite somewhere random on the grid
     x, y = random_free_location_for_object(grid, sprite, background=Color.BLACK)
 
-    blit(grid, sprite, x, y, transparent=Color.BLACK)    
+    blit(grid, sprite, x, y, background=Color.BLACK)    
 
     # check that we could slide the object either vertically or horizontally in order to touch the red square
     # this will be true if there is a row or column that has both red and blue
