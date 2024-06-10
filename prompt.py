@@ -13,7 +13,7 @@ import sys
 sys.path.append("seeds/")
 from common import *
 
-def make_self_instruct_prompt(seeds, rng_seed, remix=0):
+def make_self_instruct_prompt(seeds, rng_seed, num_seeds=None, remix=0):
     """
     remix: how many example seeds the prompt tells the LLM to remix.
     0 means no remixing, just shows all the seeds. 1 tells it to remix one of the examples, 2 tells it to remix two of the examples, etc.
@@ -31,6 +31,10 @@ def make_self_instruct_prompt(seeds, rng_seed, remix=0):
             assert "# ============= remove below this point for prompting =============" in content
             content = content.split("# ============= remove below this point for prompting =============")[0].strip()
             seed_content.append(content)
+
+    rng.shuffle(seed_content)
+    if num_seeds is not None:
+        seed_content = seed_content[:num_seeds]
 
     with open("seeds/common.py") as f:
         common_lib = f.read()
@@ -79,7 +83,6 @@ def make_self_instruct_prompt(seeds, rng_seed, remix=0):
         prompt += "\n\nFollowing the above format, your task is to create similar and interesting problems. You can use the provided code examples as a reference to create your own problems. Be sure to include the input generator function `generate_input` and the transform function `main` in your code examples in the same single code block."
         prompt += '\nMake use of the common library functions in your code examples. Come up with interesting visual or physic-inspired problems.'
     else:
-        rng.shuffle(seed_content)
         examples = "\n\n".join([f"Example puzzle:\n```python\n{content}\n```" for content in seed_content])
         # remove "color change" from the concepts, because it is problematic and easily misinterpreted
         concepts_in_seeds = [c for c in concepts_in_seeds if c != "color change"]
@@ -98,10 +101,10 @@ def make_self_instruct_prompt(seeds, rng_seed, remix=0):
             remix1 = f"in particular, making a new variation of the last {remix} examples, by "
             remix2 = f", but remembering it should be a variation of the last {remix} examples"
 
-        prompt = f"""You are a puzzle maker designing geometric and physical puzzles for curious middle-schoolers.
+        prompt = f"""You are a puzzle maker designing geometric, physical, and topological puzzles for curious middle-schoolers.
 
 Each puzzle consists of discovery a deterministic rule, pattern, procedure, algorithm, or transformation law that maps inputs to outputs.
-Both the inputs and outputs are 2D grids of colored pixels.
+Both the inputs and outputs are 2D grids of colored pixels. There are 10 colors, but the order of the colors is never relevant to the puzzle.
 
 The middle schoolers are trying to discover this deterministic transformation, which can be implemented as a Python function called `main`.
 Designing a puzzle involves also creating example inputs, which can be implemented as a Python function called `generate_input`. Unlike `main`, the `generate_input` function should be stochastic, so that every time you run it, you get another good example of what the transformation can be applied to.
@@ -118,10 +121,10 @@ To give you ideas, here are some examples of other puzzles that middle schoolers
 Your task is to create a new puzzle that is similar to the examples provided, {remix1}following these steps:
 1. First pick some `# concepts` from the example puzzles{remix2}. You can combine concepts from different examples. The concepts in the examples are:
    {concept_list}
-2. Brainstorm a possible puzzle using those concepts, thinking of the physical/geometric/logical details
+2. Brainstorm a possible puzzle using those concepts, thinking of the physical/geometric/topological/logical details
 3. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
 
-Be sure to make the transformation `main` deterministic.
+Be sure to make the transformation `main` deterministic. Be sure to not assume or impose any ordering to the colors. Use physical, geometric, topological, and logical concepts.
 """
         
     return prompt
@@ -133,6 +136,7 @@ if __name__ == "__main__":
     parser.add_argument("--remix", "-r", type=int, default=1, help="how many example seeds to remix (can be 0)")
     parser.add_argument("--batch_size", "-b", type=int, default=64, help="how many samples to draw")
     parser.add_argument("--temperature", "-t", type=float, default=0.7)
+    parser.add_argument("--num_seeds", "-s", type=int, default=None, help="how many seeds to show in the prompt, if not all of them")
     parser.add_argument("--model", "-m", type=str, default="gpt-4-turbo", help="which model to use", 
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
     
@@ -151,13 +155,11 @@ if __name__ == "__main__":
     seeds = [seed for seed in seeds if re.match(pattern, seed)]
 
     # print all files
-    print("Used the following seeds:")
-    for seed in seeds:
-        print(seed)
+    print(f"Using the following {len(seeds)} seeds:", ", ".join(seeds).replace(".py", ""))
 
     batch_size = arguments.batch_size
     remix_level = arguments.remix
-    prompts = [ make_self_instruct_prompt(seeds, rng_seed, remix=remix_level) for rng_seed in range(batch_size) ]
+    prompts = [ make_self_instruct_prompt(seeds, rng_seed, remix=remix_level, num_seeds=arguments.num_seeds) for rng_seed in range(batch_size) ]
 
     client = LLMClient(provider=provider)
     samples = []

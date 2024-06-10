@@ -143,6 +143,13 @@ def parse_code(paragraph):
     # Strip any leading/trailing whitespace from each code block
     code_blocks = [match.strip() for match in matches]
 
+    if code_blocks:
+        return code_blocks
+    
+    # assume that it does not begin with python
+    code_block_pattern = re.compile(r"```(.*?)```", re.DOTALL)
+    matches = code_block_pattern.findall(paragraph)
+    code_blocks = [match.strip() for match in matches]
     return code_blocks
 
 

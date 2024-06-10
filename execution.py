@@ -8,6 +8,7 @@ sys.path.append("seeds/")
 from common import *
 
 import numpy as np
+import random
 
 def execute_transformation(source, input_grid, timeout=1, function_name="main"):
 
@@ -23,7 +24,9 @@ def execute_transformation(source, input_grid, timeout=1, function_name="main"):
         for j in range(m):
             make_input += f"input_grid[{i}][{j}] = {input_grid[i][j]}\n"
             
-    code = f"""{source}
+    code = f"""import numpy as np
+from common import *
+{source}
 {make_input}
 output_grid = {function_name}(input_grid)
 """
@@ -41,8 +44,6 @@ output_grid = {function_name}(input_grid)
     # make sure that it is a 2d nump array of integers between 0-9
     if isinstance(output, np.ndarray) and len(output.shape) == 2 and np.all((0 <= output) & (output <= 9)):
         return output
-    else:
-        return "error: output is not a valid grid"
 
     return output
 
@@ -54,7 +55,10 @@ def execute_input_generator(source, timeout=1, function_name="generate_input"):
         exec(code, global_vars)
         return global_vars['grid']
 
-    code = f"""{source}
+    code = f"""import random
+import numpy as np
+from common import *
+{source}
 grid = {function_name}()
 """
 
