@@ -9,7 +9,7 @@ from typing import *
 # description:
 # In the input you will see a medium sized grid width individual colored pixels, some of which are red or blue (those ones are special)
 # To make the output:
-# 1. For each red pixel, add yellow pixels in its immediate diagonals
+# 1. For each red pixel, add yellow pixels in its immediate diagonals (northeast, northwest, southeast, southwest)
 # 2. For each blue pixel, add orange pixels in its immediate neighbors (up, down, left, right)
 
 def main(input_grid: np.ndarray) -> np.ndarray:
