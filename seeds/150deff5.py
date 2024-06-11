@@ -14,6 +14,7 @@ from typing import *
 
 def search_for_decompositions(grid: np.ndarray):
 
+    # recursively enumerate all possible decompositions of the grid
     # loop over all possible object locations and check if there might be something there
     # if there is, try removing it and recursively searching for the rest of the objects
     # yields a stream of possible decompositions, each of which is a list of object masks 
