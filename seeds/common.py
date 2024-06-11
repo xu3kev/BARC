@@ -260,7 +260,7 @@ def show_colored_grid(grid):
     for y in range(grid.shape[1]):
         for x in range(grid.shape[0]):
             cell = grid[x, y]
-            color_code = color_8bit[color_names[cell]]
+            color_code = color_8bit[color_names[int(cell)]]
             print(f"\033[38;5;{color_code}m{cell}\033[0m", end="")
         print()
 

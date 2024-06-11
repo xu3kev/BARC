@@ -52,7 +52,6 @@ def main(input_grid: np.ndarray) -> np.ndarray:
         for i in range(1, 10):
             displacement = (displacement_vector[0] * i, displacement_vector[1] * i)
             blit(output_grid, central_object, displacement[0], displacement[1], transparent=Color.BLACK)
-            
     return output_grid
 
 

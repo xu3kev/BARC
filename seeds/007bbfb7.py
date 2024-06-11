@@ -27,8 +27,9 @@ def main(input_grid):
 
 # creates a random 3x3 grid with black background and some pixels of another color. 
 def generate_input():
-  random_color = random.choice(Color.NOT_BLACK)
-  return random_sprite(3, 3, color_palette=[Color.BLACK, random_color])
+  grid = np.zeros((3, 3), dtype=int)
+  random_color = random.choice(list(Color.NOT_BLACK))
+  return random_sprite(3, 3, color_palette=[random_color])
 
 
 # ============= remove below this point for prompting =============
