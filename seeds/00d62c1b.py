@@ -9,11 +9,25 @@ from typing import *
 # description:
 # The input grid is a square grid with black and green pixels. The input grid should have regions that are enclosed by the green pixels. 
 # To produce the output, you need to find the enclosed regions in the input grid, and then color them yellow. 
+                
+def main(input_grid):
+    # Create initial output grid template based on input grid.
+    output_grid = input_grid.copy()
 
-# Returns a list of (x,y) coordinates for one pixel in each enclosed region, or return [] if there are no enclosed regions. 
-# The idea used is to floodfill every not visited pixel, and then check if it bleeds to an edge. 
-# If it did, then none of the floodfilled pixels are in an enclosed region. Mark floodfilled pixels as visited. 
+    # Find enclosed regions
+    enclosed_regions = find_enclosed_region(input_grid)
+
+    # Color enclosed regions
+    for (x,y) in enclosed_regions:
+        flood_fill(output_grid,x,y,Color.YELLOW)
+
+    return output_grid
+
 def find_enclosed_region(grid):
+    # Returns a list of (x,y) coordinates for one pixel in each enclosed region, or return [] if there are no enclosed regions. 
+    # The idea used is to floodfill every not visited pixel, and then check if it bleeds to an edge. 
+    # If it did, then none of the floodfilled pixels are in an enclosed region. Mark floodfilled pixels as visited. 
+    
     # Creates a grid that keeps track of which pixels are visited during floodfill. 
     visited_pixels = grid.copy()
     visited_color = Color.BLUE
@@ -38,22 +52,7 @@ def find_enclosed_region(grid):
                     pixels_of_enclosed.append((x,y))
 
     return pixels_of_enclosed 
-                
-# Find the enclosed regions in the input grid and color them yellow. 
-def main(input_grid):
-    # Create initial output grid template based on input grid.
-    output_grid = input_grid.copy()
 
-    # Find enclosed regions
-    enclosed_regions = find_enclosed_region(input_grid)
-
-    # Color enclosed regions
-    for (x,y) in enclosed_regions:
-        flood_fill(output_grid,x,y,Color.YELLOW)
-
-    return output_grid
-
-# Generates a square grid with some number of enclosed regions
 def generate_input():
     # Generate a square grid of arbitrary size with black background, size from 5x5 to 20x20
     n = random.randint(5, 20)

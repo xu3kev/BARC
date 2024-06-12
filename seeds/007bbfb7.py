@@ -25,7 +25,6 @@ def main(input_grid):
     
     return output_grid
 
-# creates a random 3x3 grid with black background and some pixels of another color. 
 def generate_input():
   grid = np.zeros((3, 3), dtype=int)
   random_color = random.choice(list(Color.NOT_BLACK))
