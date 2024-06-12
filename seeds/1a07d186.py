@@ -28,7 +28,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     
     # copy the bars to the output grid
     for bar in bars:
-        blit(output_grid, bar, 0, 0, background=Color.BLACK)
+        blit(output_grid, bar, background=Color.BLACK)
     
     # slide each pixel until it just barely touches the bar with the matching color
     for pixel in pixels:
@@ -39,7 +39,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
         if len(matching_bars) == 0:
             continue
 
-        # consider sliding in the 4 cardinal directions, and consider slighting as far as possible
+        # consider sliding in the 4 cardinal directions, and consider sliding as far as possible
         possible_displacements = [ (slide_distance*dx, slide_distance*dy)
                                    for slide_distance in range(max(input_grid.shape))
                                    for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)] ]

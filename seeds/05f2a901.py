@@ -19,21 +19,21 @@ def main(input_grid):
     # get just the red object
     red_object = np.zeros_like(input_grid)
     red_object[input_grid == Color.RED] = Color.RED
+
+    # the output grid starts with just the teal object, because we still need to figure out where the red object will be by sliding it
+    output_grid = np.copy(teal_object)
     
-    # the 4 sliding direction of up, down, left, right
-    directions = [np.array([0, -1]), np.array([0, 1]), np.array([-1, 0]), np.array([1, 0])]
-
-    # all directions by magnitudes 1, 2, 3, ... maximum amount
-    for i in range(1, max(input_grid.shape)):
-        for direction in directions:
-            dx, dy = direction * i
-            # check if the objects are touching after sliding
-            if contact(object1=teal_object, object2=red_object, x2=dx, y2=dy):
-
-                output_grid = np.copy(teal_object)
-                blit(output_grid, red_object, dx, dy, background=Color.BLACK)
-
-                return output_grid
+    # consider sliding in the 4 cardinal directions, and consider sliding as far as possible
+    possible_displacements = [ (slide_distance*dx, slide_distance*dy)
+                               for slide_distance in range(max(input_grid.shape))
+                               for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)] ]
+    for x, y in possible_displacements:
+        # check if the objects are touching after sliding
+        translated_red_object = translate(red_object, x, y, background=Color.BLACK)
+        if contact(object1=teal_object, object2=translated_red_object):
+            # put the red object where it belongs
+            blit(output_grid, translated_red_object, background=Color.BLACK)
+            return output_grid
             
     assert 0, "No valid slide found"
 
