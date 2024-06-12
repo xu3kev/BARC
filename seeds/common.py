@@ -175,6 +175,24 @@ def crop(grid, background=Color.BLACK):
     x, y, w, h = bounding_box(grid, background)
     return grid[x:x+w, y:y+h]
 
+def translate(grid, x, y, background=Color.BLACK):
+    """
+    Translate the grid by the vector (x, y). Fills in the new pixels with the background color.
+
+    Example usage:
+    red_object = input_grid[input_grid==Color.RED]
+    shifted_red_object = translate(red_object, x=1, y=1)
+    """
+    n, m = grid.shape
+    new_grid = np.zeros((n, m), dtype=grid.dtype)
+    new_grid[:,:] = background
+    for i in range(n):
+        for j in range(m):
+            new_x, new_y = i + x, j + y
+            if 0 <= new_x < n and 0 <= new_y < m:
+                new_grid[new_x, new_y] = grid[i, j]
+    return new_grid
+
 
 def collision(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, background=Color.BLACK):
     """

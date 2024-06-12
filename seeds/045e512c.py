@@ -30,8 +30,8 @@ def main(input_grid: np.ndarray) -> np.ndarray:
         biggest_displacement_vector = (0,0)
         displacement_vectors = [ (i, j) for i in range(-10, 10) for j in range(-10, 10) ]
         for displacement_vector in displacement_vectors:
-            # translate the central object by the displacement vector5
-            translated_central_object = np.roll(central_object, displacement_vector, axis=(0, 1))
+            # translate the central object by the displacement vector
+            translated_central_object = translate(central_object, displacement_vector[0], displacement_vector[1], background=Color.BLACK)
 
             # check if the translated object completely overlaps the other object
             translated_mask, other_mask = translated_central_object != Color.BLACK, other_object != Color.BLACK
