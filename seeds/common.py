@@ -129,7 +129,7 @@ def find_connected_components(grid, background=Color.BLACK, connectivity=4, mono
 
 
 
-def blit(grid, sprite, x, y, background=None):
+def blit(grid, sprite, x=0, y=0, background=None):
     """
     Copies the sprite into the grid at the specified location. Modifies the grid in place.
 
