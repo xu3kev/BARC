@@ -76,7 +76,7 @@ def _flood_fill(grid, x, y, color, old_color, connectivity):
     if x < grid.shape[0] - 1 and y < grid.shape[1] - 1:
         _flood_fill(grid, x + 1, y + 1, color, old_color, connectivity)
 
-def draw_line(grid, x, y, length, color, direction):
+def draw_line(grid, x, y, length, color, direction, stop_at_color=[]):
     """
     Draws a line of the specified length in the specified direction starting at (x, y).
     Direction should be a vector with elements -1, 0, or 1.
@@ -93,6 +93,8 @@ def draw_line(grid, x, y, length, color, direction):
         new_x = x + i * direction[0]
         new_y = y + i * direction[1]
         if 0 <= new_x < grid.shape[0] and 0 <= new_y < grid.shape[1]:
+            if grid[new_x, new_y] in stop_at_color:
+                break
             grid[new_x, new_y] = color
 
     return grid
