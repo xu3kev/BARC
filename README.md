@@ -2,7 +2,7 @@
 
 The only nonstandard library that you'll need is `arc-py`:
 ```bash
-$ python -m pip install arc-py
+$ python -m pip install -U git+https://github.com/xu3kev/arc-py.git
 ```
 
 # Viewing ARC problems
