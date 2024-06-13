@@ -4,6 +4,8 @@ from enum import Enum
 import hashlib
 import diskcache as dc
 import random
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 
 
 class Provider(Enum):
@@ -47,44 +49,71 @@ class LLMClient:
         hash_input = f"{prompt}-{model}-{temperature}-{max_tokens}-{self.system_content}-{top_p}".encode()
         return hashlib.md5(hash_input).hexdigest()
 
-    def generate(self, prompt, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1):
+    def send_request(self, prompt, model, temperature, max_tokens, top_p, num_samples):
+        response = self.client.chat.completions.create(
+            model=model.value,
+            messages=[
+                {
+                    "role": "system",
+                    "content": self.system_content
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            top_p=top_p,
+            n=num_samples
+        )
+        return response
+
+    def check_model_name(self, model):
         model_enum = self.AVAILABLE_MODELS[self.provider]
         if model is None:
             model = list(model_enum)[0]
+            print(f"Model name not provided, using default {model}")
         elif not isinstance(model, model_enum):
             raise ValueError(f"Model {model} is not available for provider {self.provider}")
+        return model
 
+    def get_samples_from_cache(self, prompt, model, temperature, max_tokens, top_p):
         # Create a unique hash for the prompt and parameters (excluding num_samples)
         cache_key = self._hash_prompt(prompt, model.value, temperature, max_tokens, top_p)
+        return self.cache.get(cache_key, [])
 
-        # Check if the result is already in the cache
+    def add_samples_to_cache(self, prompt, model, temperature, max_tokens, top_p, samples):
+        cache_key = self._hash_prompt(prompt, model.value, temperature, max_tokens, top_p)
         cached_samples = self.cache.get(cache_key, [])
+        cached_samples.extend(samples)
+        self.cache[cache_key] = cached_samples
+
+    def generate(self, prompt, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1):
+        model = self.check_model_name(model)
+        cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
 
         # If the number of cached samples is less than requested, generate more samples
         if len(cached_samples) < num_samples:
             remaining_samples = num_samples - len(cached_samples)
-            response = self.client.chat.completions.create(
-                model=model.value,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": self.system_content
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=temperature,
-                max_tokens=max_tokens,
-                top_p=top_p,
-                n=remaining_samples
-            )
+            response = self.send_request(prompt, model, temperature, max_tokens, top_p, remaining_samples)
             new_samples = [c.message.content for c in response.choices]
-            cached_samples.extend(new_samples)
-            self.cache[cache_key] = cached_samples
+            self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
+
+        # WARN neccessary to get the samples from cache again as it might have been updated
+        cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
 
         # Return a subset of the cached samples if they are more than the requested number
         if len(cached_samples) > num_samples:
             return random.sample(cached_samples, num_samples)
+
         return cached_samples[:num_samples]
+
+    def generate_parallel(self, prompts, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1, num_workers=8):
+        """use concurrent futures to generate samples in parallel"""
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            futures = [executor.submit(self.generate, prompt, num_samples, model, temperature, max_tokens, top_p) for prompt in prompts]
+            results = []
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Generating samples"):
+                results.append(future.result())
+            return results

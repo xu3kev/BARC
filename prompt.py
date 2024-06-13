@@ -126,6 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_seeds", "-s", type=int, default=None, help="how many seeds to show in the prompt, if not all of them")
     parser.add_argument("--model", "-m", type=str, default="gpt-4-turbo", help="which model to use", 
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
+    parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
     
     arguments = parser.parse_args()
 
@@ -149,10 +150,18 @@ if __name__ == "__main__":
     prompts = [ make_self_instruct_prompt(seeds, rng_seed, remix=remix_level, num_seeds=arguments.num_seeds) for rng_seed in range(batch_size) ]
 
     client = LLMClient(provider=provider)
-    samples = []    
-    for prompt in tqdm(prompts):
-        samples.extend(client.generate(prompt, num_samples=1, max_tokens=1024*2, temperature=arguments.temperature, model=model))
-    
+    samples = []
+    # use tqdm to go through the prompts and complete each of them
+    from tqdm import tqdm
+
+    if arguments.sample_parallel == 1:
+        for prompt in tqdm(prompts):
+            samples.extend(client.generate(prompt, num_samples=1, max_tokens=1024*2, temperature=arguments.temperature, model=model))
+    else:
+        list_of_lists_of_samples = client.generate_parallel(prompts, num_samples=1, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
+        # flatten the list
+        samples = [sample for sublist in list_of_lists_of_samples for sample in sublist]
+
     codes = []
     for sample in samples:
         codes.extend(parse_code(sample))
