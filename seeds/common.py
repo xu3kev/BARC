@@ -463,3 +463,32 @@ def random_sprite(n, m, symmetry=None, color_palette=None):
         # check that the sprite has pixels that are flushed with the border
         if np.sum(sprite[0, :]) > 0 and np.sum(sprite[-1, :]) > 0 and np.sum(sprite[:, 0]) > 0 and np.sum(sprite[:, -1]) > 0:
             return sprite
+
+def random_pattern(n, m, color_palette=None, num_colors=None):
+    """
+    Generate a random pattern, represented as a numpy array.
+
+    n, m: dimensions of the pattern. If these are lists, then a random value will be chosen from the list.
+    color_palette: optional list of colors to use in the pattern. If None, a random color palette will be chosen.
+
+    Returns an (n,m) NumPy array representing the pattern.
+    """
+    # Decide on dimensions
+    if isinstance(n, list):
+        n = random.choice(n)
+    if isinstance(m, list):
+        m = random.choice(m)
+
+    # Decide on colors and how many colors to use
+    if color_palette is None:
+        if num_colors is None:
+            num_colors = random.randint(1, len(Color.ALL_COLORS))
+        color_palette = random.sample(Color.ALL_COLORS, num_colors)
+
+    # Draw the pattern
+    pattern = np.zeros((n, m), dtype=int)
+    for x in range(n):
+        for y in range(m):
+            pattern[x, y] = random.choice(list(color_palette))
+    
+    return pattern
