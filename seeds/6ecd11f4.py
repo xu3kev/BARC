@@ -54,10 +54,7 @@ def generate_input():
     size = np.random.randint(3, 5)
 
     # make the multi-colored square with all colors except black
-    square = np.zeros((size, size), dtype=int)
-    for i in range(size):
-        for j in range(size):
-            square[i, j] = np.random.choice(list(Color.NOT_BLACK))
+    square = random_pattern(size, size, Color.NOT_BLACK)
     
     # make sure the square has more than one color, if not then try again
     if len(set(square.flatten())) == 1:
@@ -65,11 +62,7 @@ def generate_input():
 
     # make a random pattern that is the same size as the multi-colored square but only uses one color 
     color = np.random.choice(list(Color.NOT_BLACK))
-    pattern = np.zeros((size, size), dtype=int)
-    for i in range(size):
-        for j in range(size):
-            if np.random.random() < 0.5:
-                pattern[i, j] = color
+    pattern = random_pattern(size, size, [color, Color.BLACK])
 
     # check that pattern is continuous, if not then try again
     if not is_contiguous(pattern, connectivity=8):
@@ -92,7 +85,7 @@ def generate_input():
     # put the multi-colored square on the grid randomly but not touching the pattern
     x2, y2 = random_free_location_for_object(grid, square)
     # make sure the multi-colored square is not touching the pattern, if it is then keep looking for a place to put it
-    while contact(object1=grid, object2=square, x2=x2, y2=y2):
+    while contact(object1=grid, object2=square, x2=x2, y2=y2, connectivity=8):
         x2, y2 = random_free_location_for_object(grid, square)
     blit(grid, square, x2, y2)
 
