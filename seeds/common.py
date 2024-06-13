@@ -342,6 +342,8 @@ def apply_symmetry(sprite, symmetry_type):
         for x in range(n):
             for y in range(m // 2):
                 sprite[x, y] = sprite[x, m - 1 - y] = sprite[x, y] or sprite[x, m - 1 - y]
+    else:
+        raise ValueError(f"Invalid symmetry type {symmetry_type}.")
     return sprite
 
 def apply_diagonal_symmetry(sprite):
@@ -391,7 +393,7 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
     else:
         n_colors = len(color_palate)
     
-    grid = np.zeros((n, m))
+    grid = np.zeros((n, m), dtype=int)
     if symmetry_type == "not_symmetric":
         x, y = random.randint(0, n-1), random.randint(0, m-1)
     elif symmetry_type == 'horizontal':
@@ -403,6 +405,13 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
         diagonal_orientation = random.choice([True, False])
         x = random.randint(0, n-1)
         y = x if diagonal_orientation else n - 1 - x
+    elif symmetry_type == 'radial':
+        # we are just going to make a single quadrant and then apply symmetry
+        assert n == m, "Radial symmetry requires a square grid."
+        original_length = n
+        # shrink to quarter size, we are just making a single quadrant
+        n, m = int(n/2+0.5), int(m/2+0.5)
+        x, y = n-1, m-1 # begin at the bottom corner which is going to become the middle, ensuring everything is connected
     else:
         raise ValueError(f"Invalid symmetry type {symmetry_type}.")
 
@@ -418,12 +427,17 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
         if 0 <= new_x < n and 0 <= new_y < m:
             x, y = new_x, new_y
 
-    #return grid
 
-    if symmetry_type == 'horizontal':
-        grid = apply_symmetry(grid, 'horizontal')
-    elif symmetry_type == 'vertical':
-        grid = apply_symmetry(grid, 'vertical')
+    if symmetry_type in ['horizontal', 'vertical']:
+        grid = apply_symmetry(grid, symmetry_type)
+    elif symmetry_type == 'radial':
+        # this requires resizing
+        output = np.zeros((original_length, original_length), dtype=int)
+        blit(output, grid)
+        for _ in range(3):
+            blit(output, np.rot90(output), background=Color.BLACK)
+        grid = output
+
     elif symmetry_type == 'diagonal':        
         # diagonal symmetry goes both ways, flip a coin to decide which way
         if diagonal_orientation:
@@ -435,18 +449,18 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
 
     return grid
 
-def random_sprite(n, m, symmetry=None, color_palette=None):
+def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
     """
     Generate a sprite (an object), represented as a numpy array.
 
     n, m: dimensions of the sprite. If these are lists, then a random value will be chosen from the list.
-    symmetry: optional type of symmetry to apply to the sprite. Can be 'horizontal', 'vertical', 'diagonal', 'not_symmetric'. If None, a random symmetry type will be chosen.
+    symmetry: optional type of symmetry to apply to the sprite. Can be 'horizontal', 'vertical', 'diagonal', 'radial', 'not_symmetric'. If None, a random symmetry type will be chosen.
     color_palette: optional list of colors to use in the sprite. If None, a random color palette will be chosen.
 
     Returns an (n,m) NumPy array representing the sprite.
     """
     # Decide on symmetry type before generating the sprites
-    symmetry_types = ['horizontal', 'vertical', 'diagonal', "not_symmetric"]
+    symmetry_types = ['horizontal', 'vertical', 'diagonal', "radial", "not_symmetric"]
     symmetry = symmetry or random.choice(symmetry_types)
 
     # Decide on dimensions
@@ -456,7 +470,7 @@ def random_sprite(n, m, symmetry=None, color_palette=None):
         m = random.choice(m)    
 
     while True:
-        sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette)
+        sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette, fill_percentage=density)
         assert is_contiguous(sprite), "Generated sprite is not contiguous."
         # check that the sprite has pixels that are flushed with the border
         if np.sum(sprite[0, :]) > 0 and np.sum(sprite[-1, :]) > 0 and np.sum(sprite[:, 0]) > 0 and np.sum(sprite[:, -1]) > 0:

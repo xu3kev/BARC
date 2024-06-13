@@ -22,7 +22,8 @@ def validate(problem):
         input_grid = train_pair.x.T
         expected_output_grid = train_pair.y.T
 
-        output_grid = execute_transformation(source, input_grid)
+        output_grid = execute_transformation(source, input_grid,
+                                             timeout=None if len(sys.argv) > 1 else 1) # no timeout when debugging a single problem
 
         if isinstance(output_grid, str):
             print(f'Validation failure on {problem.uid}')
