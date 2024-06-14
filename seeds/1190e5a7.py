@@ -4,11 +4,13 @@ import numpy as np
 from typing import *
 
 # concepts:
-# <list of concepts, separated by commas>
+# Identifying area separated by lines. 
 
 # description:
-# <a couple sentences describing how to solve the problem, including what you'll see in the input>
-
+# In the input, you will be given a square grid with some non-consecutive horizontal and vertical lines. 
+# In the output, you want to identify the number of areas separated by these lines and put them into a grid. 
+# For example, if the grid is horizontally separated into n areas and vertically separated into m areas, then output 
+# a nxm grid. 
 def main(input_grid):
     # Count number of area separated in the first row
     background = input_grid[0,0]
