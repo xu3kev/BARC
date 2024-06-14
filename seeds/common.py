@@ -459,15 +459,40 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
 
     Returns an (n,m) NumPy array representing the sprite.
     """
+
+    # canonical form: force dimensions to be lists
+    if not isinstance(n, list):
+        n = [n]
+    if not isinstance(m, list):
+        m = [m]
+    
+    # radial and diagonal require target shape to be square
+    can_be_square = any(n_==m_ for n_ in n for m_ in m)
+
     # Decide on symmetry type before generating the sprites
-    symmetry_types = ['horizontal', 'vertical', 'diagonal', "radial", "not_symmetric"]
+    symmetry_types = ['horizontal', 'vertical', "not_symmetric"]
+    if can_be_square:
+        symmetry_types = symmetry_types + ['diagonal', 'radial']
+    
     symmetry = symmetry or random.choice(symmetry_types)
 
     # Decide on dimensions
-    if isinstance(n, list):
+    has_to_be_square = symmetry in ['diagonal', 'radial']
+    if has_to_be_square:
+        n, m = random.choice([ (n_, m_) for n_ in n for m_ in m if n_ == m_])
+    else:
         n = random.choice(n)
-    if isinstance(m, list):
-        m = random.choice(m)    
+        m = random.choice(m)
+    
+    # if one of the dimensions is 1, then we need to make sure the density is high enough to fill the entire sprite
+    if n == 1 or m == 1:
+        density = 1
+    # small sprites require higher density in order to have a high probability of reaching all of the sides
+    elif n == 2 or m == 2:
+        density = max(density, 0.7)    
+    # randomly perturb the density so that we get a wider variety of densities
+    else:
+        density = max(0.4, min(0.95, random.gauss(density, 0.1)))
 
     while True:
         sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette, fill_percentage=density)
