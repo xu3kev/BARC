@@ -14,8 +14,6 @@ from typing import *
 def main(input_grid):
     # get output grid ready
     output_grid = input_grid
-    print(len(input_grid))
-    print(len(input_grid[0]))
 
     # find the differently colored pixel
     colors, counts = np.unique(input_grid, return_counts=True)
