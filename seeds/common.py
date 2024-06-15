@@ -272,7 +272,7 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK):
     """
     n, m = grid.shape
     dim1, dim2 = sprite.shape
-    possible_locations = [(x,y) for x in range(0, n - dim1) for y in range(0, m - dim2)]
+    possible_locations = [ (x,y) for x in range(0, n - dim1 + 1) for y in range(0, m - dim2 + 1)]
 
     non_background_grid = np.sum(grid != background)
     non_background_sprite = np.sum(sprite != background)
