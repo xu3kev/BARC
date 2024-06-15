@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# <list of concepts, separated by commas>
+# alignment, objects
 
 # description:
 # In the input you will see a red, blue, and yellow shape. Each are the same shape. They occur left to right in the input grid among a black background, but at slightly different vertical heights. The output is the same as the input, but with the vertical heights of the red and yellow shapes adjusted to match the height of the blue shape.
