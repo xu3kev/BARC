@@ -19,14 +19,15 @@ def main(input_grid):
     
     # We need to find the optimal location for placing the rotated sprite
     # This will make the resulting object radially symmetric
-    for i in range(input_grid.shape[0]):
-        for j in range(input_grid.shape[1]):
+    for x in range(input_grid.shape[0]):
+        for y in range(input_grid.shape[1]):
             
             test_grid = np.copy(input_grid)
-            blit(test_grid, rotated_blue_sprite, i, j, background=Color.BLACK)
+            blit(test_grid, rotated_blue_sprite, x, y, background=Color.BLACK)
+            test_blue_sprite = crop(test_grid)
 
             # Check if the resulting object is radially symmetric
-            if np.array_equal(crop(test_grid), np.rot90(crop(test_grid))):
+            if np.array_equal(test_blue_sprite, np.rot90(test_blue_sprite)):
                 # Save what the input would look like if it were perfectly symmetric
                 perfectly_symmetric_grid = test_grid
                 break
