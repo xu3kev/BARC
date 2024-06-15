@@ -29,7 +29,7 @@ def all_concepts():
     """Returns a dictionary mapping concept name to UID"""
     all_concepts = {}
     for f in os.listdir("seeds"):
-        if f.endswith(".py") and f != "common.py":
+        if f.endswith(".py") and f not in ["common.py", "template.py"]:
             # trim the file extension
             f = f[:-3]
             for concept in concepts_in_file(f"seeds/{f}.py"):
