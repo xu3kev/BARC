@@ -233,7 +233,7 @@ def contact(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, backgrou
     contact(object1=output_grid, object2=a_sprite, x2=X, y2=Y)
 
     # Check if two objects touch each other
-    contact(object1=object1, object2=object2, x1=X1, y1=Y1, x2=X2, y2=Y2)
+    contact(object1=object1, object2=object2)
     """
     n1, m1 = object1.shape
     n2, m2 = object2.shape
@@ -293,11 +293,48 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK):
     return random.choice(pruned_locations)
 
 
-def show_colored_grid(grid):
+def show_colored_grid(grid, text=True):
     """
     internal function not used by LLM
     Not used by the language model, used by the rest of the code for debugging
     """
+
+    if not text:
+        import matplotlib.pyplot as plt
+        from matplotlib.colors import ListedColormap
+        # RGB
+        colors_rgb = {
+            0: (0x00, 0x00, 0x00),
+            1: (0x00, 0x74, 0xD9),
+            2: (0xFF, 0x41, 0x36),
+            3: (0x2E, 0xCC, 0x40),
+            4: (0xFF, 0xDC, 0x00),
+            5: (0xA0, 0xA0, 0xA0),
+            6: (0xF0, 0x12, 0xBE),
+            7: (0xFF, 0x85, 0x1B),
+            8: (0x7F, 0xDB, 0xFF),
+            9: (0x87, 0x0C, 0x25),
+        }
+
+        _float_colors = [tuple(c / 255 for c in col) for col in colors_rgb.values()]
+        arc_cmap = ListedColormap(_float_colors)
+        grid = grid.T
+        plt.figure()
+        plot_handle = plt.gca()
+        plot_handle.pcolormesh(
+            grid,
+            cmap=arc_cmap,
+            rasterized=True,
+            vmin=0,
+            vmax=9,
+        )
+        plot_handle.set_xticks(np.arange(0, grid.shape[1], 1))
+        plot_handle.set_yticks(np.arange(0, grid.shape[0], 1))
+        plot_handle.grid()
+        plot_handle.set_aspect(1)
+        plot_handle.invert_yaxis()
+        plt.show()
+        return
 
     color_names = ['black', 'blue', 'red', 'green', 'yellow', 'grey', 'pink', 'orange', 'teal', 'maroon']
     color_8bit = {"black": 0, "blue": 4, "red": 1, "green": 2, "yellow": 3, "grey": 7, "pink": 13, "orange": 202, "teal": 6, "maroon": 196}
@@ -458,15 +495,40 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
 
     Returns an (n,m) NumPy array representing the sprite.
     """
+
+    # canonical form: force dimensions to be lists
+    if not isinstance(n, list):
+        n = [n]
+    if not isinstance(m, list):
+        m = [m]
+    
+    # radial and diagonal require target shape to be square
+    can_be_square = any(n_==m_ for n_ in n for m_ in m)
+
     # Decide on symmetry type before generating the sprites
-    symmetry_types = ['horizontal', 'vertical', 'diagonal', "radial", "not_symmetric"]
+    symmetry_types = ['horizontal', 'vertical', "not_symmetric"]
+    if can_be_square:
+        symmetry_types = symmetry_types + ['diagonal', 'radial']
+    
     symmetry = symmetry or random.choice(symmetry_types)
 
     # Decide on dimensions
-    if isinstance(n, list):
+    has_to_be_square = symmetry in ['diagonal', 'radial']
+    if has_to_be_square:
+        n, m = random.choice([ (n_, m_) for n_ in n for m_ in m if n_ == m_])
+    else:
         n = random.choice(n)
-    if isinstance(m, list):
         m = random.choice(m)
+    
+    # if one of the dimensions is 1, then we need to make sure the density is high enough to fill the entire sprite
+    if n == 1 or m == 1:
+        density = 1
+    # small sprites require higher density in order to have a high probability of reaching all of the sides
+    elif n == 2 or m == 2:
+        density = max(density, 0.7)    
+    # randomly perturb the density so that we get a wider variety of densities
+    else:
+        density = max(0.4, min(0.95, random.gauss(density, 0.1)))
 
     while True:
         sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette, fill_percentage=density)

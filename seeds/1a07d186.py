@@ -20,7 +20,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     # separate the bars from the pixels
     bars, pixels = [], []
     for obj in objects:
-        x, y, w, h = bounding_box(obj)
+        w, h = crop(obj).shape
         if w == input_grid.shape[0] or h == input_grid.shape[1]:
             bars.append(obj)
         else:
