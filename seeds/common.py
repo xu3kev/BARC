@@ -52,7 +52,7 @@ def _flood_fill(grid, x, y, color, old_color, connectivity):
     """
     if grid[x, y] != old_color:
         return
-    
+
     grid[x, y] = color
 
     # flood fill in all directions
@@ -64,7 +64,7 @@ def _flood_fill(grid, x, y, color, old_color, connectivity):
         _flood_fill(grid, x, y - 1, color, old_color, connectivity)
     if y < grid.shape[1] - 1:
         _flood_fill(grid, x, y + 1, color, old_color, connectivity)
-    
+
     if connectivity == 4: return
 
     if x > 0 and y > 0:
@@ -85,10 +85,10 @@ def draw_line(grid, x, y, length, color, direction):
     Example:
     draw_line(grid, 0, 0, length=3, color=blue, direction=(1, 1)) will draw a diagonal line of blue pixels from (0, 0) to (2, 2).
     """
-    
+
     if length is None:
         length = max(grid.shape)*2
-    
+
     for i in range(length):
         new_x = x + i * direction[0]
         new_y = y + i * direction[1]
@@ -113,7 +113,7 @@ def find_connected_components(grid, background=Color.BLACK, connectivity=4, mono
         structure = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
     else:
         raise ValueError("Connectivity must be 4 or 8.")
-    
+
     if not monochromatic: # if we allow multiple colors in a connected component, we can ignore color except for whether it's the background
         labeled, n_objects = label(grid != background, structure)
     else:
@@ -217,7 +217,7 @@ def collision(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, backgr
                 new_y = y - dy
                 if 0 <= new_x < n2 and 0 <= new_y < m2 and object2[new_x, new_y] != background:
                     return True
-    
+
     return False
 
 def contact(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, background=Color.BLACK, connectivity=4):
@@ -256,7 +256,7 @@ def contact(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, backgrou
                     new_y = y - dy + my
                     if 0 <= new_x < n2 and 0 <= new_y < m2 and object2[new_x, new_y] != background:
                         return True
-    
+
     return False
 
 
@@ -267,13 +267,12 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK):
 
     Example usage:
     x, y = random_free_location_for_object(grid, sprite) # find the location
-    assert not collision(object1=grid, object2=sprite, x2=x, y2=y) 
+    assert not collision(object1=grid, object2=sprite, x2=x, y2=y)
     blit(grid, sprite, x, y)
     """
-
     n, m = grid.shape
     dim1, dim2 = sprite.shape
-    possible_locations = [(x,y) for x in range(0, n - dim1) for y in range(0, m - dim2)]
+    possible_locations = [ (x,y) for x in range(0, n - dim1 + 1) for y in range(0, m - dim2 + 1)]
 
     non_background_grid = np.sum(grid != background)
     non_background_sprite = np.sum(sprite != background)
@@ -290,7 +289,7 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK):
 
     if len(pruned_locations) == 0:
         raise ValueError("No free location for sprite found.")
-    
+
     return random.choice(pruned_locations)
 
 
@@ -347,12 +346,12 @@ def show_colored_grid(grid, text=True):
             print(f"\033[38;5;{color_code}m{cell}\033[0m", end="")
         print()
 
-    
+
 def visualize(input_generator, transform, n_examples=5):
     """
     internal function not used by LLM
     """
-        
+
     for index in range(n_examples):
         input_grid = input_generator()
         print("Input:")
@@ -412,10 +411,10 @@ def is_contiguous(bitmask, background=Color.BLACK, connectivity=4):
         structure = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
     else:
         raise ValueError("Connectivity must be 4 or 8.")
-    
+
     labeled, n_objects = label(bitmask != background, structure)
     return n_objects == 1
-    
+
 
 def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, color_palate=None):
     """"
@@ -429,7 +428,7 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
         color_palate = random.sample(range(1, 10), n_colors)
     else:
         n_colors = len(color_palate)
-    
+
     grid = np.zeros((n, m), dtype=int)
     if symmetry_type == "not_symmetric":
         x, y = random.randint(0, n-1), random.randint(0, m-1)
@@ -453,7 +452,7 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
         raise ValueError(f"Invalid symmetry type {symmetry_type}.")
 
     moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-    
+
     color_index = 0
     while np.sum(grid>0) < fill_percentage * n * m:
         grid[x, y] = color_palate[color_index]
@@ -475,7 +474,7 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
             blit(output, np.rot90(output), background=Color.BLACK)
         grid = output
 
-    elif symmetry_type == 'diagonal':        
+    elif symmetry_type == 'diagonal':
         # diagonal symmetry goes both ways, flip a coin to decide which way
         if diagonal_orientation:
             grid = np.flipud(grid)
