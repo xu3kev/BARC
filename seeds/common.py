@@ -116,15 +116,21 @@ def find_connected_components(grid, background=Color.BLACK, connectivity=4, mono
 
     if not monochromatic: # if we allow multiple colors in a connected component, we can ignore color except for whether it's the background
         labeled, n_objects = label(grid != background, structure)
+        connected_components = []
+        for i in range(n_objects):
+            connected_component = grid * (labeled == i + 1)
+            connected_components.append(connected_component)
+
+        return connected_components
     else:
-        labeled, n_objects = label((grid+1)*(grid != background), structure)
-
-    connected_components = []
-    for i in range(n_objects):
-        connected_component = grid * (labeled == i + 1)
-        connected_components.append(connected_component)
-
-    return connected_components
+        # if we only allow one color per connected component, we need to iterate over the colors
+        connected_components = []
+        for color in set(grid.flatten()) - {background}:
+            labeled, n_objects = label(grid == color, structure)
+            for i in range(n_objects):
+                connected_component = grid * (labeled == i + 1)
+                connected_components.append(connected_component)
+        return connected_components 
 
 
 
@@ -260,10 +266,13 @@ def contact(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, backgrou
     return False
 
 
-def random_free_location_for_object(grid, sprite, background=Color.BLACK):
+def random_free_location_for_object(grid, sprite, background=Color.BLACK, border_size=0):
     """
     Find a random free location for the sprite in the grid
     Returns a tuple (x, y) of the top-left corner of the sprite in the grid, which can be passed to `blit`
+
+    border_size: minimum distance from the edge of the grid
+    background: color treated as transparent
 
     Example usage:
     x, y = random_free_location_for_object(grid, sprite) # find the location
@@ -272,7 +281,7 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK):
     """
     n, m = grid.shape
     dim1, dim2 = sprite.shape
-    possible_locations = [ (x,y) for x in range(0, n - dim1 + 1) for y in range(0, m - dim2 + 1)]
+    possible_locations = [ (x,y) for x in range(border_size, n - dim1 + 1 - border_size) for y in range(border_size, m - dim2 + 1 - border_size)]
 
     non_background_grid = np.sum(grid != background)
     non_background_sprite = np.sum(sprite != background)
