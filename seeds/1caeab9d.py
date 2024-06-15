@@ -44,7 +44,7 @@ def generate_input():
     grid_height = np.random.randint(h+1, 16)
 
     # for each color,
-    # put a colored form of the shape in a random spot in a new grid5
+    # put a colored form of the shape in a random spot in a new grid
     subgrids = []
     for color in [Color.BLUE, Color.RED, Color.YELLOW]:
         # make a grid to put the shape in
