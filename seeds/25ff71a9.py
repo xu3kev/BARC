@@ -15,11 +15,8 @@ def main(input_grid):
     # find the connected component, which is a monochromatic object
     object = find_connected_components(input_grid, background=Color.BLACK, connectivity=8, monochromatic=True)[0]
 
-    # get output_grid ready
-    output_grid = np.zeros((3, 3))
-
-    # slide the object in the output grid by one index down
-    blit(output_grid, object, y=1)
+    # translate the object down by one pixel
+    output_grid = translate(object, 0, 1, background=Color.BLACK)
 
     return output_grid
 

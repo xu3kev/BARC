@@ -19,18 +19,18 @@ def main(input_grid):
     output_grid = np.zeros((n, m), dtype=int)
 
     # look at each row of the input grid
-    for i, row in enumerate(input_grid.T):
+    for y in range(m):
         # check if each pixel in the row is the same color
-        base_color = row[0]
+        base_color = input_grid[0][y]
         all_same_color = True
-        for color in row[1:]:
+        for color in input_grid[1:][y]:
             if color != base_color:
                 all_same_color = False
 
         # if they are all the same color, change the output row to grey
         if all_same_color:
-            for j in range(len(row)):
-                output_grid[j][i] = Color.GREY
+            for x in range(n):
+                output_grid[x][y] = Color.GREY
 
     return output_grid
 
