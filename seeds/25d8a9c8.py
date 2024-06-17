@@ -12,19 +12,25 @@ from typing import *
 # For each row of the input, if that row is a single color, color that row in the output grey. Otherwise, output black.
 
 def main(input_grid):
+    # get input grid shape
+    n, m = input_grid.shape
+
     # get output grid ready
-    output_grid = np.zeros((3, 3), dtype=int)
+    output_grid = np.zeros((n, m), dtype=int)
 
     # look at each row of the input grid
     for i, row in enumerate(input_grid.T):
         # check if each pixel in the row is the same color
-        same_color = row[0] == row[1] == row[2]
+        base_color = row[0]
+        all_same_color = True
+        for color in row[1:]:
+            if color != base_color:
+                all_same_color = False
 
-        # if they are the same color, change the output row to grey
-        if same_color:
-            output_grid[0][i] = Color.GREY
-            output_grid[1][i] = Color.GREY
-            output_grid[2][i] = Color.GREY
+        # if they are all the same color, change the output row to grey
+        if all_same_color:
+            for j in range(len(row)):
+                output_grid[j][i] = Color.GREY
 
     return output_grid
 
