@@ -25,7 +25,7 @@ def main(input_grid):
 def generate_input():
     # make a random square pattern of random size and colors
     n = m = np.random.randint(3, 6)
-    grid = random_pattern(n, m, Color.NOT_BLACK)
+    grid = random_sprite(n, m, 1, "not_symmetric", Color.NOT_BLACK)
 
     return grid
 

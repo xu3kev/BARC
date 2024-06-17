@@ -52,16 +52,16 @@ def generate_input():
 
 
     # make a random pattern in the top left corner of the specified size
-    grid[:size, :size] = random_pattern(size, size, {color, Color.BLACK})
+    grid[:size, :size] = [[np.random.choice([color, Color.BLACK]) for _ in range(size)] for _ in range(size)]
 
     # make a random pattern in the top right corner of the specified size
-    grid[:size, -size:] = random_pattern(size, size, {color, Color.BLACK})
+    grid[:size, -size:] = [[np.random.choice([color, Color.BLACK]) for _ in range(size)] for _ in range(size)]
 
     # make a random pattern in the bottom left corner of the specified size
-    grid[-size:, :size] = random_pattern(size, size, {color, Color.BLACK})
+    grid[-size:, :size] = [[np.random.choice([color, Color.BLACK]) for _ in range(size)] for _ in range(size)]
 
     # make a random pattern in the bottom right corner of the specified size
-    grid[-size:, -size:] = random_pattern(size, size, {color, Color.BLACK})
+    grid[-size:, -size:] = [[np.random.choice([color, Color.BLACK]) for _ in range(size)] for _ in range(size)]
 
     # Check that at least one of the patterns is not all black
     # If they are all black, try again

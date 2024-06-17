@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# objects, colors, alignment, scaling
+# objects, color, alignment, scaling
 
 # description:
 # In the input you will see a large object that represents a pattern using only one color and a square object with many colors.
@@ -54,7 +54,7 @@ def generate_input():
     size = np.random.randint(3, 5)
 
     # make the multi-colored square with all colors except black
-    square = random_pattern(size, size, Color.NOT_BLACK)
+    square = random_sprite(size, size, 1, "not_symmetric", Color.NOT_BLACK)
     
     # make sure the square has more than one color, if not then try again
     if len(set(square.flatten())) == 1:
@@ -62,7 +62,7 @@ def generate_input():
 
     # make a random pattern that is the same size as the multi-colored square but only uses one color 
     color = np.random.choice(list(Color.NOT_BLACK))
-    pattern = random_pattern(size, size, [color, Color.BLACK])
+    pattern = random_sprite(size, size, .7, "not_symmetric", [color], 8)
 
     # check that pattern is continuous, if not then try again
     if not is_contiguous(pattern, connectivity=8):
