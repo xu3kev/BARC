@@ -23,7 +23,7 @@ def main(input_grid):
         # check if each pixel in the row is the same color
         base_color = input_grid[0][y]
         all_same_color = True
-        for color in input_grid[1:][y]:
+        for color in input_grid[1:, y]:
             if color != base_color:
                 all_same_color = False
 
@@ -36,7 +36,7 @@ def main(input_grid):
 
 def generate_input():
     # create a 3x3 array of randomly chosen, non-black, colors
-    grid = np.random.choise(Color.NOT_BLACK, size=(3, 3))
+    grid = np.random.choice(Color.NOT_BLACK, size=(3, 3))
 
     return grid
 
