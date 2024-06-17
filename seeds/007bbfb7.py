@@ -7,28 +7,28 @@ from typing import *
 # repeating patterns, colors as indicators, scaling
 
 # description:
-# In the input you will see a 3x3 sprite with black background. 
-# Construct a 9x9 output grid with black pixels. Divide the 9x9 output grid into nine 3x3 subgrids, 
-# and look at the corresponding pixel in the 3x3 input grid. If the corresponding pixel is not black, 
-# then copy the 3x3 input grid into the 3x3 subgrid. Else, the subgrid does not change. 
+# In the input you will see a nxm sprite with black background. 
+# Construct an output grid with n^2 x m^2 black pixels. Divide the output grid into subgrids, 
+# and look at the corresponding pixel in the nxm input grid. If the corresponding pixel is not black, 
+# then copy the nxm input grid into the subgrid. Else, the subgrid does not change. 
 
 def main(input_grid):
     # creates an empty 9x9 output grid 
-    output_grid = np.zeros((9,9),dtype=int)
+    output_grid = np.zeros((input_grid.shape[0]**2,input_grid.shape[1]**2),dtype=int)
 
     # Go through the input grid. If an input grid pixel is not black, 
     # then copy the input grid to the corresponding location on the output grid
     for n in range(input_grid.shape[0]):
       for m in range(input_grid.shape[1]):
         if input_grid[n,m] != Color.BLACK:
-            blit(output_grid, input_grid, n*3, m*3)
+            blit(output_grid, input_grid, n*input_grid.shape[0], m*input_grid.shape[1])
     
     return output_grid
 
 def generate_input():
-  grid = np.zeros((3, 3), dtype=int)
+  n,m = random.randint(5,20), random.randint(5,20)
   random_color = random.choice(list(Color.NOT_BLACK))
-  return random_sprite(3, 3, color_palette=[random_color])
+  return random_sprite(n, m, color_palette=[random_color])
 
 
 # ============= remove below this point for prompting =============

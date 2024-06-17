@@ -12,6 +12,8 @@ import random
 
 def execute_transformation(source, input_grid, timeout=1, function_name="main"):
 
+    input_grid = np.array(input_grid)
+
     global_vars = {}
 
     def execute_code(code, global_vars):
@@ -32,7 +34,10 @@ output_grid = {function_name}(input_grid)
 """
 
     try:
-        output = func_timeout(timeout, execute_code, args=(code, global_vars))
+        if timeout is None:
+            output = execute_code(code, global_vars)
+        else:
+            output = func_timeout(timeout, execute_code, args=(code, global_vars))
     except FunctionTimedOut:
         print("Error: Code execution timed out after 10 seconds")
         output = "timeout"

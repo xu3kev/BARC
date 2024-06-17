@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# diagonal lines, repeating patterns
+# diagonal lines, repetition
 
 # description:
 # In the input you will see a 7x7 grid, with three diagonal lines that stretch from one end of the canvas to the other

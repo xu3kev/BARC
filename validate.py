@@ -22,7 +22,8 @@ def validate(problem):
         input_grid = train_pair.x.T
         expected_output_grid = train_pair.y.T
 
-        output_grid = execute_transformation(source, input_grid)
+        output_grid = execute_transformation(source, input_grid,
+                                             timeout=None if len(sys.argv) > 1 else 1) # no timeout when debugging a single problem
 
         if isinstance(output_grid, str):
             print(f'Validation failure on {problem.uid}')
@@ -56,7 +57,7 @@ no_seed_provided, validation_passed, validation_failed = 0, [], []
 for problem in train_problems:
     if len(sys.argv) > 1 and problem.uid not in sys.argv[1:]:
         continue
-    
+
     # check if we have a manually constructed seed solution to this problem
     if not os.path.exists(f"seeds/{problem.uid}.py"):
         no_seed_provided += 1

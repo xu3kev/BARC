@@ -30,8 +30,8 @@ def main(input_grid: np.ndarray) -> np.ndarray:
         biggest_displacement_vector = (0,0)
         displacement_vectors = [ (i, j) for i in range(-10, 10) for j in range(-10, 10) ]
         for displacement_vector in displacement_vectors:
-            # translate the central object by the displacement vector5
-            translated_central_object = np.roll(central_object, displacement_vector, axis=(0, 1))
+            # translate the central object by the displacement vector
+            translated_central_object = translate(central_object, displacement_vector[0], displacement_vector[1], background=Color.BLACK)
 
             # check if the translated object completely overlaps the other object
             translated_mask, other_mask = translated_central_object != Color.BLACK, other_object != Color.BLACK
@@ -51,7 +51,8 @@ def main(input_grid: np.ndarray) -> np.ndarray:
         # repeat the displacement indefinitely until it falls off the canvas
         for i in range(1, 10):
             displacement = (displacement_vector[0] * i, displacement_vector[1] * i)
-            blit(output_grid, central_object, displacement[0], displacement[1], transparent=Color.BLACK)
+            blit(output_grid, central_object, displacement[0], displacement[1], background=Color.BLACK)
+            
     return output_grid
 
 
@@ -67,7 +68,7 @@ def generate_input() -> np.ndarray:
 
     # place the central object near the center
     x, y = np.random.randint(int(0.3*n), int(0.7*n)), np.random.randint(int(0.3*m), int(0.7*m))
-    blit(grid, central_object, x, y, transparent=Color.BLACK)
+    blit(grid, central_object, x, y, background=Color.BLACK)
 
     # possible displacement vectors can range in any of the eight different directions (cardinal directions and in between them)
     # they should be close to just a little more than the length of the central object, however
@@ -97,7 +98,7 @@ def generate_input() -> np.ndarray:
             other_object[pixel[0], pixel[1]] = Color.BLACK        
 
         # place the new object near the center, but offset by the vector
-        blit(grid, other_object, x + vector[0], y + vector[1], transparent=Color.BLACK)
+        blit(grid, other_object, x + vector[0], y + vector[1], background=Color.BLACK)
 
     return grid
 

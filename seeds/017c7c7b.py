@@ -7,46 +7,37 @@ from typing import *
 # Detecting and copying repeating patterns
 
 # description:
-# In the input you will see a 6x3 grid repeating a nx3 pattern. 
-# In the output, you want to repeat the same pattern on a 9x3 grid. 
+# In the input you will see a nxm grid repeating a kxm pattern. 
+# In the output, you want to repeat the same pattern on a 9xm grid. 
  
 def main(input_grid):
     # Initialize output grid
-    output_grid = np.zeros((3,9),dtype=int)
+    output_grid = np.zeros((input_grid.shape[0],9),dtype=int)
 
     # Detecting patterns in the input grid
-    num_pattern_rows = 0
-    # Checking 1 row case
-    n1 = True 
-    for i in range(1,input_grid.shape[1]):
-        if not np.equal(input_grid[:,0], input_grid[:,i]).all():
-            n1 = False
-            break
-    if n1:
-        num_pattern_rows = 1 
-    # Checking 2 row case
-    elif np.equal(input_grid[: ,0:2], input_grid[:,2:4]).all() and np.equal(input_grid[: ,2:4], input_grid[:,4:6]).all():
-        num_pattern_rows = 2
-    # Checking 3 row case
-    elif np.equal(input_grid[: ,0:3], input_grid[:,3:6]).all():
-        num_pattern_rows = 3
-    # Checking 4 row case
-    elif np.equal(input_grid[: ,0:2], input_grid[:,4:6]).all():
-        num_pattern_rows = 4
-    # Checking 5 row case
-    elif np.equal(input_grid[: ,0], input_grid[:,5]).all():
-        num_pattern_rows = 5
-    # Else 6 row case
-    else:
-        num_pattern_rows = 6 
+    for num_pattern_rows in range(1,input_grid.shape[1]):
+        # Check complete repeating patterns
+        check = True
+        for i in range(num_pattern_rows, input_grid.shape[1],num_pattern_rows):
+            if i+num_pattern_rows <= input_grid.shape[1] and not np.equal(input_grid[:,0:num_pattern_rows], input_grid[:,i:i+num_pattern_rows]).all():
+                check = False 
+                
+        # Check last few rows (potentially not complete pattern)
+        num_remaining_rows = input_grid.shape[1] % num_pattern_rows
+        if check and num_remaining_rows != 0 :
+            if not np.equal(input_grid[:,0:num_remaining_rows], input_grid[:, -1*num_remaining_rows:]).all():
+                check = False
+        if check:
+            
+            # Recognizing pattern in input grid and changes its color
+            sprite = input_grid[:, 0:num_pattern_rows]
+            sprite[sprite==Color.BLUE] = Color.RED
 
-    # Recognizing pattern in input grid and changes its color
-    sprite = input_grid[:, 0:num_pattern_rows]
-    sprite[sprite==Color.BLUE] = Color.RED
+            # Copying pattern
+            repeat_pattern(output_grid,sprite)
 
-    # Copying pattern
-    repeat_pattern(output_grid,sprite)
-
+            return output_grid
+        
     return output_grid
 
 def repeat_pattern(grid,sprite):
@@ -62,7 +53,7 @@ def generate_input():
     color = Color.BLUE
 
     # Creates a random smaller sprite, where the number of row is chosen randomly from 3 or 4
-    row = random.randint(3,4)
+    row = random.randint(4,4)
 
     # if not 3x3, then cannot be diagonal symmetry 
     if row == 3:

@@ -29,7 +29,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
                     else:
                         transformed_object[x, y] = obj[x, y]
 
-        blit(output_grid, transformed_object, 0, 0, transparent=Color.BLACK)
+        blit(output_grid, transformed_object, 0, 0, background=Color.BLACK)
 
     return output_grid
 
@@ -66,7 +66,7 @@ def generate_input() -> np.ndarray:
         except:
             continue
 
-        blit(grid, obj, x, y, transparent=Color.BLACK)
+        blit(grid, obj, x, y, background=Color.BLACK)
 
     return grid
 
