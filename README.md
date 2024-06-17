@@ -1,9 +1,6 @@
 # Installation
 
-The only nonstandard library that you'll need is `arc-py`:
-```bash
-$ python -m pip install arc-py
-```
+Run `python -m pip install -r requirements.txt` to install Python requirements.
 
 # Viewing ARC problems
 

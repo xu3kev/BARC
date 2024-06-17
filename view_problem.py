@@ -5,9 +5,8 @@ import matplotlib.pyplot as plt
 
 assert len(sys.argv) == 2, "Usage: python view_problem.py <problem_id>"
 
-# copy common.py from seeds to the current directory and then do the import
-# this is a hack
-os.system("cp seeds/common.py .")
+# add seeds/ to the python path so we can import common
+sys.path.append("seeds/")
 
 from common import show_colored_grid
 
@@ -21,23 +20,20 @@ figure, axs = plt.subplots(n_pairs, 2, figsize=(5, 5 * n_pairs))
 
 for i, pair in enumerate(problem[0].train_pairs):
     print("Input:")
-    show_colored_grid(pair.x)
+    show_colored_grid(pair.x.T)
     print("Output:")
-    show_colored_grid(pair.y)
+    show_colored_grid(pair.y.T)
     print("\n\n")
 
     pair.plot(show=False, title=problem_id, fig_axes = (figure, axs[i,:]))
 
 for i, pair in enumerate(problem[0].test_pairs):
     print("Test Input:")
-    show_colored_grid(pair.x)
+    show_colored_grid(pair.x.T)
     print("Test Output:")
-    show_colored_grid(pair.y)
+    show_colored_grid(pair.y.T)
     print("\n\n")
 
     pair.plot(show=False, title=problem_id, fig_axes = (figure, axs[i + len(problem[0].train_pairs),:]))
 
 plt.show()
-
-# cleanup
-os.system("rm common.py")

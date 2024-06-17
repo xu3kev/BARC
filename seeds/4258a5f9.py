@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# surrounding pixels
+# surrounding
 
 # description:
 # surround every gray pixel with blue pixels
@@ -14,7 +14,7 @@ def main(input_grid):
 
     for i in range(len(input_grid)):
         for j in range(len(input_grid[i])):
-            if input_grid[i][j] == Color.GRAY:
+            if input_grid[i, j] == Color.GRAY:
                 # if the current pixel is gray, then we need to surround it with blue
                 output_grid[max(0, i-1):min(len(input_grid), i+2), max(0, j-1):min(len(input_grid[i]), j+2)] = Color.BLUE
 
@@ -32,7 +32,7 @@ def generate_input():
     for x in range(9):
         for y in range(9):
             if np.random.random() < 0.05:
-                grid[x,y] = Color.GRAY
+                grid[x, y] = Color.GRAY
     return grid
 
 # ============= remove below this point for prompting =============

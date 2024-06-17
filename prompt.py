@@ -2,7 +2,7 @@ import os
 import re
 import random
 import numpy as np
-from func_timeout import func_timeout, FunctionTimedOut
+from tqdm import tqdm
 
 from utils import extract_functions, extract_function_calls, extract_class_definitions, parse_code, remove_trailing_code, generate_html_grid
 from execution import execute_transformation, execute_input_generator
@@ -50,16 +50,16 @@ def make_self_instruct_prompt(seeds, rng_seed, num_seeds=None, remix=0):
 
     common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
 
-    common_functions_calls_counter = {}
+    #common_functions_calls_counter = {}
     concepts_in_seeds = []
     for content in seed_content:
-        function_calls = extract_function_calls(content)
-        common_functions_calls = common_lib_function_names.intersection(set(function_calls))
+        # function_calls = extract_function_calls(content)
+        # common_functions_calls = common_lib_function_names.intersection(set(function_calls))
 
-        for func in common_functions_calls:
-            if func not in common_functions_calls_counter:
-                common_functions_calls_counter[func] = 0
-            common_functions_calls_counter[func] += 1
+        # for func in common_functions_calls:
+        #     if func not in common_functions_calls_counter:
+        #         common_functions_calls_counter[func] = 0
+        #     common_functions_calls_counter[func] += 1
 
         # Extract the concepts, which come as a comment after the line containing "# concepts:"
         lines = content.split("\n")
@@ -70,38 +70,25 @@ def make_self_instruct_prompt(seeds, rng_seed, num_seeds=None, remix=0):
                 concepts = [c.strip() for c in concepts]
                 concepts_in_seeds.extend(concepts)
 
-    if False: # old prompt
-        prompt = "The following code examples describe a function that generates a color grid input and a function that transforms the input grid to output grid. Later, the input and output grids will be given to students as puzzle. The puzzle is to figure out the rule that transforms the input grid to output grid. The puzzles should be interesting and challenging for students to solve. You will be creative and come up with similar and interesting problems. You can use the provided code examples as a reference to create your own problems."
+    examples = "\n\n".join([f"Example puzzle:\n```python\n{content}\n```" for content in seed_content])
+    # remove "color change" from the concepts, because it is problematic and easily misinterpreted
+    concepts_in_seeds = [c for c in concepts_in_seeds if c != "color change"]
+    # deduplicate and randomly permute
+    concepts_in_seeds = list(sorted(set(concepts_in_seeds)))
+    rng.shuffle(concepts_in_seeds)
+    concept_list = ", ".join(concepts_in_seeds)
 
-        prompt += "\n\nCommon Library:\n\n```python\n" + common_lib + "\n```\n"
-
-        prompt += "\nThe input generator function will be the function `generate_input`, and the transform function will be the function `main`.\n"
-
-        for i in range(len(seed_content)):
-            prompt += "\n\nExample:\n\n```python\n"+ seed_content[i] + "\n```\n"
-
-        prompt += "\n\nFollowing the above format, your task is to create similar and interesting problems. You can use the provided code examples as a reference to create your own problems. Be sure to include the input generator function `generate_input` and the transform function `main` in your code examples in the same single code block."
-        prompt += '\nMake use of the common library functions in your code examples. Come up with interesting visual or physic-inspired problems.'
+    if remix == 0:
+        remix1 = ""
+        remix2 = ""
+    elif remix == 1:
+        remix1 = "in particular, making a new variation of the last example, by "
+        remix2 = ", but remembering it should be a variation of the last example"
     else:
-        examples = "\n\n".join([f"Example puzzle:\n```python\n{content}\n```" for content in seed_content])
-        # remove "color change" from the concepts, because it is problematic and easily misinterpreted
-        concepts_in_seeds = [c for c in concepts_in_seeds if c != "color change"]
-        # deduplicate and randomly permute
-        concepts_in_seeds = list(sorted(set(concepts_in_seeds)))
-        rng.shuffle(concepts_in_seeds)
-        concept_list = ", ".join(concepts_in_seeds)
+        remix1 = f"in particular, making a new variation of the last {remix} examples, by "
+        remix2 = f", but remembering it should be a variation of the last {remix} examples"
 
-        if remix == 0:
-            remix1 = ""
-            remix2 = ""
-        elif remix == 1:
-            remix1 = "in particular, making a new variation of the last example, by "
-            remix2 = ", but remembering it should be a variation of the last example"
-        else:
-            remix1 = f"in particular, making a new variation of the last {remix} examples, by "
-            remix2 = f", but remembering it should be a variation of the last {remix} examples"
-
-        prompt = f"""You are a puzzle maker designing geometric, physical, and topological puzzles for curious middle-schoolers.
+    prompt = f"""You are a puzzle maker designing geometric, physical, and topological puzzles for curious middle-schoolers.
 
 Each puzzle consists of discovery a deterministic rule, pattern, procedure, algorithm, or transformation law that maps inputs to outputs.
 Both the inputs and outputs are 2D grids of colored pixels. There are 10 colors, but the order of the colors is never relevant to the puzzle.
@@ -139,6 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_seeds", "-s", type=int, default=None, help="how many seeds to show in the prompt, if not all of them")
     parser.add_argument("--model", "-m", type=str, default="gpt-4-turbo", help="which model to use", 
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
+    parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
     
     arguments = parser.parse_args()
 
@@ -165,9 +153,15 @@ if __name__ == "__main__":
     samples = []
     # use tqdm to go through the prompts and complete each of them
     from tqdm import tqdm
-    for prompt in tqdm(prompts):
-        samples.extend(client.generate(prompt, num_samples=1, max_tokens=1024*2, temperature=arguments.temperature, model=model))
-    
+
+    if arguments.sample_parallel == 1:
+        for prompt in tqdm(prompts):
+            samples.extend(client.generate(prompt, num_samples=1, max_tokens=1024*2, temperature=arguments.temperature, model=model))
+    else:
+        list_of_lists_of_samples = client.generate_parallel(prompts, num_samples=1, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
+        # flatten the list
+        samples = [sample for sublist in list_of_lists_of_samples for sample in sublist]
+
     codes = []
     for sample in samples:
         codes.extend(parse_code(sample))
