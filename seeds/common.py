@@ -475,3 +475,23 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
         # check that the sprite has pixels that are flushed with the border
         if np.sum(sprite[0, :]) > 0 and np.sum(sprite[-1, :]) > 0 and np.sum(sprite[:, 0]) > 0 and np.sum(sprite[:, -1]) > 0:
             return sprite
+        
+def new_random_color(not_allowed_colors=[], return_black=False):
+    """
+    Returns a new random color that is not in the list of existing colors.
+
+    not_allowed_colors: list of colors to avoid. If empty, all colors are allowed.
+    return_black: if True, black is allowed as a color. If False, black is not allowed as a color.
+
+    Returns a color. Does not return Color.BLACK by default.
+    """
+    # if black is not allowed, then we add it to the list of colors to avoid
+    if not return_black and Color.BLACK not in not_allowed_colors:
+        not_allowed_colors.append(Color.BLACK)
+    available_colors = [color for color in Color.ALL_COLORS if color not in not_allowed_colors]
+
+    if len(available_colors) == 0:
+        raise ValueError("No available colors to choose from.")
+    
+    return random.choice(available_colors)
+        
