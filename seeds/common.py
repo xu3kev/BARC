@@ -270,18 +270,21 @@ def contact(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, backgrou
     return False
 
 
-def random_free_location_for_object(grid, sprite, background=Color.BLACK, border_size=0):
+def random_free_location_for_object(grid, sprite, background=Color.BLACK, border_size=0, avoid_contact=False):
     """
     Find a random free location for the sprite in the grid
     Returns a tuple (x, y) of the top-left corner of the sprite in the grid, which can be passed to `blit`
 
     border_size: minimum distance from the edge of the grid
     background: color treated as transparent
+    avoid_contact: if True, will avoid placing the sprite in contact with any non-background pixels in the grid
 
     Example usage:
     x, y = random_free_location_for_object(grid, sprite) # find the location
     assert not collision(object1=grid, object2=sprite, x2=x, y2=y)
     blit(grid, sprite, x, y)
+
+    If no free location is found, raises a ValueError.
     """
     n, m = grid.shape
     dim1, dim2 = sprite.shape
@@ -299,6 +302,21 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
         new_grid[x:x+dim1, y:y+dim2] = np.maximum(new_grid[x:x+dim1, y:y+dim2], sprite)
         if np.sum(new_grid != background) == target_non_background:
             pruned_locations.append((x, y))
+
+    # further prune to avoid contact
+    if avoid_contact:
+        contactless_locations = []
+        border_locations = [(x, y) for x in range(-1, dim1+1)
+                                   for y in range(-1, dim2+1)
+                                   if x in [-1, dim1] or y in [-1, dim2]]
+        # look for collision with the grid at each border location
+        for x, y in pruned_locations:
+            for dx, dy in border_locations:
+                if not any(0 <= x + dx < n and 0 <= y + dy < m
+                           and grid[x+dx, y+dy] != background for dx, dy in border_locations):
+                    contactless_locations.append((x, y))
+
+        pruned_locations = contactless_locations
 
     if len(pruned_locations) == 0:
         raise ValueError("No free location for sprite found.")
