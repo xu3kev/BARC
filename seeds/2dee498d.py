@@ -7,7 +7,8 @@ from typing import *
 # repetition, reflection
 
 # description:
-# In the input, you will receive some repetitions and reflections of a sprite laid horizontally right next to each other. 
+# In the input, you will receive some repetitions and reflections (the first occurence
+# is guaranteed not a reflection) of a sprite laid horizontally right next to each other. 
 # In the output, you want to identify the sprite. 
 
 def main(input_grid):
