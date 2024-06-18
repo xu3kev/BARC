@@ -15,13 +15,13 @@ def main(input_grid):
 
 def generate_input():
     # create a roughly 12x12 input grid
-    n = np.random.randint(10, 14)
-    m = np.random.randint(10, 14)
+    n = np.random.randint(10, 15)
+    m = np.random.randint(10, 15)
     grid = np.full((n, m), Color.BLACK, dtype=int)
 
     # create a small random sprite with shape (2-7)x(2-7)
-    w = np.random.randint(2, 7)
-    h = np.random.randint(2, 7)
+    w = np.random.randint(2, 8)
+    h = np.random.randint(2, 8)
     sprite = random_sprite(w, h, color_palette=[np.random.choice(Color.NOT_BLACK)])
 
     # blit the spite onto a random location on the grid
