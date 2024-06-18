@@ -4,16 +4,32 @@ import numpy as np
 from typing import *
 
 # concepts:
-# Separating pattern repetitions
+# repetition, reflection
 
 # description:
-# In the input, you will receive 3 repetitions of a square sprite laid horizontally right next to each other. 
-# In the output, you want to identify the pattern. 
+# In the input, you will receive some repetitions and reflections of a sprite laid horizontally right next to each other. 
+# In the output, you want to identify the sprite. 
 
 def main(input_grid):
-    # Extract 1/3 of the input grid and return 
-    return input_grid[0:int(input_grid.shape[0]/3),:].copy()
-    
+    # Initialize output grid
+    sprite = input_grid.copy()
+
+    # Detecting patterns in the input grid
+    for num_pattern_cols in range(1,input_grid.shape[0]):
+        if input_grid.shape[0] % num_pattern_cols == 0:
+            # Check complete repeating patterns
+            check = True
+            for i in range(num_pattern_cols, input_grid.shape[0],num_pattern_cols):
+                if i+num_pattern_cols <= input_grid.shape[0] and not np.equal(input_grid[0:num_pattern_cols,:], input_grid[i:i+num_pattern_cols,:]).all() and not np.equal(input_grid[0:num_pattern_cols,:], np.flip(input_grid[i:i+num_pattern_cols,:],axis = 1)).all():
+                    check = False 
+                
+        if check:
+            # Recognizing pattern in input grid and changes its color
+            sprite = input_grid[0:num_pattern_cols]
+          
+            return sprite
+        
+    return sprite
 
 def generate_input():
     # Create the sprite to be duplicated
