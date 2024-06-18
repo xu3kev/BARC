@@ -7,40 +7,51 @@ from typing import *
 # Making sprite symmetric, detecting sprite
 
 # description:
-# In the input you will see a 10x10 grid. Within it, there is a 5x5 grid that contains 4 parts that are 
-# mostly radially symmetric to the center of the 5x5, except for one pixel. This pixel only appears in the 
-# upper left section of the 5x5 grid and its corresponding parts for the other three quadrants are missing. 
-# If the 5x5 grid were radially symmetric, exactly every other pixel would be colored, starting with the pixels 
-# at the corner being colored. 
-# The output would find the not symmetric pixel and recover its corresponding parts such that the 5x5 grid has radial symmetry.  
+# In the input you will see a grid. Within it, there is a smaller nxm grid (n,m odd) that contains 4 parts that are 
+# mostly radially symmetric to its center, except for some pixels. Some corresponding parts of these pixels are missing in other quadrants. 
+# The output would find the not symmetric pixels and recover its corresponding parts such that the inner grid has radial symmetry.  
 
 def main(input_grid):
     output_grid = input_grid.copy()
 
-    # Finds sprite and color missing pieces
-    for y in range(output_grid.shape[1]):
-        for x in range(output_grid.shape[0]):
-            if output_grid[x,y] != Color.BLACK:
-                # Check which of the cross pixel in upper left is colored
-                cross_color = output_grid[x,y+2] if output_grid[x,y+2] != Color.BLACK else output_grid[x+2,y]
-                # Re-color
-                make_radial_symmetry(output_grid[x:x+5,y:y+5], output_grid[x,y], cross_color, output_grid[x+1,y+1], output_grid[x+2,y+2])     
-                return output_grid
-            
+    # Finds sprite
+    sprite = crop(input_grid.copy())
+
+    # Find the different regions of the sprite
+    center_x, center_y = sprite.shape[0]//2+1, sprite.shape[1]//2+1
+    upper_left = sprite[0:center_x,0:center_y]
+    upper_right = sprite[center_x-1:,0:center_y]
+    lower_left = sprite[0:center_x,center_y-1:]
+    lower_right = sprite[center_x-1:,center_y-1:]
+    # Stores the amount of rotation needed and the regions
+    regions = [(upper_left,0),(upper_right,3),(lower_left,1),(lower_right,2)]
+
+    # Make each region have matching pixels from other regions 
+    for i in range(len(regions)):
+        region_i = np.rot90(regions[i][0],regions[i][1])
+        for j in range(len(regions)):
+            # Calculate the difference between the regions, only taking into account 
+            # the positive values since those are the pixels that the current quadrant is missing
+            region_j = np.rot90(regions[j][0].copy(),regions[j][1])
+            diff = region_j - region_i
+            diff[diff <0 ] = 0
+            # Add missing pixels
+            region_i+= diff
+        regions[i] = (np.rot90(region_i,-regions[i][1]),regions[i][1])
+        
+    # Create output sprite by combining quadrants
+    output_sprite = np.zeros((sprite.shape[0],sprite.shape[1]),dtype=int)
+    blit(output_sprite,regions[0][0],0,0)
+    blit(output_sprite,regions[1][0],center_x-1,0)
+    blit(output_sprite,regions[2][0],0,center_y-1)
+    blit(output_sprite,regions[3][0],center_x-1,center_y-1)
+
+    # Place the output sprite back to the output grid
+    x,y,_,_ = bounding_box(input_grid)
+    blit(output_grid,output_sprite,x,y)
+
     return output_grid
 
-def make_radial_symmetry(sprite, color1, color2, color3, color4):
-    # Color a radial symmetric grid where every other pixel is black.  
-    # Modifies in place
-
-    # Corner class
-    sprite[0,0] = sprite[0,-1] = sprite[-1,0] = sprite[-1,-1] = color1
-    # Cross class
-    sprite[0,2] = sprite[2,0] = sprite[-1,2] = sprite[2,-1] = color2
-    # Inner class
-    sprite[1,1] = sprite[1,3] = sprite[3,1] = sprite[3,3] = color3
-    # Center
-    sprite[2,2] = color4
 
 def generate_input():
     # Initialize 10x10 grid 
@@ -56,8 +67,15 @@ def generate_input():
     color4 = random.choice(list(Color.NOT_BLACK))
 
     # Color a radial symemtric sprite that satisfies requirements first. 
-    make_radial_symmetry(sprite, color1, color2, color3, color4)
-
+    # Corner class
+    sprite[0,0] = sprite[0,-1] = sprite[-1,0] = sprite[-1,-1] = color1
+    # Cross class
+    sprite[0,2] = sprite[2,0] = sprite[-1,2] = sprite[2,-1] = color2
+    # Inner class
+    sprite[1,1] = sprite[1,3] = sprite[3,1] = sprite[3,3] = color3
+    # Center
+    sprite[2,2] = color4
+    
     # There are only four possible pixels to remove its symmetric components in the upperleft square. 
     # Randomly choose of them and remove corresponding parts
     n = random.randint(0,3)
