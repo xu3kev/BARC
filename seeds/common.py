@@ -87,10 +87,10 @@ def draw_line(grid, x, y, length, color, direction, stop_at_color=[]):
     Example:
     draw_line(grid, 0, 0, length=3, color=blue, direction=(1, 1)) will draw a diagonal line of blue pixels from (0, 0) to (2, 2).
     """
-    
+
     if length is None:
         length = max(grid.shape)*2
-    
+
     for i in range(length):
         new_x = x + i * direction[0]
         new_y = y + i * direction[1]
@@ -134,7 +134,7 @@ def find_connected_components(grid, background=Color.BLACK, connectivity=4, mono
             for i in range(n_objects):
                 connected_component = grid * (labeled == i + 1)
                 connected_components.append(connected_component)
-        return connected_components 
+        return connected_components
 
 
 
@@ -514,7 +514,7 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
         n = [n]
     if not isinstance(m, list):
         m = [m]
-    
+
     # radial and diagonal require target shape to be square
     can_be_square = any(n_==m_ for n_ in n for m_ in m)
 
@@ -522,7 +522,7 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
     symmetry_types = ['horizontal', 'vertical', "not_symmetric"]
     if can_be_square:
         symmetry_types = symmetry_types + ['diagonal', 'radial']
-    
+
     symmetry = symmetry or random.choice(symmetry_types)
 
     # Decide on dimensions
@@ -532,13 +532,13 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
     else:
         n = random.choice(n)
         m = random.choice(m)
-    
+
     # if one of the dimensions is 1, then we need to make sure the density is high enough to fill the entire sprite
     if n == 1 or m == 1:
         density = 1
     # small sprites require higher density in order to have a high probability of reaching all of the sides
     elif n == 2 or m == 2:
-        density = max(density, 0.7)    
+        density = max(density, 0.7)
     # randomly perturb the density so that we get a wider variety of densities
     else:
         density = max(0.4, min(0.95, random.gauss(density, 0.1)))
