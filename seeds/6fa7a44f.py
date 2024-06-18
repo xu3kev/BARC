@@ -15,7 +15,7 @@ def main(input_grid):
     pattern = input_grid
 
     # reflect the pattern vertically
-    reflected_pattern = np.fliplr(pattern)
+    reflected_pattern = pattern[:, ::-1]
 
     # make the output grid
     output_grid = np.concatenate((pattern, reflected_pattern), axis=1)
@@ -25,7 +25,7 @@ def main(input_grid):
 def generate_input():
     # make a random square pattern of random size and colors
     n = m = np.random.randint(3, 6)
-    grid = random_sprite(n, m, 1, "not_symmetric", Color.NOT_BLACK)
+    grid = random_sprite(n, m, density=1, symmetry="not_symmetric", color_palette=Color.NOT_BLACK)
 
     return grid
 

@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# color, filling, objects
+# color guide, filling, objects
 
 # description:
 # In the input, you will see a colored object in the middle and a single pixel in the bottom left corner of a different color.

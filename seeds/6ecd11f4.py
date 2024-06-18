@@ -4,11 +4,11 @@ import numpy as np
 from typing import *
 
 # concepts:
-# objects, color, alignment, scaling
+# objects, color guide, masking, scaling
 
 # description:
-# In the input you will see a large object that represents a pattern using only one color and a square object with many colors.
-# To make the output, make the pattern of the large object with the colors of the small object. The pattern should be scaled to fit the smaller object and aligned to the top left corner of the smaller object.
+# In the input you will see a large monochromatic object, and a smaller square object with many colors.
+# To make the output, first downscale the large object so that it is the same size as the small multicolor square, and then use the large object as a binary mask to zero out pixels in the square. Return the resulting masked sprite.
 
 def main(input_grid):
     # find all the objects in the input grid
@@ -54,7 +54,7 @@ def generate_input():
     size = np.random.randint(3, 5)
 
     # make the multi-colored square with all colors except black
-    square = random_sprite(size, size, 1, "not_symmetric", Color.NOT_BLACK)
+    square = random_sprite(size, size, density=1, symmetry="not_symmetric", color_palette=Color.NOT_BLACK)
     
     # make sure the square has more than one color, if not then try again
     if len(set(square.flatten())) == 1:
@@ -62,7 +62,7 @@ def generate_input():
 
     # make a random pattern that is the same size as the multi-colored square but only uses one color 
     color = np.random.choice(list(Color.NOT_BLACK))
-    pattern = random_sprite(size, size, .7, "not_symmetric", [color], 8)
+    pattern = random_sprite(size, size, density=.7, symmetry="not_symmetric", color_palette=[color], connectivity=8)
 
     # check that pattern is continuous, if not then try again
     if not is_contiguous(pattern, connectivity=8):
