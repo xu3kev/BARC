@@ -14,30 +14,28 @@ def main(input_grid):
 
     # The goal is to make the object radially symmetric, *not* to make the whole grid radially symmetric
     # We have to extract the object from the grid and then rotate it to construct the missing section
-    x, y, w, h = bounding_box(input_grid)
-    blue_sprite = input_grid[x:x+w, y:y+h]
+    blue_sprite = crop(input_grid)
     rotated_blue_sprite = np.rot90(blue_sprite)
     
     # We need to find the optimal location for placing the rotated sprite
-    # This will maximize the overlap between the original canvas and rotated sprite
-    max_overlap = 0
-    best_x, best_y = 0, 0
-    for i in range(input_grid.shape[0]):
-        for j in range(input_grid.shape[1]):
-            sprite_placed_in_canvas = np.zeros_like(input_grid)
-            blit(sprite_placed_in_canvas, rotated_blue_sprite, i, j, background=Color.BLACK)
+    # This will make the resulting object radially symmetric
+    for x in range(input_grid.shape[0]):
+        for y in range(input_grid.shape[1]):
+            
+            test_grid = np.copy(input_grid)
+            blit(test_grid, rotated_blue_sprite, x, y, background=Color.BLACK)
+            test_blue_sprite = crop(test_grid)
 
-            overlap = np.sum((input_grid == Color.BLUE) & (sprite_placed_in_canvas == Color.BLUE))
-            if overlap >= max_overlap:
-                max_overlap = overlap
-                best_x, best_y = i, j
-
-    # Now create a canvas that shows what it would look like if things were perfectly symmetric
-    perfectly_symmetric_grid = np.copy(input_grid)
-    blit(perfectly_symmetric_grid, rotated_blue_sprite, best_x, best_y, background=Color.BLACK)
+            # Check if the resulting object is radially symmetric
+            if np.array_equal(test_blue_sprite, np.rot90(test_blue_sprite)):
+                # Save what the input would look like if it were perfectly symmetric
+                perfectly_symmetric_grid = test_grid
+                break
 
     # The missing section is the part of the input grid that would have been blue if it were perfectly symmetric
     missing_pixels = np.where((input_grid == Color.BLACK) & (perfectly_symmetric_grid == Color.BLUE))
+
+    # Color the missing section red
     output_grid = np.copy(input_grid)
     output_grid[missing_pixels] = Color.RED
 

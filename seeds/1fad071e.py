@@ -4,11 +4,11 @@ import numpy as np
 from typing import *
 
 # concepts:
-# counting, color
+# counting
 
 # description:
 # In the input you will see multiple 2x2 blue squares, multiple 2x2 red squares, and some red or blue dots sprinkled about.
-# To make the output, fill a 5x1 grid with blue pixels from left to right for each 2x2 blue square in the input
+# To make the output, fill a 5x1 grid with blue pixels from left to right for each 2x2 blue square in the input (counting the number of blue 2x2 squares).
 
 def main(input_grid):
     # make a counter to count the number of blue squares

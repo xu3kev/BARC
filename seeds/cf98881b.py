@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# patterns, copying, overlaying
+# occlusion
 
 # description:
 # In the input you will see three regions separated by red vertical bars. Each region is rectangular and the regions are arranged horizontally, so there is a left region, middle region, and a right region. 

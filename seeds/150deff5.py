@@ -51,7 +51,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
             break
 
     for obj in decomposition:
-        x, y, w, h = bounding_box(obj)
+        w, h = crop(obj).shape
 
         if w == 2 and h == 2:
             output_grid[obj != Color.BLACK] = Color.TEAL

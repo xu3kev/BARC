@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# diagonal lines, color
+# diagonal lines
 
 # description:
 # In the input you will see one colored pixel on a black background.
@@ -15,8 +15,7 @@ def main(input_grid):
     output_grid = np.copy(input_grid)
 
     # get the index of the colored pixel
-    index = np.where(input_grid != Color.BLACK)
-    x, y = index[0][0], index[1][0]
+    x, y, width, height = bounding_box(input_grid != Color.BLACK)
     
     # get color from colored pixel
     color = input_grid[x,y]

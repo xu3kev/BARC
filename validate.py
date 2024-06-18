@@ -57,7 +57,7 @@ no_seed_provided, validation_passed, validation_failed = 0, [], []
 for problem in train_problems:
     if len(sys.argv) > 1 and problem.uid not in sys.argv[1:]:
         continue
-    
+
     # check if we have a manually constructed seed solution to this problem
     if not os.path.exists(f"seeds/{problem.uid}.py"):
         no_seed_provided += 1
