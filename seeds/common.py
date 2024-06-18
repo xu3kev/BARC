@@ -270,13 +270,15 @@ def contact(_=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, backgrou
     return False
 
 
-def random_free_location_for_object(grid, sprite, background=Color.BLACK, border_size=0):
+def random_free_location_for_object(grid, sprite, background=Color.BLACK, border_size=0, padding=0, padding_connectivity=8):
     """
     Find a random free location for the sprite in the grid
     Returns a tuple (x, y) of the top-left corner of the sprite in the grid, which can be passed to `blit`
 
     border_size: minimum distance from the edge of the grid
     background: color treated as transparent
+    padding: if non-zero, the sprite will be padded with a non-background color before checking for collision
+    padding_connectivity: 4 or 8, for 4-way or 8-way connectivity when padding the sprite
 
     Example usage:
     x, y = random_free_location_for_object(grid, sprite) # find the location
@@ -284,6 +286,37 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
     blit(grid, sprite, x, y)
     """
     n, m = grid.shape
+
+    # if padding is non-zero, we emulate padding by cropping the sprite, placing it in a larger grid, padding it, and then cropping it again
+    if padding > 0:
+        sprite = crop(sprite)
+        n_sprite, m_sprite = sprite.shape
+        new_sprite = np.full((n_sprite + 2*padding, m_sprite + 2*padding), background, dtype=sprite.dtype)
+        new_sprite[padding:padding+n_sprite, padding:padding+m_sprite] = sprite
+
+        # choose a non-background color for padding
+        padding_color = new_random_color(not_allowed_colors=[background])
+
+        # for each layer of padding, for each background pixel, we set it to a non-background color if there is a non-background pixel in the padding_connectivity neighborhood
+        for _ in range(padding):
+            new_sprite_copy = new_sprite.copy()
+            for x in range(1, n_sprite + 1):
+                for y in range(1, m_sprite + 1):
+                    # if this is a background pixel, and there is a non-background pixel in the padding_connectivity neighborhood, set it to padding_color
+                    if new_sprite[x, y] == background:
+                        if padding_connectivity == 4:
+                            if np.sum(new_sprite[x-1:x+2, y] != background) > 0 or np.sum(new_sprite[x, y-1:y+2] != background) > 0:
+                                new_sprite_copy[x, y] = padding_color
+                        elif padding_connectivity == 8:
+                            if np.sum(new_sprite[x-1:x+2, y-1:y+2] != background) > 0:
+                                new_sprite_copy[x, y] = padding_color
+                        else:
+                            raise ValueError("Padding connectivity must be 4 or 8.")
+            new_sprite = new_sprite_copy
+
+        # set the sprite to the padded sprite
+        sprite = new_sprite
+
     dim1, dim2 = sprite.shape
     possible_locations = [ (x,y) for x in range(border_size, n - dim1 + 1 - border_size) for y in range(border_size, m - dim2 + 1 - border_size)]
 
