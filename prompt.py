@@ -27,9 +27,9 @@ def get_common_lib_from_file(file_path="seeds/common.py"):
     common_lib_classes = [c for c in common_lib_classes if "internal class not used by LLM" not in c["docstring"]]
 
     common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
-    return common_lib
+    return common_lib, common_lib_function_names
 
-def make_self_instruct_prompt(seeds, rng_seed, common_lib, num_seeds=None, remix=0):
+def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, num_seeds=None, remix=0, library_function_hint=-1):
     """
     remix: how many example seeds the prompt tells the LLM to remix.
     0 means no remixing, just shows all the seeds. 1 tells it to remix one of the examples, 2 tells it to remix two of the examples, etc.
@@ -91,6 +91,17 @@ def make_self_instruct_prompt(seeds, rng_seed, common_lib, num_seeds=None, remix
         remix1 = f"in particular, making a new variation of the last {remix} examples, by "
         remix2 = f", but remembering it should be a variation of the last {remix} examples"
 
+    if library_function_hint == -1:
+        library_function_hint_str = ""
+    elif library_function_hint == 0:
+        library_function_hint_str = "Make use of the common library functions."
+    elif library_function_hint > 0:
+        # select n random number of functions to hint at
+        n = min(library_function_hint, len(common_lib_function_names))
+        library_functions = rng.sample(list(common_lib_function_names), n)
+        library_function_hint_str = f"Make use of the common library functions. In particular, use the function{'s' if library_function_hint > 1 else ''}: {', '.join(library_functions)}."
+
+
     prompt = f"""You are a puzzle maker designing geometric, physical, and topological puzzles for curious middle-schoolers.
 
 Each puzzle consists of discovery a deterministic rule, pattern, procedure, algorithm, or transformation law that maps inputs to outputs.
@@ -116,6 +127,9 @@ Your task is to create a new puzzle that is similar to the examples provided, {r
 
 Be sure to make the transformation `main` deterministic. Be sure to not assume or impose any ordering to the colors. Use physical, geometric, topological, and logical concepts.
 """
+
+    if library_function_hint_str:
+        prompt += f"""\n{library_function_hint_str}"""
         
     return prompt
 
@@ -124,6 +138,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = "problem generator")
 
     parser.add_argument("--remix", "-r", type=int, default=1, help="how many example seeds to remix (can be 0)")
+    parser.add_argument("--library_function_hint", "-l", type=int, default=-1, help="how many common library functions to hint at the end of the prompt")
     parser.add_argument("--batch_size", "-b", type=int, default=64, help="how many samples to draw")
     parser.add_argument("--temperature", "-t", type=float, default=0.7)
     parser.add_argument("--num_seeds", "-s", type=int, default=None, help="how many seeds to show in the prompt, if not all of them")
@@ -150,8 +165,12 @@ if __name__ == "__main__":
 
     batch_size = arguments.batch_size
     remix_level = arguments.remix
-    common_lib = get_common_lib_from_file("seeds/common.py")
-    prompts = [ make_self_instruct_prompt(seeds, rng_seed, common_lib, remix=remix_level, num_seeds=arguments.num_seeds) for rng_seed in tqdm(range(batch_size)) ]
+    library_function_hint = arguments.library_function_hint
+    common_lib, common_lib_function_names = get_common_lib_from_file("seeds/common.py")
+    breakpoint()
+    prompts = [ make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, remix=remix_level, num_seeds=arguments.num_seeds,
+                                          library_function_hint=library_function_hint) for rng_seed in tqdm(range(batch_size)) ]
+    breakpoint()
 
     client = LLMClient(provider=provider)
     samples = []
