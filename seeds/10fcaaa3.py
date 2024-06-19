@@ -12,30 +12,25 @@ from typing import *
 # Color all the diagonal pixels adjacent to a colored pixel teal if the diagonal pixels are black. 
 
 def main(input_grid):
-  # Replicate input grid 4 times to initialize output grid
-  output_grid = np.zeros((2*input_grid.shape[0], 2* input_grid.shape[1]),dtype=int)
-  for i in range(2):
-    for j in range(2):
-      blit(output_grid, input_grid, i*input_grid.shape[0], j*input_grid.shape[1])
+   # Replicate input grid 4 times to initialize output grid
+   output_grid = np.zeros((2*input_grid.shape[0], 2* input_grid.shape[1]),dtype=int)
+   for i in range(2):
+      for j in range(2):
+         blit(output_grid, input_grid, i*input_grid.shape[0], j*input_grid.shape[1])
   
-  # Color diagonal pixels 
-  for y in range(output_grid.shape[1]):
-     for x in range(output_grid.shape[0]):
-        if output_grid[x,y] != Color.BLACK and output_grid[x,y] != Color.TEAL:
-           # Color upperleft diagonal pixel
-           if x != 0 and y!=0 and output_grid[x-1,y-1] == Color.BLACK:
-              output_grid[x-1,y-1]= Color.TEAL 
-           # Color lowerleft diagonal pixel
-           if x!=0 and y!= output_grid.shape[1]-1 and output_grid[x-1,y+1] ==Color.BLACK: 
-              output_grid[x-1,y+1]= Color.TEAL 
-           # Color upper right diagonal pixel
-           if x!=output_grid.shape[0]-1 and y!=0 and output_grid[x+1,y-1] == Color.BLACK:
-              output_grid[x+1,y-1] = Color.TEAL
-           # Color lower right diagonal pixel
-           if x!= output_grid.shape[0]-1 and y!= output_grid.shape[1]-1 and output_grid[x+1,y+1] == Color.BLACK:
-              output_grid[x+1,y+1] = Color.TEAL
+   # Create diagonal directions
+   diagonal_dx_dy = [(1,1),(-1,1),(1,-1),(-1,-1)]
+
+   # Color diagonal pixels 
+   for y in range(output_grid.shape[1]):
+      for x in range(output_grid.shape[0]):
+         if output_grid[x,y] != Color.BLACK and output_grid[x,y] != Color.TEAL:
+            for dx,dy in diagonal_dx_dy:
+               # Color diagonal pixel teal if it is black
+               if x+dx >= 0 and x+dx < output_grid.shape[0] and y+dy >= 0 and y+dy < output_grid.shape[1] and output_grid[x+dx,y+dy] == Color.BLACK:
+                  output_grid[x+dx,y+dy] = Color.TEAL
   
-  return output_grid
+   return output_grid
 
 def generate_input():
     # Have 1 to 4 number of colored pixels in the initial square
