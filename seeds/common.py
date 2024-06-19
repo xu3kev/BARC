@@ -429,7 +429,7 @@ def is_contiguous(bitmask, background=Color.BLACK, connectivity=4):
     return n_objects == 1
 
 
-def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, color_palate=None):
+def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, color_palate=None, connectivity=4):
     """"
     internal function not used by LLM
     """
@@ -464,7 +464,12 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
     else:
         raise ValueError(f"Invalid symmetry type {symmetry_type}.")
 
-    moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+    if connectivity == 4:
+        moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+    elif connectivity == 8:
+        moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    else:
+        raise ValueError("Connectivity must be 4 or 8.")
 
     color_index = 0
     while np.sum(grid>0) < fill_percentage * n * m:
@@ -498,7 +503,7 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
 
     return grid
 
-def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
+def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connectivity=4):
     """
     Generate a sprite (an object), represented as a numpy array.
 
@@ -544,8 +549,8 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
         density = max(0.4, min(0.95, random.gauss(density, 0.1)))
 
     while True:
-        sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette, fill_percentage=density)
-        assert is_contiguous(sprite), "Generated sprite is not contiguous."
+        sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette, fill_percentage=density, connectivity=connectivity)
+        assert is_contiguous(sprite, connectivity=connectivity), "Generated sprite is not contiguous."
         # check that the sprite has pixels that are flushed with the border
         if np.sum(sprite[0, :]) > 0 and np.sum(sprite[-1, :]) > 0 and np.sum(sprite[:, 0]) > 0 and np.sum(sprite[:, -1]) > 0:
             return sprite
