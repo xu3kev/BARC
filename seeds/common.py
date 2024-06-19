@@ -374,8 +374,6 @@ def detect_horizontal_periodicity(grid, ignore_color=None):
         if success:
             return h_period
     
-
-    
 def detect_vertical_periodicity(grid, ignore_color=None):
     """
     Finds the period of a grid that was produced by repeated vertical translation (tiling) of a smaller grid.
@@ -412,9 +410,58 @@ def detect_vertical_periodicity(grid, ignore_color=None):
 
     return v_period
 
-
-
+def detect_rotational_symmetry(grid, ignore_color=0):
+    """
+    Finds the center of rotational symmetry of a grid.
+    Satisfies: grid[x, y] == grid[y - rotate_center_y + rotate_center_x, -x + rotate_center_y + rotate_center_x] # clockwise
+               grid[x, y] == grid[-y + rotate_center_y + rotate_center_x, x - rotate_center_y + rotate_center_x] # counterclockwise
+               for all x, y, as long as neither pixel is `ignore_color`.
     
+    Example:
+    rotate_center_x, rotate_center_y = detect_rotational_symmetry(grid, ignore_color=Color.BLACK) # ignore_color: In case parts of the object have been removed and occluded by black
+    for x, y in np.argwhere(grid != Color.BLACK):
+        # IMPORTANT! cast to int
+        rotated_x, rotated_y = y - int(rotate_center_y + rotate_center_x), -x + int(rotate_center_y + rotate_center_x)
+        assert grid[rotated_x, rotated_y] == grid[x, y] or grid[rotated_x, rotated_y] == Color.BLACK
+    """
+
+    # Find the center of the grid
+    # This is the first x,y which could serve as the center
+    n, m = grid.shape
+
+    # compute the center of mass, we search outward from that point
+    total_mass = np.sum(grid != ignore_color)
+    com_x = np.sum(np.arange(n)[:, None] * (grid != ignore_color)) / total_mass
+    com_y = np.sum(np.arange(m)[None, :] * (grid != ignore_color)) / total_mass
+    
+    possibilities = [(x_center+z, y_center+z) for x_center in range(n) for y_center in range(m) for z in [0, 0.5] ]
+
+    occupied_pixels = np.argwhere(grid != ignore_color)
+
+    best_rotation, best_overlap = None, 0
+    for x_center, y_center in possibilities:
+        # Check if this is a valid center, meaning that every turned on pixel maps to another turned on pixel of the same color
+
+        # rotate all the occupied pixels at once to get their new locations
+        translated_pixels = occupied_pixels - np.array([[x_center, y_center]])
+        translated_rotated_pixels = np.stack([translated_pixels[:, 1], -translated_pixels[:, 0]], axis=1)
+        rotated_pixels = translated_rotated_pixels + np.array([[x_center, y_center]])
+
+        if np.any(rotated_pixels < 0) or np.any(rotated_pixels[:, 0] >= n) or np.any(rotated_pixels[:, 1] >= m):
+            continue
+        
+        # convert the rotated pixel coordinates to integers, so that we can use them as indices to see what's in the grid at those spots
+        rotated_pixels = rotated_pixels.astype(int)
+        rotated_values = grid[rotated_pixels[:, 0], rotated_pixels[:, 1]]
+        original_values = grid[occupied_pixels[:, 0], occupied_pixels[:, 1]]
+
+        if np.all( (rotated_values == original_values) | (rotated_values == ignore_color) ):
+            overlap = np.sum(rotated_values == original_values)
+            if overlap > best_overlap:
+                best_rotation = (x_center, y_center)
+                best_overlap = overlap
+    
+    return best_rotation
 
 def show_colored_grid(grid, text=True):
     """
