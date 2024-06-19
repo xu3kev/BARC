@@ -4,71 +4,59 @@ import numpy as np
 from typing import *
 
 # concepts:
-# Detecting and copying repeating patterns
+# translational symmetry, symmetry detection
 
 # description:
-# In the input you will see a nxm grid repeating a kxm pattern. 
-# In the output, you want to repeat the same pattern on a 9xm grid. 
+# In the input you will see a grid consisting of a blue sprite that is repeatedly translated vertically, forming a stack of the same sprite.
+# To make the output, expand the input to have height 9, and continue to repeatedly translate the sprite vertically. Change color to red.
  
 def main(input_grid):
-    # Initialize output grid
-    output_grid = np.zeros((input_grid.shape[0],9),dtype=int)
+    input_height = input_grid.shape[1]
 
-    # Detecting patterns in the input grid
-    for num_pattern_rows in range(1,input_grid.shape[1]):
-        # Check complete repeating patterns
-        check = True
-        for i in range(num_pattern_rows, input_grid.shape[1],num_pattern_rows):
-            if i+num_pattern_rows <= input_grid.shape[1] and not np.equal(input_grid[:,0:num_pattern_rows], input_grid[:,i:i+num_pattern_rows]).all():
-                check = False 
-                
-        # Check last few rows (potentially not complete pattern)
-        num_remaining_rows = input_grid.shape[1] % num_pattern_rows
-        if check and num_remaining_rows != 0 :
-            if not np.equal(input_grid[:,0:num_remaining_rows], input_grid[:, -1*num_remaining_rows:]).all():
-                check = False
-        if check:
-            
-            # Recognizing pattern in input grid and changes its color
-            sprite = input_grid[:, 0:num_pattern_rows]
-            sprite[sprite==Color.BLUE] = Color.RED
+    # determine the period of the repeated vertical translation
+    for period in range(1, input_grid.shape[1]):
+        # because the translation is vertical, this is the height of the sprite
+        sprite = input_grid[:, :period]
+        # check if the sprite repeats until the end of the input
+        repeatedly_translated = np.tile(sprite, (1, 100))[:, :input_height]
 
-            # Copying pattern
-            repeat_pattern(output_grid,sprite)
+        if np.all(np.equal(input_grid, repeatedly_translated)):
+            # if it does, we found the period
+            # make the output (the height is now 9)
+            output_grid = np.zeros((input_grid.shape[0], 9), dtype=int)
+
+            # Make the sprite red
+            sprite[sprite == Color.BLUE] = Color.RED
+
+            # Copy sprite to fill the entire grid
+            # This means repeating it vertically
+            # (note: we could use np.tile here, but we'll do it manually for clarity)
+            for y in range(0, output_grid.shape[1], period):
+                blit(output_grid, sprite, 0, y)
 
             return output_grid
-        
-    return output_grid
 
-def repeat_pattern(grid,sprite):
-    # Copy sprite to fill the entire grid
-    for i in range(0, grid.shape[1], sprite.shape[1]):
-        if i+sprite.shape[1] <= grid.shape[1]:
-          blit(grid, sprite,0,i)
-        else:
-          blit(grid, sprite[:,0:grid.shape[1]-i],0,i)
 
 def generate_input():
-    # Choose a random color
+    # Create output grid, which is always 3x6
+    grid = np.zeros((3, 6),dtype = int)
+
+    # The input is always blue
     color = Color.BLUE
 
-    # Creates a random smaller sprite, where the number of row is chosen randomly from 3 or 4
-    row = random.randint(4,4)
+    # Creates a random smaller sprite, where the height (period) is chosen randomly
+    height = random.randint(2, 7)
+    sprite = random_sprite(3, height, symmetry="not_symmetric", color_palette=[color], density=0.4, connectivity=8)
 
-    # if not 3x3, then cannot be diagonal symmetry 
-    if row == 3:
-        sprite = random_sprite(3,row,color_palette=[color])
-    else:
-        symmetry = random.choice(['horizontal', 'vertical', 'not_symmetric'])
-        sprite = random_sprite(3,row, symmetry=symmetry, color_palette=[color])
+    # place the smaller pattern, tiling it so that it is repeated vertically
+    # tile "infinitely" (x100)
+    vertically_repeated = np.tile(sprite, (1, 100))
+    # crop to the size of the grid
+    vertically_repeated = vertically_repeated[:, :grid.shape[1]]
+    # copy the sprite to the grid
+    blit(grid, vertically_repeated, 0, 0)
 
-    # Creates grid and lay the smaller pattern inside
-    grid = np.zeros((3,6),dtype = int)
-
-    # Repeatedly copies pattern until reaching the end
-    repeat_pattern(grid,sprite)
-
-    return grid 
+    return grid
 
 # ============= remove below this point for prompting =============
 
