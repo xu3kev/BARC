@@ -9,7 +9,7 @@ from typing import *
 
 # description:
 # In the input, you should see a black grid with nine 3x3 grey squares randomly placed in it. Each square contains a colored object of a different color, 3-4 cells in area, except for one which is blank. The colored objects are at the border of the 3x3 shape.
-# To make the output, create a 9x9 grey grid. Now place each of the 3x3 squares from the input grid into the output grid. The location of an object is done so that the colored object in the grey square is moved "away" fromm the center square of the output grid.
+# To make the output, create a 9x9 grey grid. Now place each of the 3x3 squares from the input grid into the output grid. The location of an object is done so that the colored object in the grey square is moved "away" fromm the center square of the output grid in the direction the colored object is in the 3x3 square.
 
 def main(input_grid):
     # step 1: extract the 3x3 grey squares from the input grid.
