@@ -211,7 +211,7 @@ def generate_input():
         blit(grid, first_rectangle, first_rec_x, first_rec_y)
 
         # for each additional rectangle, choose a random size and find a location to place it, ensuring it does not contact any other rectangle
-        for i in range(num_rectangles - 1):
+        for _ in range(num_rectangles - 1):
             # randomly choose the width and height of the rectangle
             rec_size = [random.randint(min_size, max_size) for _ in range(2)]
 
@@ -224,8 +224,7 @@ def generate_input():
                 blit(grid, rectangle, rec_x, rec_y)
             except:
                 # if at least two rectangles are placed, we can proceed with the crosshair pattern
-                if i > 0:
-                    clean_generation = False
+                clean_generation = False
                 break
 
         # if the generation was not clean to this point, clear the grid and try again

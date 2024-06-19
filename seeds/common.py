@@ -294,8 +294,8 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
         new_sprite = np.full((n_sprite + 4*padding, m_sprite + 4*padding), background, dtype=sprite.dtype)
         new_sprite[2*padding:2*padding+n_sprite, 2*padding:2*padding+m_sprite] = sprite
 
-        # choose a color for padding that is used in the sprite and not the background
-        padding_color = new_random_color(not_allowed_colors=[c for c in set(grid.flatten()) if c != background])
+        # choose a color for padding that is not the background
+        padding_color = new_random_color(not_allowed_colors=[background])
 
         # for each layer of padding, for each background pixel, we set it to a non-background color if there is a non-background pixel in the padding_connectivity neighborhood
         for _ in range(padding):
@@ -336,7 +336,9 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
     if len(pruned_locations) == 0:
         raise ValueError("No free location for sprite found.")
 
-    return random.choice(pruned_locations)
+    # if there is no padding, then random.choice is returned, offsets are removed if there is padding
+    padded_location = random.choice(pruned_locations)
+    return padded_location[0] - padding, padded_location[1] - padding
 
 
 def show_colored_grid(grid, text=True):
