@@ -142,7 +142,7 @@ if __name__ == "__main__":
     # get all files in seeds directory
     seeds = os.listdir("seeds")
     # filter files with .py extension and 8 hex value characters in the file name
-    pattern = r"[0-9a-f]{8}\.py"
+    pattern = r"[0-9a-f]{8}(_[a-zA-Z]+)?\.py"
     seeds = [seed for seed in seeds if re.match(pattern, seed)]
 
     # print all files

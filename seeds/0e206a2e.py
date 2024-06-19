@@ -37,20 +37,18 @@ def main(input_grid):
         sprite = crop(obj)
         sprite_variations = [sprite, np.rot90(sprite), np.rot90(sprite, 2), np.rot90(sprite, 3), np.flipud(sprite), np.fliplr(sprite), np.flipud(np.rot90(sprite)), np.fliplr(np.rot90(sprite))]
 
-        # We are going to optimize the position, so we need to keep track of the best placement so far
+        # We are going to optimize the position and variation, so we need to keep track of the best placement so far
         best_output, best_pixels_covered = None, 0
-        for x in range(input_grid.shape[0]):
-            for y in range(input_grid.shape[1]):
-                for sprite_variation in sprite_variations:
-                    test_grid = np.copy(output_grid)
-                    blit(test_grid, sprite_variation, x, y, background=Color.BLACK)
-                    # Check if there was any color mismatch: A colored pixel in the mask which is different from what we just made
-                    # If there is a mismatch, we can't place the object here
-                    if np.any((pixel_mask != Color.BLACK) & (test_grid != Color.BLACK) & (pixel_mask != test_grid)):
-                        continue
-                    num_covered_pixels = np.count_nonzero((pixel_mask != Color.BLACK) & (test_grid != Color.BLACK))
-                    if num_covered_pixels > best_pixels_covered:
-                        best_output, best_pixels_covered = test_grid, num_covered_pixels
+        for x, y, sprite_variation in [(x, y, variant) for x in range(input_grid.shape[0]) for y in range(input_grid.shape[1]) for variant in sprite_variations]:
+            test_grid = np.copy(output_grid)
+            blit(test_grid, sprite_variation, x, y, background=Color.BLACK)
+            # Check if there was any color mismatch: A colored pixel in the mask which is different from what we just made
+            # If there is a mismatch, we can't place the object here
+            if np.any((pixel_mask != Color.BLACK) & (test_grid != Color.BLACK) & (pixel_mask != test_grid)):
+                continue
+            num_covered_pixels = np.count_nonzero((pixel_mask != Color.BLACK) & (test_grid != Color.BLACK))
+            if num_covered_pixels > best_pixels_covered:
+                best_output, best_pixels_covered = test_grid, num_covered_pixels
         output_grid = best_output
 
     return output_grid
@@ -87,12 +85,10 @@ def generate_input():
 
     # place everything on the canvas but make sure that nothing overlaps, so they all have their own free location with a little bit of padding
     for sprite in sprites + occluded_sprites:
-        x, y = random_free_location_for_object(grid, sprite)
+        x, y = random_free_location_for_object(grid, sprite, padding=2, border_size=2)
         blit(grid, sprite, x, y)
     
-    return grid
-        
-        
+    return grid     
 
     
 
