@@ -322,12 +322,12 @@ def detect_horizontal_periodicity(grid, ignore_color=None):
         ignore_color = 99 # ignore nothing
 
     for h_period in range(1, grid.shape[0]):
-        pattern = grid[:, :h_period]
-        h_repetitions = grid.shape[0] // h_period
+        pattern = grid[:h_period, :]
+        h_repetitions = int(grid.shape[0] / h_period + 0.5)
 
         success = True
         for i in range(1, h_repetitions):
-            sliced_input = grid[:, i*h_period:(i+1)*h_period]
+            sliced_input = grid[i*h_period:(i+1)*h_period, :]
             sliced_pattern = pattern[:sliced_input.shape[0], :sliced_input.shape[1]]
             # Check that they are equal except where one of them is black
             if np.all((sliced_input == sliced_pattern) | (sliced_input == ignore_color) | (sliced_pattern == ignore_color)):
@@ -358,12 +358,12 @@ def detect_vertical_periodicity(grid, ignore_color=None):
         ignore_color = 99 # ignore nothing
 
     for v_period in range(1, grid.shape[1]):
-        pattern = grid[:v_period, :]
-        v_repetitions = grid.shape[1] // v_period
+        pattern = grid[:, :v_period]
+        v_repetitions = int(grid.shape[1] / v_period + 0.5)
 
         success = True
         for i in range(1, v_repetitions):
-            sliced_input = grid[i*v_period:(i+1)*v_period, :]
+            sliced_input = grid[:, i*v_period:(i+1)*v_period]
             sliced_pattern = pattern[:sliced_input.shape[0], :sliced_input.shape[1]]
             # Check that they are equal except where one of them is black
             if np.all((sliced_input == sliced_pattern) | (sliced_input == ignore_color) | (sliced_pattern == ignore_color)):

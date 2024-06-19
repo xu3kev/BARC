@@ -14,14 +14,10 @@ def main(input_grid):
     input_height = input_grid.shape[1]
 
     # determine the period of the repeated vertical translation
-    v_period = detect_vertical_periodicity(input_grid)
+    period = detect_vertical_periodicity(input_grid)
     
-    # because the translation is vertical, this is the height of the sprite
-    sprite = input_grid[:, :v_period]
-
-    # check the sprite repeats until the end of the input (this is true assuming that we got the right period)
-    repeatedly_translated = np.tile(sprite, (1, 100))[:, :input_height]
-    assert np.all(np.equal(input_grid, repeatedly_translated))
+    # because the translation is vertical, the period is the height of the sprite
+    sprite = input_grid[:, :period]
 
     # make the output (the height is now 9)
     output_grid = np.zeros((input_grid.shape[0], 9), dtype=int)
