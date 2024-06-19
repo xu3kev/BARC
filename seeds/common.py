@@ -291,17 +291,17 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
     if padding > 0:
         sprite = crop(sprite)
         n_sprite, m_sprite = sprite.shape
-        new_sprite = np.full((n_sprite + 2*padding, m_sprite + 2*padding), background, dtype=sprite.dtype)
-        new_sprite[padding:padding+n_sprite, padding:padding+m_sprite] = sprite
+        new_sprite = np.full((n_sprite + 4*padding, m_sprite + 4*padding), background, dtype=sprite.dtype)
+        new_sprite[2*padding:2*padding+n_sprite, 2*padding:2*padding+m_sprite] = sprite
 
-        # choose a non-background color for padding
-        padding_color = new_random_color(not_allowed_colors=[background])
+        # choose a color for padding that is used in the sprite and not the background
+        padding_color = new_random_color(not_allowed_colors=[c for c in set(grid.flatten()) if c != background])
 
         # for each layer of padding, for each background pixel, we set it to a non-background color if there is a non-background pixel in the padding_connectivity neighborhood
         for _ in range(padding):
             new_sprite_copy = new_sprite.copy()
-            for x in range(1, n_sprite + 1):
-                for y in range(1, m_sprite + 1):
+            for x in range(1, n_sprite + 3):
+                for y in range(1, m_sprite + 3):
                     # if this is a background pixel, and there is a non-background pixel in the padding_connectivity neighborhood, set it to padding_color
                     if new_sprite[x, y] == background:
                         if padding_connectivity == 4:
@@ -315,10 +315,10 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
             new_sprite = new_sprite_copy
 
         # set the sprite to the padded sprite
-        sprite = new_sprite
+        sprite = crop(new_sprite, background=background)
 
     dim1, dim2 = sprite.shape
-    possible_locations = [ (x,y) for x in range(border_size, n - dim1 + 1 - border_size) for y in range(border_size, m - dim2 + 1 - border_size)]
+    possible_locations = [ (x,y) for x in range(border_size + padding, n - dim1 + 1 - border_size - padding) for y in range(border_size + padding, m - dim2 + 1 - border_size - padding)]
 
     non_background_grid = np.sum(grid != background)
     non_background_sprite = np.sum(sprite != background)
