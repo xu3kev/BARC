@@ -305,6 +305,79 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
 
     return random.choice(pruned_locations)
 
+def detect_horizontal_periodicity(grid, ignore_color=None):
+    """
+    Finds the period of a grid that was produced by repeated horizontal translation (tiling) of a smaller grid.
+
+    Horizontal period satisfies: grid[x, y] == grid[x + i*period, y] for all x, y, i, as long as neither pixel is `ignore_color`.
+
+    ignore_color: optional color that should be ignored when checking for periodicity
+
+    Example usage:
+    period = detect_horizontal_periodicity(grid, ignore_color=None)
+    assert grid[:period, :] == grid[period:2*period, :]
+    """
+
+    if ignore_color is None:
+        ignore_color = 99 # ignore nothing
+
+    for h_period in range(1, grid.shape[0]):
+        pattern = grid[:, :h_period]
+        h_repetitions = grid.shape[0] // h_period
+
+        success = True
+        for i in range(1, h_repetitions):
+            sliced_input = grid[:, i*h_period:(i+1)*h_period]
+            sliced_pattern = pattern[:sliced_input.shape[0], :sliced_input.shape[1]]
+            # Check that they are equal except where one of them is black
+            if np.all((sliced_input == sliced_pattern) | (sliced_input == ignore_color) | (sliced_pattern == ignore_color)):
+                # Update the pattern to include the any new nonblack pixels
+                sliced_pattern[sliced_input != ignore_color] = sliced_input[sliced_input != ignore_color]
+            else:
+                success = False
+                break
+        if success:
+            return h_period
+    
+
+    
+def detect_vertical_periodicity(grid, ignore_color=None):
+    """
+    Finds the period of a grid that was produced by repeated vertical translation (tiling) of a smaller grid.
+
+    Vertical period satisfies: grid[x, y] == grid[x, y + i*period] for all x, y, i, as long as neither pixel is `ignore_color`.
+
+    ignore_color: optional color that should be ignored when checking for periodicity
+
+    Example usage:
+    period = detect_vertical_periodicity(grid, ignore_color=None)
+    assert grid[:, :period] == grid[:, period:2*period]
+    """
+
+    if ignore_color is None:
+        ignore_color = 99 # ignore nothing
+
+    for v_period in range(1, grid.shape[1]):
+        pattern = grid[:v_period, :]
+        v_repetitions = grid.shape[1] // v_period
+
+        success = True
+        for i in range(1, v_repetitions):
+            sliced_input = grid[i*v_period:(i+1)*v_period, :]
+            sliced_pattern = pattern[:sliced_input.shape[0], :sliced_input.shape[1]]
+            # Check that they are equal except where one of them is black
+            if np.all((sliced_input == sliced_pattern) | (sliced_input == ignore_color) | (sliced_pattern == ignore_color)):
+                # Update the pattern to include the any new nonblack pixels
+                sliced_pattern[sliced_input != ignore_color] = sliced_input[sliced_input != ignore_color]
+            else:
+                success = False
+                break
+        if success:
+            break
+
+    return v_period
+
+
 
 def show_colored_grid(grid, text=True):
     """
@@ -544,6 +617,8 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
     # small sprites require higher density in order to have a high probability of reaching all of the sides
     elif n == 2 or m == 2:
         density = max(density, 0.7)    
+    elif density == 1:
+        pass
     # randomly perturb the density so that we get a wider variety of densities
     else:
         density = max(0.4, min(0.95, random.gauss(density, 0.1)))
