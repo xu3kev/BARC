@@ -227,6 +227,8 @@ if __name__ == "__main__":
     </body>
     </html>
     """
+    file_name = f"self_instruct_remix{remix_level}_{arguments.num_seeds}_{arguments.model}_temp{arguments.temperature:.2f}.html"
 
-    with open(f"self_instruct_remix{remix_level}_{arguments.model}_temp{arguments.temperature:.2f}.html", "w") as f:
+    print(f"Writing to {file_name}")
+    with open(file_name, "w") as f:
         f.write(final_html)

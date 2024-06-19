@@ -76,23 +76,27 @@ def _flood_fill(grid, x, y, color, old_color, connectivity):
     if x < grid.shape[0] - 1 and y < grid.shape[1] - 1:
         _flood_fill(grid, x + 1, y + 1, color, old_color, connectivity)
 
-def draw_line(grid, x, y, length, color, direction):
+def draw_line(grid, x, y, length, color, direction, stop_at_color=[]):
     """
     Draws a line of the specified length in the specified direction starting at (x, y).
     Direction should be a vector with elements -1, 0, or 1.
     If length is None, then the line will continue until it hits the edge of the grid.
 
+    stop_at_color: optional list of colors that the line should stop at. If the line hits a pixel of one of these colors, it will stop.
+
     Example:
     draw_line(grid, 0, 0, length=3, color=blue, direction=(1, 1)) will draw a diagonal line of blue pixels from (0, 0) to (2, 2).
     """
-
+    
     if length is None:
         length = max(grid.shape)*2
-
+    
     for i in range(length):
         new_x = x + i * direction[0]
         new_y = y + i * direction[1]
         if 0 <= new_x < grid.shape[0] and 0 <= new_y < grid.shape[1]:
+            if grid[new_x, new_y] in stop_at_color:
+                break
             grid[new_x, new_y] = color
 
     return grid
@@ -425,7 +429,7 @@ def is_contiguous(bitmask, background=Color.BLACK, connectivity=4):
     return n_objects == 1
 
 
-def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, color_palate=None):
+def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, color_palate=None, connectivity=4):
     """"
     internal function not used by LLM
     """
@@ -460,7 +464,12 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
     else:
         raise ValueError(f"Invalid symmetry type {symmetry_type}.")
 
-    moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+    if connectivity == 4:
+        moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+    elif connectivity == 8:
+        moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    else:
+        raise ValueError("Connectivity must be 4 or 8.")
 
     color_index = 0
     while np.sum(grid>0) < fill_percentage * n * m:
@@ -494,7 +503,7 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
 
     return grid
 
-def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
+def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connectivity=4):
     """
     Generate a sprite (an object), represented as a numpy array.
 
@@ -540,8 +549,8 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
         density = max(0.4, min(0.95, random.gauss(density, 0.1)))
 
     while True:
-        sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette, fill_percentage=density)
-        assert is_contiguous(sprite), "Generated sprite is not contiguous."
+        sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette, fill_percentage=density, connectivity=connectivity)
+        assert is_contiguous(sprite, connectivity=connectivity), "Generated sprite is not contiguous."
         # check that the sprite has pixels that are flushed with the border
         if np.sum(sprite[0, :]) > 0 and np.sum(sprite[-1, :]) > 0 and np.sum(sprite[:, 0]) > 0 and np.sum(sprite[:, -1]) > 0:
             return sprite
