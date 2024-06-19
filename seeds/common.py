@@ -329,7 +329,7 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
     for x, y in possible_locations:
         # try blitting the sprite and see if the resulting non-background pixels is the expected value
         new_grid = grid.copy()
-        new_grid[x:x+dim1, y:y+dim2] = np.maximum(new_grid[x:x+dim1, y:y+dim2], sprite)
+        blit(new_grid, sprite, x, y, background=background)
         if np.sum(new_grid != background) == target_non_background:
             pruned_locations.append((x, y))
 
