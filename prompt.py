@@ -13,7 +13,23 @@ import sys
 sys.path.append("seeds/")
 from common import *
 
-def make_self_instruct_prompt(seeds, rng_seed, num_seeds=None, remix=0):
+def get_common_lib_from_file(file_path="seeds/common.py"):
+    with open(file_path) as f:
+        common_lib = f.read()
+
+    common_lib_functions = extract_functions(common_lib)
+    # Clean the common lib by removing any functions whose docstring begins/contains "internal function not used by LLM"
+    common_lib_functions = [f for f in common_lib_functions if "internal function not used by LLM" not in f["docstring"]]
+    common_lib_function_names = set([f["name"] for f in common_lib_functions])
+
+    common_lib_classes = extract_class_definitions(common_lib)
+    # Clean the common lib by removing any classes whose docstring begins/contains "internal class not used by LLM"
+    common_lib_classes = [c for c in common_lib_classes if "internal class not used by LLM" not in c["docstring"]]
+
+    common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
+    return common_lib
+
+def make_self_instruct_prompt(seeds, rng_seed, common_lib, num_seeds=None, remix=0):
     """
     remix: how many example seeds the prompt tells the LLM to remix.
     0 means no remixing, just shows all the seeds. 1 tells it to remix one of the examples, 2 tells it to remix two of the examples, etc.
@@ -36,19 +52,6 @@ def make_self_instruct_prompt(seeds, rng_seed, num_seeds=None, remix=0):
     if num_seeds is not None:
         seed_content = seed_content[:num_seeds]
 
-    with open("seeds/common.py") as f:
-        common_lib = f.read()
-
-    common_lib_functions = extract_functions(common_lib)
-    # Clean the common lib by removing any functions whose docstring begins/contains "internal function not used by LLM"
-    common_lib_functions = [f for f in common_lib_functions if "internal function not used by LLM" not in f["docstring"]]
-    common_lib_function_names = set([f["name"] for f in common_lib_functions])
-
-    common_lib_classes = extract_class_definitions(common_lib)
-    # Clean the common lib by removing any classes whose docstring begins/contains "internal class not used by LLM"
-    common_lib_classes = [c for c in common_lib_classes if "internal class not used by LLM" not in c["docstring"]]
-
-    common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
 
     #common_functions_calls_counter = {}
     concepts_in_seeds = []
@@ -147,7 +150,8 @@ if __name__ == "__main__":
 
     batch_size = arguments.batch_size
     remix_level = arguments.remix
-    prompts = [ make_self_instruct_prompt(seeds, rng_seed, remix=remix_level, num_seeds=arguments.num_seeds) for rng_seed in range(batch_size) ]
+    common_lib = get_common_lib_from_file("seeds/common.py")
+    prompts = [ make_self_instruct_prompt(seeds, rng_seed, common_lib, remix=remix_level, num_seeds=arguments.num_seeds) for rng_seed in tqdm(range(batch_size)) ]
 
     client = LLMClient(provider=provider)
     samples = []
