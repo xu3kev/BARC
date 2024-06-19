@@ -379,6 +379,8 @@ def detect_vertical_periodicity(grid, ignore_color=None):
 
 
 
+    
+
 def show_colored_grid(grid, text=True):
     """
     internal function not used by LLM
