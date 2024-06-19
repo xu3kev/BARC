@@ -85,18 +85,18 @@ def generate_input():
     grid = np.full((n, m), background_color)
 
     # choose a random special color that is not the same as the background color
-    special_color = new_random_color([background_color])
+    special_color = new_random_color(not_allowed_colors=[background_color])
 
     # choose a random point color that is not already used
-    point_color = new_random_color([background_color, special_color])
+    point_color = new_random_color(not_allowed_colors=[background_color, special_color])
 
     # randomly choose rectangle color
-    rectangle_color = new_random_color([background_color, special_color, point_color])
+    rectangle_color = new_random_color(not_allowed_colors=[background_color, special_color, point_color])
 
     # randomly choose if the crosshair uses an additional color
     additional_color_used = random.choice([True, False])
     if additional_color_used:
-        additional_color = new_random_color([background_color, special_color, point_color, rectangle_color])
+        additional_color = new_random_color(not_allowed_colors=[background_color, special_color, point_color, rectangle_color])
 
     # randomly choose the crosshair pattern
     crosshair_pattern = random.choice(['combined', 'horizontal', 'vertical'])
@@ -104,7 +104,7 @@ def generate_input():
     # crosshair pattern size is dependent on the pattern, but is always 5x5, 3x5, or 5x3
     if crosshair_pattern == 'combined':
         # create the pattern and color the center pixel with the special color
-        crosshair_sprite = np.zeros((5, 5), dtype=int)
+        crosshair_sprite = np.full((5, 5), dtype=int, fill_value=background_color)
         crosshair_sprite[:, 2] = point_color
         crosshair_sprite[2, :] = point_color
         crosshair_sprite[2, 2] = special_color
@@ -117,7 +117,7 @@ def generate_input():
             crosshair_sprite[3, 3] = additional_color
     elif crosshair_pattern == 'horizontal':
         # create the pattern and color the center pixel with the special color
-        crosshair_sprite = np.zeros((5, 3), dtype=int)
+        crosshair_sprite = np.full((5, 3), dtype=int, fill_value=background_color)
         crosshair_sprite[:, 1] = point_color
         crosshair_sprite[2, 1] = special_color
 
@@ -130,7 +130,7 @@ def generate_input():
         crosshair_sprite[1:4, 2] = extra_color
     else:
         # create the pattern and color the center pixel with the special color
-        crosshair_sprite = np.zeros((3, 5), dtype=int)
+        crosshair_sprite = np.full((3, 5), dtype=int, fill_value=background_color)
         crosshair_sprite[1, :] = point_color
         crosshair_sprite[1, 2] = special_color
 
@@ -144,7 +144,6 @@ def generate_input():
 
     # create a helper function to create the rectangles
     def create_rectangle(width, height):
-        print("creating rectangle", width, height)
         # create empty rectangle
         to_return = np.full((width, height), rectangle_color)
 
@@ -185,10 +184,7 @@ def generate_input():
     clean_generation = False
     
     # loop over grid generation until a clean generation is achieved
-    count = 0
     while not clean_generation:
-        print("looping{}", count)
-        count += 1
         # set clean generation to True
         clean_generation = True
 
@@ -197,15 +193,15 @@ def generate_input():
 
         # randomly choose the width and height of the first rectangle
         min_size = 7
-        max_size = 16
+        max_size = 18
         first_rec_size = [random.randint(min_size, max_size) for _ in range(2)]
 
         # create the first rectangle
         first_rectangle = create_rectangle(*first_rec_size)
 
         # first rectangle should be by one of the corners, with either 1 or 2 empty pixels on each edge
-        x_options = [1, 2, n - first_rec_size[0] - 2, n - first_rec_size[0] - 3]
-        y_options = [1, 2, m - first_rec_size[1] - 2, m - first_rec_size[1] - 3]
+        x_options = [1, 2, n - first_rec_size[0] - 1, n - first_rec_size[0] - 2]
+        y_options = [1, 2, m - first_rec_size[1] - 1, m - first_rec_size[1] - 2]
 
         # randomly choose the location of the first rectangle
         first_rec_x = random.choice(x_options)
@@ -215,7 +211,7 @@ def generate_input():
         blit(grid, first_rectangle, first_rec_x, first_rec_y)
 
         # for each additional rectangle, choose a random size and find a location to place it, ensuring it does not contact any other rectangle
-        for _ in range(num_rectangles - 1):
+        for i in range(num_rectangles - 1):
             # randomly choose the width and height of the rectangle
             rec_size = [random.randint(min_size, max_size) for _ in range(2)]
 
@@ -224,23 +220,27 @@ def generate_input():
 
             # try to find a location to place the rectangle
             try :
-                rec_x, rec_y = random_free_location_for_object(grid, rectangle, background_color=background_color, padding=1)
+                rec_x, rec_y = random_free_location_for_object(grid, rectangle, background=background_color, padding=1)
                 blit(grid, rectangle, rec_x, rec_y)
             except:
-                print("failed to place rectangle")
-                # if the rectangle cannot be placed, the generation is not clean
-                clean_generation = False
+                # if at least two rectangles are placed, we can proceed with the crosshair pattern
+                if i > 0:
+                    clean_generation = False
                 break
+
+        # if the generation was not clean to this point, clear the grid and try again
+        if not clean_generation:
+            grid.fill(background_color)
+            continue
         
         # now that all rectangles are placed, check if the crosshair pattern can be placed
         try:
             # find a location to place the crosshair pattern
-            cross_x, cross_y = random_free_location_for_object(grid, crosshair_sprite, background_color=background_color)
+            cross_x, cross_y = random_free_location_for_object(grid, crosshair_sprite, background=background_color, padding=1)
 
             # place the crosshair pattern onto the grid
             blit(grid, crosshair_sprite, cross_x, cross_y)
         except:
-            print("failed to place crosshair")
             # if the crosshair pattern cannot be placed, the generation is not clean
             clean_generation = False
 
