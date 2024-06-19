@@ -144,6 +144,7 @@ def generate_input():
 
     # create a helper function to create the rectangles
     def create_rectangle(width, height):
+        print("creating rectangle", width, height)
         # create empty rectangle
         to_return = np.full((width, height), rectangle_color)
 
@@ -153,24 +154,26 @@ def generate_input():
         # create a list to store the special pixel locations
         special_pixels = []
 
+        # create a list of possible special pixel locations
+        possible_specials = [(x, y) for x in range(1, width - 1) for y in range(1, height - 1)]
+
         # randomly choose the location of the special pixels
         for _ in range(num_special):
-            # variable to track if the placement is valid
-            valid_placement = False
-
-            # loop until a valid placement is found
-            while not valid_placement:
-                x = random.randint(1, width - 2)
-                y = random.randint(1, height - 2)
-
-                # check if the location is already near another special pixel so the crosshair pattern does not overlap
-                valid_placement = True
-                for pos  in special_pixels:
-                    if np.abs(pos[0] - x) < 3 or np.abs(pos[1] - y) < 3:
-                        valid_placement = False
-                        break
+            # randomly choose the location of the special pixel
+            x, y = random.choice(possible_specials)
             
+            # add the special pixel to the list of special pixels
             special_pixels.append((x, y))
+
+            # remove valid locations around the special pixel
+            for i in range(-1, 2):
+                for j in range(-1, 2):
+                    if (x + i, y + j) in possible_specials:
+                        possible_specials.remove((x + i, y + j))
+
+            # if there are no more valid locations, break
+            if not possible_specials:
+                break
         
         # place the special pixels onto the rectangle
         for x, y in special_pixels:
@@ -182,7 +185,10 @@ def generate_input():
     clean_generation = False
     
     # loop over grid generation until a clean generation is achieved
+    count = 0
     while not clean_generation:
+        print("looping{}", count)
+        count += 1
         # set clean generation to True
         clean_generation = True
 
@@ -191,7 +197,7 @@ def generate_input():
 
         # randomly choose the width and height of the first rectangle
         min_size = 7
-        max_size = 18
+        max_size = 16
         first_rec_size = [random.randint(min_size, max_size) for _ in range(2)]
 
         # create the first rectangle
@@ -221,6 +227,7 @@ def generate_input():
                 rec_x, rec_y = random_free_location_for_object(grid, rectangle, background_color=background_color, padding=1)
                 blit(grid, rectangle, rec_x, rec_y)
             except:
+                print("failed to place rectangle")
                 # if the rectangle cannot be placed, the generation is not clean
                 clean_generation = False
                 break
@@ -233,6 +240,7 @@ def generate_input():
             # place the crosshair pattern onto the grid
             blit(grid, crosshair_sprite, cross_x, cross_y)
         except:
+            print("failed to place crosshair")
             # if the crosshair pattern cannot be placed, the generation is not clean
             clean_generation = False
 
