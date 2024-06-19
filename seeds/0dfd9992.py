@@ -16,51 +16,17 @@ def main(input_grid):
     # 2. Reconstruct the sprite by ignoring the black pixels and exploiting the periodicity
     # 3. Make the output by tiling the sprite infinitely in all directions
 
-    # Identify the horizontal period of translational symmetry
-    # input_grid[x, y] == input_grid[x + i*h_period, y] for all x, y, i (where the pixels aren't black)
-    for h_period in range(1, input_grid.shape[0]):
-        pattern = input_grid[:, :h_period]
-        h_repetitions = input_grid.shape[0] // h_period
+    w, h = input_grid.shape
 
-        success = True
-        for i in range(1, h_repetitions):
-            sliced_input = input_grid[:, i*h_period:(i+1)*h_period]
-            sliced_pattern = pattern[:sliced_input.shape[0], :sliced_input.shape[1]]
-            # Check that they are equal except where one of them is black
-            if np.all((sliced_input == sliced_pattern) | (sliced_input == Color.BLACK) | (sliced_pattern == Color.BLACK)):
-                # Update the pattern to include the any new nonblack pixels
-                sliced_pattern[sliced_input != Color.BLACK] = sliced_input[sliced_input != Color.BLACK]
-            else:
-                success = False
-                break
-        if success:
-            break
-    
-    # Identify the vertical period of translational symmetry
-    # input_grid[x, y] == input_grid[x, y + i*v_period] for all x, y, i (where the pixels aren't black)
-    for v_period in range(1, input_grid.shape[1]):
-        pattern = input_grid[:v_period, :]
-        v_repetitions = input_grid.shape[1] // v_period
-
-        success = True
-        for i in range(1, v_repetitions):
-            sliced_input = input_grid[i*v_period:(i+1)*v_period, :]
-            sliced_pattern = pattern[:sliced_input.shape[0], :sliced_input.shape[1]]
-            # Check that they are equal except where one of them is black
-            if np.all((sliced_input == sliced_pattern) | (sliced_input == Color.BLACK) | (sliced_pattern == Color.BLACK)):
-                # Update the pattern to include the any new nonblack pixels
-                sliced_pattern[sliced_input != Color.BLACK] = sliced_input[sliced_input != Color.BLACK]
-            else:
-                success = False
-                break
-        if success:
-            break
+    # Identify the horizontal/vertical period of translational symmetry
+    h_period = detect_horizontal_periodicity(input_grid, ignore_color=Color.BLACK)
+    v_period = detect_vertical_periodicity(input_grid, ignore_color=Color.BLACK)
 
     # Reconstruct the sprite by ignoring the black pixels and exploiting the periodicity
     sprite = np.full((h_period, v_period), Color.BLACK)
     for x in range(h_period):
         for y in range(v_period):
-            possible_inputs = [input_grid[x + i*h_period, y + j*v_period] for i in range(h_repetitions) for j in range(v_repetitions)]
+            possible_inputs = [input_grid[x + i*h_period, y + j*v_period] for i in range(w//h_period) for j in range(h//v_period)]
             nonblack_inputs = [c for c in possible_inputs if c != Color.BLACK]
             if len(nonblack_inputs) == 0:
                 sprite[x, y] = Color.BLACK
