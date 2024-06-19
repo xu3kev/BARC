@@ -14,27 +14,28 @@ def main(input_grid):
     input_height = input_grid.shape[1]
 
     # determine the period of the repeated vertical translation
-    for period in range(1, input_grid.shape[1]):
-        # because the translation is vertical, this is the height of the sprite
-        sprite = input_grid[:, :period]
-        # check if the sprite repeats until the end of the input
-        repeatedly_translated = np.tile(sprite, (1, 100))[:, :input_height]
+    v_period = detect_vertical_periodicity(input_grid)
+    
+    # because the translation is vertical, this is the height of the sprite
+    sprite = input_grid[:, :v_period]
 
-        if np.all(np.equal(input_grid, repeatedly_translated)):
-            # if it does, we found the period
-            # make the output (the height is now 9)
-            output_grid = np.zeros((input_grid.shape[0], 9), dtype=int)
+    # check the sprite repeats until the end of the input (this is true assuming that we got the right period)
+    repeatedly_translated = np.tile(sprite, (1, 100))[:, :input_height]
+    assert np.all(np.equal(input_grid, repeatedly_translated))
 
-            # Make the sprite red
-            sprite[sprite == Color.BLUE] = Color.RED
+    # make the output (the height is now 9)
+    output_grid = np.zeros((input_grid.shape[0], 9), dtype=int)
 
-            # Copy sprite to fill the entire grid
-            # This means repeating it vertically
-            # (note: we could use np.tile here, but we'll do it manually for clarity)
-            for y in range(0, output_grid.shape[1], period):
-                blit(output_grid, sprite, 0, y)
+    # Make the sprite red
+    sprite[sprite == Color.BLUE] = Color.RED
 
-            return output_grid
+    # Copy sprite to fill the entire grid
+    # This means repeating it vertically
+    # (note: we could use np.tile here, but we'll do it manually for clarity)
+    for y in range(0, output_grid.shape[1], period):
+        blit(output_grid, sprite, 0, y)
+
+    return output_grid
 
 
 def generate_input():
