@@ -4,6 +4,8 @@ Run `python -m pip install -r requirements.txt` to install Python requirements.
 
 # Viewing ARC problems
 
+ARC interface hosted by Wen-Ding: [https://www.cs.cornell.edu/~wdli/arc_interface/](https://www.cs.cornell.edu/~wdli/arc_interface/)
+
 You can view ARC problems by their ID number using the `view_problem.py` script. For example:
 ```bash
 $ python view_problem.py 09629e4f

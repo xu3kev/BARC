@@ -323,6 +323,79 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
 
     return random.choice(pruned_locations)
 
+def detect_horizontal_periodicity(grid, ignore_color=None):
+    """
+    Finds the period of a grid that was produced by repeated horizontal translation (tiling) of a smaller grid.
+
+    Horizontal period satisfies: grid[x, y] == grid[x + i*period, y] for all x, y, i, as long as neither pixel is `ignore_color`.
+
+    ignore_color: optional color that should be ignored when checking for periodicity
+
+    Example usage:
+    period = detect_horizontal_periodicity(grid, ignore_color=None)
+    assert grid[:period, :] == grid[period:2*period, :]
+    """
+
+    if ignore_color is None:
+        ignore_color = 99 # ignore nothing
+
+    for h_period in range(1, grid.shape[0]):
+        pattern = grid[:, :h_period]
+        h_repetitions = grid.shape[0] // h_period
+
+        success = True
+        for i in range(1, h_repetitions):
+            sliced_input = grid[:, i*h_period:(i+1)*h_period]
+            sliced_pattern = pattern[:sliced_input.shape[0], :sliced_input.shape[1]]
+            # Check that they are equal except where one of them is black
+            if np.all((sliced_input == sliced_pattern) | (sliced_input == ignore_color) | (sliced_pattern == ignore_color)):
+                # Update the pattern to include the any new nonblack pixels
+                sliced_pattern[sliced_input != ignore_color] = sliced_input[sliced_input != ignore_color]
+            else:
+                success = False
+                break
+        if success:
+            return h_period
+
+
+
+def detect_vertical_periodicity(grid, ignore_color=None):
+    """
+    Finds the period of a grid that was produced by repeated vertical translation (tiling) of a smaller grid.
+
+    Vertical period satisfies: grid[x, y] == grid[x, y + i*period] for all x, y, i, as long as neither pixel is `ignore_color`.
+
+    ignore_color: optional color that should be ignored when checking for periodicity
+
+    Example usage:
+    period = detect_vertical_periodicity(grid, ignore_color=None)
+    assert grid[:, :period] == grid[:, period:2*period]
+    """
+
+    if ignore_color is None:
+        ignore_color = 99 # ignore nothing
+
+    for v_period in range(1, grid.shape[1]):
+        pattern = grid[:v_period, :]
+        v_repetitions = grid.shape[1] // v_period
+
+        success = True
+        for i in range(1, v_repetitions):
+            sliced_input = grid[i*v_period:(i+1)*v_period, :]
+            sliced_pattern = pattern[:sliced_input.shape[0], :sliced_input.shape[1]]
+            # Check that they are equal except where one of them is black
+            if np.all((sliced_input == sliced_pattern) | (sliced_input == ignore_color) | (sliced_pattern == ignore_color)):
+                # Update the pattern to include the any new nonblack pixels
+                sliced_pattern[sliced_input != ignore_color] = sliced_input[sliced_input != ignore_color]
+            else:
+                success = False
+                break
+        if success:
+            break
+
+    return v_period
+
+
 
 def show_colored_grid(grid, text=True):
     """
@@ -447,7 +520,7 @@ def is_contiguous(bitmask, background=Color.BLACK, connectivity=4):
     return n_objects == 1
 
 
-def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, color_palate=None):
+def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, color_palate=None, connectivity=4):
     """"
     internal function not used by LLM
     """
@@ -482,7 +555,12 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
     else:
         raise ValueError(f"Invalid symmetry type {symmetry_type}.")
 
-    moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+    if connectivity == 4:
+        moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+    elif connectivity == 8:
+        moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    else:
+        raise ValueError("Connectivity must be 4 or 8.")
 
     color_index = 0
     while np.sum(grid>0) < fill_percentage * n * m:
@@ -516,7 +594,7 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
 
     return grid
 
-def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
+def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connectivity=4):
     """
     Generate a sprite (an object), represented as a numpy array.
 
@@ -557,13 +635,15 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
     # small sprites require higher density in order to have a high probability of reaching all of the sides
     elif n == 2 or m == 2:
         density = max(density, 0.7)
+    elif density == 1:
+        pass
     # randomly perturb the density so that we get a wider variety of densities
     else:
         density = max(0.4, min(0.95, random.gauss(density, 0.1)))
 
     while True:
-        sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette, fill_percentage=density)
-        assert is_contiguous(sprite), "Generated sprite is not contiguous."
+        sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette, fill_percentage=density, connectivity=connectivity)
+        assert is_contiguous(sprite, connectivity=connectivity), "Generated sprite is not contiguous."
         # check that the sprite has pixels that are flushed with the border
         if np.sum(sprite[0, :]) > 0 and np.sum(sprite[-1, :]) > 0 and np.sum(sprite[:, 0]) > 0 and np.sum(sprite[:, -1]) > 0:
             return sprite
