@@ -97,6 +97,39 @@ def apply_color_mapping(grid, color_mapping):
     """
     return np.vectorize(color_mapping.get)(grid)
 
+def add_color_changing_code(problem_source, color_mapping=None):
+    if color_mapping is None:
+        color_mapping = {i: i for i in range(10)}
+    color_code = f"""
+Color.BLACK = {color_mapping[0]}
+Color.BLUE = {color_mapping[1]}
+Color.RED = {color_mapping[2]}
+Color.GREEN = {color_mapping[3]}
+Color.YELLOW = {color_mapping[4]}
+Color.GREY = {color_mapping[5]}
+Color.GRAY = {color_mapping[5]}
+Color.PINK = {color_mapping[6]}
+Color.ORANGE = {color_mapping[7]}
+Color.TEAL = {color_mapping[8]}
+Color.MAROON = {color_mapping[9]}
+"""
+    # Split the source code into lines
+    lines = problem_source.split('\n')
+
+    # Find the last line of the imports
+    import_end_index = 0
+    for i, line in enumerate(lines):
+        if line.startswith("import") or line.startswith("from"):
+            import_end_index = i + 1
+
+    # Insert the color_code after the imports
+    lines.insert(import_end_index, color_code)
+
+    # Join the lines back into a single string
+    modified_source = '\n'.join(lines)
+
+    return modified_source
+
 def run_transformation(source, input_grid, timeout=1, function_name="main", num_returns=50):
     """
     run the transformation on the input grid and return the output grid multiple times
@@ -134,11 +167,15 @@ def generate_problem(problem_source, num_examples=4, num_input_grids=10, num_det
 
         # Check for non-color-invariant transformations
         for _ in range(num_color_permute_check):
-            color_in_input_grid = list(set(input_grid.flatten()))
-            color_mapping = get_random_color_mapping(only_non_black=True, permute_colors=color_in_input_grid)
+            color_mapping = get_random_color_mapping(only_non_black=True)
             permuted_input_grid = apply_color_mapping(input_grid, color_mapping)
-            original_output_grid = execute_transformation(problem_source, input_grid, timeout, function_name="main")
-            permuted_output_grid = execute_transformation(problem_source, permuted_input_grid, timeout, function_name="main")
+            modified_problem_source = add_color_changing_code(problem_source, color_mapping)
+            permuted_output_grid = execute_transformation(modified_problem_source, permuted_input_grid, timeout, function_name="main")
+            modified_problem_source2 = add_color_changing_code(problem_source, None)
+            original_output_grid = execute_transformation(modified_problem_source2, input_grid, timeout, function_name="main")
+            # FIXME: very hacky, the order of these execution can not be reverse because of the color mapping changing permantly
+            # and it will affect the original output grid, so need to swap the colors back
+            # and also it might be problematic if the later execution crashes
             if not check_grid(permuted_output_grid) or not check_grid(original_output_grid) or not check_grid(input_grid):
                 print("Permute check failed due to non-well-formed grids")
                 return None
