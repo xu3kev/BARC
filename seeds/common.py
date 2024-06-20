@@ -325,9 +325,7 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
     if len(pruned_locations) == 0:
         raise ValueError("No free location for sprite found.")
 
-    # if there is no padding, then random.choice is returned, offsets are removed if there is padding
-    padded_location = random.choice(pruned_locations)
-    return padded_location[0] - padding, padded_location[1] - padding
+    return random.choice(pruned_locations)
 
 def detect_horizontal_periodicity(grid, ignore_color=None):
     """
