@@ -289,48 +289,41 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
 
     # if padding is non-zero, we emulate padding by cropping the sprite, placing it in a larger grid, padding it, and then cropping it again
     if padding > 0:
-        sprite = crop(sprite)
-        n_sprite, m_sprite = sprite.shape
-        new_sprite = np.full((n_sprite + 4*padding, m_sprite + 4*padding), background, dtype=sprite.dtype)
-        new_sprite[2*padding:2*padding+n_sprite, 2*padding:2*padding+m_sprite] = sprite
+        from scipy import ndimage
 
-        # choose a color for padding that is not the background
-        padding_color = [c for c in range(10) if c != background][0]
+        # pad the sprite with background pixels in all 4 directions
+        sprite = np.pad(sprite, padding, mode='constant', constant_values=background)
 
-        # for each layer of padding, for each background pixel, we set it to a non-background color if there is a non-background pixel in the padding_connectivity neighborhood
-        for _ in range(padding):
-            new_sprite_copy = new_sprite.copy()
-            for x in range(1, n_sprite + 3):
-                for y in range(1, m_sprite + 3):
-                    # if this is a background pixel, and there is a non-background pixel in the padding_connectivity neighborhood, set it to padding_color
-                    if new_sprite[x, y] == background:
-                        if padding_connectivity == 4:
-                            if np.sum(new_sprite[x-1:x+2, y] != background) > 0 or np.sum(new_sprite[x, y-1:y+2] != background) > 0:
-                                new_sprite_copy[x, y] = padding_color
-                        elif padding_connectivity == 8:
-                            if np.sum(new_sprite[x-1:x+2, y-1:y+2] != background) > 0:
-                                new_sprite_copy[x, y] = padding_color
-                        else:
-                            raise ValueError("Padding connectivity must be 4 or 8.")
-            new_sprite = new_sprite_copy
+        if padding_connectivity == 4:
+            structuring_element = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+        elif padding_connectivity == 8:
+            structuring_element = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+        else:
+            raise ValueError("padding_connectivity must be 4 or 8.")
 
-        # set the sprite to the padded sprite
-        sprite = crop(new_sprite, background=background)
+        # use binary dilation to pad the sprite with a non-background color
+        sprite_mask = ndimage.binary_dilation(sprite != background, iterations=padding, structure=structuring_element).astype(int)
+    else:
+        sprite_mask = 1*(sprite != background)
+
+    grid_mask = 1*(grid != background)
 
     dim1, dim2 = sprite.shape
-    possible_locations = [ (x,y) for x in range(border_size + padding, n - dim1 + 1 - border_size - padding) for y in range(border_size + padding, m - dim2 + 1 - border_size - padding)]
+    possible_locations = [ (x,y)
+                          for x in range(border_size, n + 1 - border_size)
+                          for y in range(border_size, m + 1 - border_size)]
 
-    non_background_grid = np.sum(grid != background)
-    non_background_sprite = np.sum(sprite != background)
+    non_background_grid = np.sum(grid_mask)
+    non_background_sprite = np.sum(sprite_mask)
     target_non_background = non_background_grid + non_background_sprite
 
     # prune possible locations by making sure there is no overlap with non-background pixels if we were to put the sprite there
     pruned_locations = []
     for x, y in possible_locations:
         # try blitting the sprite and see if the resulting non-background pixels is the expected value
-        new_grid = grid.copy()
-        blit(new_grid, sprite, x, y, background=background)
-        if np.sum(new_grid != background) == target_non_background:
+        new_grid_mask = grid_mask.copy()
+        blit(new_grid_mask, sprite_mask, x, y, background=0)
+        if np.sum(new_grid_mask) == target_non_background:
             pruned_locations.append((x, y))
 
     if len(pruned_locations) == 0:
@@ -338,7 +331,7 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
 
     # if there is no padding, then random.choice is returned, offsets are removed if there is padding
     padded_location = random.choice(pruned_locations)
-    return padded_location[0] - padding, padded_location[1] - padding
+    return padded_location[0] + padding, padded_location[1] + padding
 
 def detect_horizontal_periodicity(grid, ignore_color=None):
     """
