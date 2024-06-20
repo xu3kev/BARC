@@ -47,20 +47,22 @@ def main(input_grid):
 
     # for each rectangle, crop it to just the rectangle, find the special pixel, extend the crosshair pattern from it, then add it back to the grid
     for rectangle in rectangles:
-        # find the special color, it is the least common color in the rectangle
-        colors, counts = np.unique(rectangle, return_counts=True)
-        # colors are sorted by their frequency, so choose least common as the special color
-        special_color = colors[-1]
-        rectangle_color = colors[-2]
-
-        # crop the rectangle to just the rectangle, while preserving its position in the grid
+        # first crop the rectangle while preserving its position in the grid
         rec_x, rec_y, w, h = bounding_box(rectangle)
         cropped_rectangle = crop(rectangle)
+
+        # find the colors and their counts in the rectangle, sorting by count
+        colors, counts = np.unique(cropped_rectangle, return_counts=True)
+        colors = colors[np.argsort(counts)]
+
+        # the special pixels have the least count, so the special color is the first color in the list, and the rectangle color is the second color
+        special_color = colors[0]
+        rectangle_color = colors[1]
         
         # for each special pixel, extend the crosshair pattern
         for x, y in np.argwhere(cropped_rectangle == special_color):
-            # first color the special pixel with the crosshair sprite centered on it
-            cropped_rectangle = blit(cropped_rectangle, crosshair_sprite, x - width // 2, y - height // 2, background=Color.BLACK)
+            # first copy the crosshair pattern onto the special pixel
+            blit(cropped_rectangle, crosshair_sprite, x - width // 2, y - height // 2, background=Color.BLACK)
 
             # then extend the points in the crosshair pattern until they reach the edge of the rectangle
             if horizontal:
@@ -165,8 +167,8 @@ def generate_input():
             special_pixels.append((x, y))
 
             # remove valid locations around the special pixel
-            for i in range(-1, 2):
-                for j in range(-1, 2):
+            for i in range(-2, 3):
+                for j in range(-2, 3):
                     if (x + i, y + j) in possible_specials:
                         possible_specials.remove((x + i, y + j))
 
@@ -220,7 +222,7 @@ def generate_input():
 
             # try to find a location to place the rectangle
             try :
-                rec_x, rec_y = random_free_location_for_object(grid, rectangle, background=background_color, padding=1)
+                rec_x, rec_y = random_free_location_for_object(grid, rectangle, background=background_color, border_size=1, padding=1)
                 blit(grid, rectangle, rec_x, rec_y)
             except:
                 # if at least two rectangles are placed, we can proceed with the crosshair pattern
@@ -235,7 +237,7 @@ def generate_input():
         # now that all rectangles are placed, check if the crosshair pattern can be placed
         try:
             # find a location to place the crosshair pattern
-            cross_x, cross_y = random_free_location_for_object(grid, crosshair_sprite, background=background_color, padding=1)
+            cross_x, cross_y = random_free_location_for_object(grid, crosshair_sprite, background=background_color, border_size=1, padding=1)
 
             # place the crosshair pattern onto the grid
             blit(grid, crosshair_sprite, cross_x, cross_y)
