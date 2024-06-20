@@ -34,19 +34,19 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     return output_grid
 
 
-def generate_input() -> np.ndarray:
+def generate_input():
     n, m = np.random.randint(10, 30), np.random.randint(10, 30)
-    grid = np.zeros((n, m), dtype=int)
+    grid = np.full((n, m), Color.BLACK)
 
     n_objects = np.random.randint(1, 3)
 
     for _ in range(n_objects):
-        color = np.random.randint(1, 10)
+        color = random.choice(Color.NOT_BLACK)
 
         bar_width = np.random.randint(3, n//2)
         side_height = np.random.randint(3, m - bar_width)
 
-        width, height = bar_width+side_height, side_height
+        width, height = bar_width + side_height, side_height
         obj = np.zeros((width, height), dtype=int)
 
         # make the horizontal top edge
@@ -62,12 +62,16 @@ def generate_input() -> np.ndarray:
 
         # place the object randomly on the grid, assuming we can find a spot
         try:
-            x, y = random_free_location_for_object(grid, obj, background=Color.BLACK)
+            x, y = random_free_location_for_object(grid, obj, background=Color.BLACK, padding=2, padding_connectivity=8, border_size=2)
         except:
             continue
 
         blit(grid, obj, x, y, background=Color.BLACK)
 
+    # Make sure that we actually generated something
+    if np.all(grid == Color.BLACK):
+        return generate_input()
+    
     return grid
 
 

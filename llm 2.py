@@ -11,19 +11,30 @@ from tqdm import tqdm
 class Provider(Enum):
     OPENAI = 'openai'
     GROQ = 'groq'
+    DEEPSEEK = 'deepseek'
+    VLLM = 'vllm'
 
 class OpenAIModels(Enum):
     GPT_4_TURBO = 'gpt-4-turbo'
     GPT_4O = 'gpt-4o'
+    GPT_35_TURBO = 'gpt-3.5-turbo'
 
 class GroqModels(Enum):
     LLAMA3_70B_8192 = 'llama3-70b-8192'
     MIXTRAL_8X7B_32768 = 'mixtral-8x7b-32768'
 
+class DEEPSEEKModels(Enum):
+    DEEPSEEKCODER = 'deepseek-coder'
+
+class VLLMModels(Enum):
+    LLAMA3_70B = 'meta-llama/Meta-Llama-3-70B-Instruct'
+
 class LLMClient:
     AVAILABLE_MODELS = {
         Provider.OPENAI: OpenAIModels,
-        Provider.GROQ: GroqModels
+        Provider.GROQ: GroqModels,
+        Provider.DEEPSEEK: DEEPSEEKModels,
+        Provider.VLLM: VLLMModels
     }
 
     def __init__(self, system_content=None, provider=Provider.OPENAI, cache_dir='cache', key=None):
@@ -37,11 +48,19 @@ class LLMClient:
     def _get_api_key(self):
         if self.provider == Provider.GROQ:
             return os.getenv("GROQ_API_KEY")
+        elif self.provider == Provider.DEEPSEEK:
+            return os.getenv("DEEPSEEK_API_KEY")
+        elif self.provider == Provider.VLLM:
+            return "EMPTY"
         return os.getenv("OPENAI_API_KEY")
 
     def _initialize_client(self):
         if self.provider == Provider.GROQ:
             return OpenAI(api_key=self.api_key, base_url="https://api.groq.com/openai/v1")
+        elif self.provider == Provider.DEEPSEEK:
+            return OpenAI(api_key=self.api_key, base_url="https://api.deepseek.com/v1")
+        elif self.provider == Provider.VLLM:
+            return OpenAI(api_key="EMPTY", base_url="http://localhost:8100/v1")
         return OpenAI(api_key=self.api_key)
 
     def _hash_prompt(self, prompt, model, temperature, max_tokens, top_p):

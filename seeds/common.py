@@ -287,50 +287,39 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
     """
     n, m = grid.shape
 
-    # if padding is non-zero, we emulate padding by cropping the sprite, placing it in a larger grid, padding it, and then cropping it again
+    sprite_mask = 1*(sprite != background)
+
+    # if padding is non-zero, we emulate padding by dilating everything within the grid
     if padding > 0:
-        sprite = crop(sprite)
-        n_sprite, m_sprite = sprite.shape
-        new_sprite = np.full((n_sprite + 4*padding, m_sprite + 4*padding), background, dtype=sprite.dtype)
-        new_sprite[2*padding:2*padding+n_sprite, 2*padding:2*padding+m_sprite] = sprite
+        from scipy import ndimage
 
-        # choose a color for padding that is not the background
-        padding_color = new_random_color(not_allowed_colors=[background])
+        if padding_connectivity == 4:
+            structuring_element = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+        elif padding_connectivity == 8:
+            structuring_element = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+        else:
+            raise ValueError("padding_connectivity must be 4 or 8.")
 
-        # for each layer of padding, for each background pixel, we set it to a non-background color if there is a non-background pixel in the padding_connectivity neighborhood
-        for _ in range(padding):
-            new_sprite_copy = new_sprite.copy()
-            for x in range(1, n_sprite + 3):
-                for y in range(1, m_sprite + 3):
-                    # if this is a background pixel, and there is a non-background pixel in the padding_connectivity neighborhood, set it to padding_color
-                    if new_sprite[x, y] == background:
-                        if padding_connectivity == 4:
-                            if np.sum(new_sprite[x-1:x+2, y] != background) > 0 or np.sum(new_sprite[x, y-1:y+2] != background) > 0:
-                                new_sprite_copy[x, y] = padding_color
-                        elif padding_connectivity == 8:
-                            if np.sum(new_sprite[x-1:x+2, y-1:y+2] != background) > 0:
-                                new_sprite_copy[x, y] = padding_color
-                        else:
-                            raise ValueError("Padding connectivity must be 4 or 8.")
-            new_sprite = new_sprite_copy
+        # use binary dilation to pad the sprite with a non-background color
+        grid_mask = ndimage.binary_dilation(grid != background, iterations=padding, structure=structuring_element).astype(int)
+    else:
+        grid_mask = 1*(grid != background)    
 
-        # set the sprite to the padded sprite
-        sprite = crop(new_sprite, background=background)
+    possible_locations = [ (x,y)
+                          for x in range(border_size, n + 1 - border_size - sprite.shape[0])
+                          for y in range(border_size, m + 1 - border_size - sprite.shape[1])]
 
-    dim1, dim2 = sprite.shape
-    possible_locations = [ (x,y) for x in range(border_size + padding, n - dim1 + 1 - border_size - padding) for y in range(border_size + padding, m - dim2 + 1 - border_size - padding)]
-
-    non_background_grid = np.sum(grid != background)
-    non_background_sprite = np.sum(sprite != background)
+    non_background_grid = np.sum(grid_mask)
+    non_background_sprite = np.sum(sprite_mask)
     target_non_background = non_background_grid + non_background_sprite
 
     # prune possible locations by making sure there is no overlap with non-background pixels if we were to put the sprite there
     pruned_locations = []
     for x, y in possible_locations:
         # try blitting the sprite and see if the resulting non-background pixels is the expected value
-        new_grid = grid.copy()
-        blit(new_grid, sprite, x, y, background=background)
-        if np.sum(new_grid != background) == target_non_background:
+        new_grid_mask = grid_mask.copy()
+        blit(new_grid_mask, sprite_mask, x, y, background=0)
+        if np.sum(new_grid_mask) == target_non_background:
             pruned_locations.append((x, y))
 
     if len(pruned_locations) == 0:
@@ -340,6 +329,128 @@ def random_free_location_for_object(grid, sprite, background=Color.BLACK, border
     padded_location = random.choice(pruned_locations)
     return padded_location[0] - padding, padded_location[1] - padding
 
+def detect_horizontal_periodicity(grid, ignore_color=None):
+    """
+    Finds the period of a grid that was produced by repeated horizontal translation (tiling) of a smaller grid.
+
+    Horizontal period satisfies: grid[x, y] == grid[x + i*period, y] for all x, y, i, as long as neither pixel is `ignore_color`.
+
+    ignore_color: optional color that should be ignored when checking for periodicity
+
+    Example usage:
+    period = detect_horizontal_periodicity(grid, ignore_color=None)
+    assert grid[:period, :] == grid[period:2*period, :]
+    """
+
+    if ignore_color is None:
+        ignore_color = 99 # ignore nothing
+
+    for h_period in range(1, grid.shape[0]):
+        pattern = grid[:, :h_period]
+        h_repetitions = grid.shape[0] // h_period
+
+        success = True
+        for i in range(1, h_repetitions):
+            sliced_input = grid[:, i*h_period:(i+1)*h_period]
+            sliced_pattern = pattern[:sliced_input.shape[0], :sliced_input.shape[1]]
+            # Check that they are equal except where one of them is black
+            if np.all((sliced_input == sliced_pattern) | (sliced_input == ignore_color) | (sliced_pattern == ignore_color)):
+                # Update the pattern to include the any new nonblack pixels
+                sliced_pattern[sliced_input != ignore_color] = sliced_input[sliced_input != ignore_color]
+            else:
+                success = False
+                break
+        if success:
+            return h_period
+    
+def detect_vertical_periodicity(grid, ignore_color=None):
+    """
+    Finds the period of a grid that was produced by repeated vertical translation (tiling) of a smaller grid.
+
+    Vertical period satisfies: grid[x, y] == grid[x, y + i*period] for all x, y, i, as long as neither pixel is `ignore_color`.
+
+    ignore_color: optional color that should be ignored when checking for periodicity
+
+    Example usage:
+    period = detect_vertical_periodicity(grid, ignore_color=None)
+    assert grid[:, :period] == grid[:, period:2*period]
+    """
+
+    if ignore_color is None:
+        ignore_color = 99 # ignore nothing
+
+    for v_period in range(1, grid.shape[1]):
+        pattern = grid[:v_period, :]
+        v_repetitions = grid.shape[1] // v_period
+
+        success = True
+        for i in range(1, v_repetitions):
+            sliced_input = grid[i*v_period:(i+1)*v_period, :]
+            sliced_pattern = pattern[:sliced_input.shape[0], :sliced_input.shape[1]]
+            # Check that they are equal except where one of them is black
+            if np.all((sliced_input == sliced_pattern) | (sliced_input == ignore_color) | (sliced_pattern == ignore_color)):
+                # Update the pattern to include the any new nonblack pixels
+                sliced_pattern[sliced_input != ignore_color] = sliced_input[sliced_input != ignore_color]
+            else:
+                success = False
+                break
+        if success:
+            break
+
+    return v_period
+
+def detect_rotational_symmetry(grid, ignore_color=0):
+    """
+    Finds the center of rotational symmetry of a grid.
+    Satisfies: grid[x, y] == grid[y - rotate_center_y + rotate_center_x, -x + rotate_center_y + rotate_center_x] # clockwise
+               grid[x, y] == grid[-y + rotate_center_y + rotate_center_x, x - rotate_center_y + rotate_center_x] # counterclockwise
+               for all x, y, as long as neither pixel is `ignore_color`.
+    
+    Example:
+    rotate_center_x, rotate_center_y = detect_rotational_symmetry(grid, ignore_color=Color.BLACK) # ignore_color: In case parts of the object have been removed and occluded by black
+    for x, y in np.argwhere(grid != Color.BLACK):
+        # IMPORTANT! cast to int
+        rotated_x, rotated_y = y - int(rotate_center_y + rotate_center_x), -x + int(rotate_center_y + rotate_center_x)
+        assert grid[rotated_x, rotated_y] == grid[x, y] or grid[rotated_x, rotated_y] == Color.BLACK
+    """
+
+    # Find the center of the grid
+    # This is the first x,y which could serve as the center
+    n, m = grid.shape
+
+    # compute the center of mass, we search outward from that point
+    total_mass = np.sum(grid != ignore_color)
+    com_x = np.sum(np.arange(n)[:, None] * (grid != ignore_color)) / total_mass
+    com_y = np.sum(np.arange(m)[None, :] * (grid != ignore_color)) / total_mass
+    
+    possibilities = [(x_center+z, y_center+z) for x_center in range(n) for y_center in range(m) for z in [0, 0.5] ]
+
+    occupied_pixels = np.argwhere(grid != ignore_color)
+
+    best_rotation, best_overlap = None, 0
+    for x_center, y_center in possibilities:
+        # Check if this is a valid center, meaning that every turned on pixel maps to another turned on pixel of the same color
+
+        # rotate all the occupied pixels at once to get their new locations
+        translated_pixels = occupied_pixels - np.array([[x_center, y_center]])
+        translated_rotated_pixels = np.stack([translated_pixels[:, 1], -translated_pixels[:, 0]], axis=1)
+        rotated_pixels = translated_rotated_pixels + np.array([[x_center, y_center]])
+
+        if np.any(rotated_pixels < 0) or np.any(rotated_pixels[:, 0] >= n) or np.any(rotated_pixels[:, 1] >= m):
+            continue
+        
+        # convert the rotated pixel coordinates to integers, so that we can use them as indices to see what's in the grid at those spots
+        rotated_pixels = rotated_pixels.astype(int)
+        rotated_values = grid[rotated_pixels[:, 0], rotated_pixels[:, 1]]
+        original_values = grid[occupied_pixels[:, 0], occupied_pixels[:, 1]]
+
+        if np.all( (rotated_values == original_values) | (rotated_values == ignore_color) ):
+            overlap = np.sum(rotated_values == original_values)
+            if overlap > best_overlap:
+                best_rotation = (x_center, y_center)
+                best_overlap = overlap
+    
+    return best_rotation
 
 def show_colored_grid(grid, text=True):
     """
@@ -464,7 +575,7 @@ def is_contiguous(bitmask, background=Color.BLACK, connectivity=4):
     return n_objects == 1
 
 
-def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, color_palate=None):
+def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, color_palate=None, connectivity=4):
     """"
     internal function not used by LLM
     """
@@ -499,7 +610,12 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
     else:
         raise ValueError(f"Invalid symmetry type {symmetry_type}.")
 
-    moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+    if connectivity == 4:
+        moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+    elif connectivity == 8:
+        moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    else:
+        raise ValueError("Connectivity must be 4 or 8.")
 
     color_index = 0
     while np.sum(grid>0) < fill_percentage * n * m:
@@ -533,7 +649,7 @@ def generate_sprite(n, m, symmetry_type, fill_percentage=0.5, max_colors=9, colo
 
     return grid
 
-def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
+def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connectivity=4):
     """
     Generate a sprite (an object), represented as a numpy array.
 
@@ -574,13 +690,15 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None):
     # small sprites require higher density in order to have a high probability of reaching all of the sides
     elif n == 2 or m == 2:
         density = max(density, 0.7)    
+    elif density == 1:
+        pass
     # randomly perturb the density so that we get a wider variety of densities
     else:
         density = max(0.4, min(0.95, random.gauss(density, 0.1)))
 
     while True:
-        sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette, fill_percentage=density)
-        assert is_contiguous(sprite), "Generated sprite is not contiguous."
+        sprite = generate_sprite(n, m, symmetry_type=symmetry, color_palate=color_palette, fill_percentage=density, connectivity=connectivity)
+        assert is_contiguous(sprite, connectivity=connectivity), "Generated sprite is not contiguous."
         # check that the sprite has pixels that are flushed with the border
         if np.sum(sprite[0, :]) > 0 and np.sum(sprite[-1, :]) > 0 and np.sum(sprite[:, 0]) > 0 and np.sum(sprite[:, -1]) > 0:
             return sprite
