@@ -76,9 +76,9 @@ def main(input_grid):
 
 
 def generate_input():
-    # 1. create a black (14-16)x(14-16) grid
-    n = np.random.randint(14, 17)
-    m = np.random.randint(14, 17)
+    # 1. create a black (15-17)x(15-17) grid
+    n = np.random.randint(15, 18)
+    m = np.random.randint(15, 18)
     input_grid = np.full((n, m), Color.BLACK, dtype=int)
 
     # 2. create nine 3x3 grey squares with colored objects in them.
@@ -110,7 +110,7 @@ def generate_input():
         success = True
         for square in squares:
             try:
-                x, y = random_free_location_for_object(input_grid, square, avoid_contact=True)
+                x, y = random_free_location_for_object(input_grid, square, padding=1, padding_connectivity=4)
                 input_grid[x:x+3, y:y+3] = square
             except ValueError as e:
                 success = False

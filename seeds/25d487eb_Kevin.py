@@ -48,19 +48,6 @@ def main(input_grid):
     draw_line(output_grid, tip_x, tip_y, length=None, direction=(dx, dy), color=special_pixel_color)
 
     return output_grid
-    
-
-
-
-    
-
-
-    
-
-
-
-    
-    
 
 def generate_input():
     # Make the pyramid by concatenating (horizontally) together two lower-diagonal matrices
