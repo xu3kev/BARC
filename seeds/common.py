@@ -695,7 +695,7 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
     elif n == 2 or m == 2:
         density = max(density, 0.6)  
     elif n == 3 or m == 3:
-        density = 0.5
+        density = max(density, 0.5)
     elif density == 1:
         pass
     # randomly perturb the density so that we get a wider variety of densities
