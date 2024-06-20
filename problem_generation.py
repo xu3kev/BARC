@@ -67,20 +67,27 @@ def generate_input_grids(problem_source, num_returns=3, timeout=1, function_name
 
     return input_grids
 
-def get_random_color_mapping(only_non_black=True):
+def get_random_color_mapping(only_non_black=True, permute_colors=None):
     """
     Get a random color mapping from 0-9 to 0-9 where 0 is black.
     If only_non_black is True, map 1-9 to 1-9.
     """
-    if only_non_black:
-        colors = list(range(1, 10))
-        random.shuffle(colors)
-        color_mapping = {i: colors[i-1] for i in range(1, 10)}
-        color_mapping[0] = 0
+    if permute_colors is None:
+        permute_colors = list(range(10))
     else:
-        colors = list(range(10))
-        random.shuffle(colors)
-        color_mapping = {i: colors[i] for i in range(10)}
+        permute_colors = sorted(permute_colors)
+
+    if only_non_black:
+        if 0 in permute_colors:
+            permute_colors.remove(0)
+
+    shuffled_colors = list(permute_colors)
+    random.shuffle(shuffled_colors)
+    color_mapping = dict(zip(permute_colors, shuffled_colors))
+    # add the rest of the colors as identity mapping
+    for i in range(10):
+        if i not in color_mapping:
+            color_mapping[i] = i
     
     return color_mapping
 
@@ -127,7 +134,8 @@ def generate_problem(problem_source, num_examples=4, num_input_grids=10, num_det
 
         # Check for non-color-invariant transformations
         for _ in range(num_color_permute_check):
-            color_mapping = get_random_color_mapping(only_non_black=True)
+            color_in_input_grid = list(set(input_grid.flatten()))
+            color_mapping = get_random_color_mapping(only_non_black=True, permute_colors=color_in_input_grid)
             permuted_input_grid = apply_color_mapping(input_grid, color_mapping)
             original_output_grid = execute_transformation(problem_source, input_grid, timeout, function_name="main")
             permuted_output_grid = execute_transformation(problem_source, permuted_input_grid, timeout, function_name="main")
@@ -192,6 +200,7 @@ def main():
                 print(f"Problem {problem_source_uids[i]} is not valid")
 
     # write list of Problem to jsonl file
+    print(f'Generated {len(problems)} problems')
     with open("generated_problems.jsonl", "w") as f:
         for problem in problems:
             f.write(json.dumps(problem.to_dict()) + "\n")
