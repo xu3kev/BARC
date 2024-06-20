@@ -53,7 +53,8 @@ def generate_input() -> np.ndarray:
     divider_size = 1 # the divider is a single pixel
     n_dividers = n_cells - 1
     distance_between_cells = cell_size + divider_size
-    grid = np.zeros((cell_size*n_cells + divider_size*n_dividers), dtype=int)
+    m = cell_size*n_cells + divider_size*n_dividers
+    grid = np.full((m, m), Color.BLACK)
     for i in range(n_dividers):
         # horizontal dividers
         grid[cell_size + i*(cell_size + divider_size), :] = divider_color
