@@ -15,55 +15,39 @@ def main(input_grid):
     output_grid = input_grid.copy()
 
     # Find enclosed regions
-    enclosed_regions = find_enclosed_region(input_grid)
+    interior_mask = object_interior(input_grid)
+    boundary_mask = object_boundary(input_grid)
+    inside_but_not_on_edge = interior_mask & ~boundary_mask
 
     # Color enclosed regions
-    for (x,y) in enclosed_regions:
-        flood_fill(output_grid,x,y,Color.YELLOW)
+    for x, y in np.argwhere(inside_but_not_on_edge):
+        if output_grid[x, y] == Color.BLACK:
+            output_grid[x, y] = Color.YELLOW
 
     return output_grid
 
-def find_enclosed_region(grid):
-    # Returns a list of (x,y) coordinates for one pixel in each enclosed region, or return [] if there are no enclosed regions. 
-    # The idea used is to floodfill every not visited pixel, and then check if it bleeds to an edge. 
-    # If it did, then none of the floodfilled pixels are in an enclosed region. Mark floodfilled pixels as visited. 
-    
-    # Creates a grid that keeps track of which pixels are visited during floodfill. 
-    visited_pixels = grid.copy()
-    visited_color = Color.BLUE
-
-    # output pixel list
-    pixels_of_enclosed = []
-
-    # Check for enclosed region and add to pixels_of_enclosed if there is one. 
-    for x in range(grid.shape[0]):
-        for y in range(grid.shape[1]):
-            
-            # Only need to check black pixels
-            if visited_pixels[x,y] == Color.BLACK:
-                # Track all pixels that will be visited at this floodfill iteration
-                flood_fill(visited_pixels, x, y, visited_color)
-
-                # Test for enclosed region
-                temp_grid = grid.copy()
-                flood_fill(temp_grid, x,y, visited_color)
-                # If any of the edge pixel is of the floodfilled color, then it is not enclosed.
-                if (np.sum(temp_grid[0,:] == visited_color) == 0) and (np.sum(temp_grid[-1,:] == visited_color) == 0) and (np.sum(temp_grid[:,0] == visited_color) == 0) and (np.sum(temp_grid[:,-1] == visited_color) == 0):
-                    pixels_of_enclosed.append((x,y))
-
-    return pixels_of_enclosed 
 
 def generate_input():
     # Generate a square grid of arbitrary size with black background, size from 5x5 to 20x20
-    n = random.randint(5, 20)
+    n = random.randint(10, 20)
     grid = np.zeros((n, n), dtype=int)
 
-    # Generate a random sprite
-    grid = random_sprite(n,n,color_palette=[Color.GREEN])
+    # Generate some random green sprites, and then hollow out the interior
+    n_objects = random.randint(1, 3)
+    for _ in range(n_objects):
+        n, m = random.randint(4, 10), random.randint(4, 10)
+        sprite = random_sprite(n, m, color_palette=[Color.GREEN], connectivity=8)
+        interior_mask = object_interior(sprite)
+        boundary_mask = object_boundary(sprite)
+        interior_but_not_edges = interior_mask & ~boundary_mask
+        sprite[interior_but_not_edges] = Color.BLACK
 
-    # Check to make sure we generated a grid with enclosed regions
-    while find_enclosed_region(grid) == []:
-        grid = generate_input()
+        try:
+            x, y = random_free_location_for_object(grid, sprite, border_size=1, padding=1)
+        except:
+            continue
+
+        blit(grid, sprite, x, y, background=Color.BLACK)
     
     return grid 
 

@@ -52,7 +52,7 @@ def _flood_fill(grid, x, y, color, old_color, connectivity):
     """
     internal function not used by LLM
     """
-    if grid[x, y] != old_color:
+    if grid[x, y] != old_color or grid[x, y] == color:
         return
 
     grid[x, y] = color
@@ -382,6 +382,62 @@ def random_free_location_for_object(
         raise ValueError("No free location for sprite found.")
 
     return random.choice(pruned_locations)
+
+def object_interior(grid, background_color=Color.BLACK):
+    """
+    Computes the interior of the object (including edges)
+
+    returns a new grid of `bool` where True indicates that the pixel is part of the object's interior.
+
+    Example usage:
+    interior = object_interior(obj, background_color=Color.BLACK)
+    for x, y in np.argwhere(interior):
+        # x,y is either inside the object or at least on its edge
+    """
+
+    mask = 1*(grid != background_color)
+
+    # March around the border and flood fill (with 42) wherever we find zeros
+    n, m = grid.shape
+    for i in range(n):
+        if grid[i, 0] == background_color:
+            flood_fill(mask, i, 0, 42)
+        if grid[i, m-1] == background_color: flood_fill(mask, i, m-1, 42)
+    for j in range(m):
+        if grid[0, j] == background_color: flood_fill(mask, 0, j, 42)
+        if grid[n-1, j] == background_color: flood_fill(mask, n-1, j, 42)
+    
+    return mask != 42
+
+def object_boundary(grid, background_color=Color.BLACK):
+    """
+    Computes the boundary of the object (excluding interior)
+
+    returns a new grid of `bool` where True indicates that the pixel is part of the object's boundary.
+
+    Example usage:
+    boundary = object_boundary(obj, background_color=Color.BLACK)
+    assert np.all(obj[boundary] != Color.BLACK)
+    """
+
+    # similar idea: first get the exterior, but then we search for all the pixels that are part of the object and either adjacent to 42, or are part of the boundary
+
+    exterior = ~object_interior(grid, background_color)
+
+    # Now we find all the pixels that are part of the object and adjacent to the exterior, or which are part of the object and on the boundary of the canvas
+    canvas_boundary = np.zeros_like(grid, dtype=bool)
+    canvas_boundary[0, :] = True
+    canvas_boundary[-1, :] = True
+    canvas_boundary[:, 0] = True
+    canvas_boundary[:, -1] = True
+
+    from scipy import ndimage
+    adjacent_to_exterior = ndimage.binary_dilation(exterior, iterations=1)
+
+    boundary = (grid != background_color) & (adjacent_to_exterior | canvas_boundary)
+
+    return boundary
+    
 
 
 def detect_horizontal_periodicity(grid, ignore_color=None):
