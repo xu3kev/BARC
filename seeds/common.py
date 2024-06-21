@@ -312,7 +312,12 @@ def contact(
 
 
 def random_free_location_for_object(
-    grid, sprite, background=Color.BLACK, border_size=0
+    grid,
+    sprite,
+    background=Color.BLACK,
+    border_size=0,
+    padding=0,
+    padding_connectivity=8,
 ):
     """
     Find a random free location for the sprite in the grid
@@ -320,6 +325,8 @@ def random_free_location_for_object(
 
     border_size: minimum distance from the edge of the grid
     background: color treated as transparent
+    padding: if non-zero, the sprite will be padded with a non-background color before checking for collision
+    padding_connectivity: 4 or 8, for 4-way or 8-way connectivity when padding the sprite
 
     Example usage:
     x, y = random_free_location_for_object(grid, sprite) # find the location
@@ -327,15 +334,39 @@ def random_free_location_for_object(
     blit(grid, sprite, x, y)
     """
     n, m = grid.shape
+
+    # if padding is non-zero, we emulate padding by cropping the sprite, placing it in a larger grid, padding it, and then cropping it again
+    if padding > 0:
+        from scipy import ndimage
+
+        # pad the sprite with background pixels in all 4 directions
+        sprite = np.pad(sprite, padding, mode="constant", constant_values=background)
+
+        if padding_connectivity == 4:
+            structuring_element = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+        elif padding_connectivity == 8:
+            structuring_element = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+        else:
+            raise ValueError("padding_connectivity must be 4 or 8.")
+
+        # use binary dilation to pad the sprite with a non-background color
+        sprite_mask = ndimage.binary_dilation(
+            sprite != background, iterations=padding, structure=structuring_element
+        ).astype(int)
+    else:
+        sprite_mask = 1 * (sprite != background)
+
+    grid_mask = 1 * (grid != background)
+
     dim1, dim2 = sprite.shape
     possible_locations = [
         (x, y)
-        for x in range(border_size, n - dim1 + 1 - border_size)
-        for y in range(border_size, m - dim2 + 1 - border_size)
+        for x in range(border_size, n + 1 - border_size)
+        for y in range(border_size, m + 1 - border_size)
     ]
 
-    non_background_grid = np.sum(grid != background)
-    non_background_sprite = np.sum(sprite != background)
+    non_background_grid = np.sum(grid_mask)
+    non_background_sprite = np.sum(sprite_mask)
     target_non_background = non_background_grid + non_background_sprite
 
     # Scale background pixels to 0 so np.maximum can be used later
@@ -346,17 +377,17 @@ def random_free_location_for_object(
     pruned_locations = []
     for x, y in possible_locations:
         # try blitting the sprite and see if the resulting non-background pixels is the expected value
-        new_grid = scaled_grid.copy()
-        new_grid[x : x + dim1, y : y + dim2] = np.maximum(
-            new_grid[x : x + dim1, y : y + dim2], sprite
-        )
-        if np.sum(new_grid != Color.BLACK) == target_non_background:
+        new_grid_mask = grid_mask.copy()
+        blit(new_grid_mask, sprite_mask, x, y, background=0)
+        if np.sum(new_grid_mask) == target_non_background:
             pruned_locations.append((x, y))
 
     if len(pruned_locations) == 0:
         raise ValueError("No free location for sprite found.")
 
-    return random.choice(pruned_locations)
+    # if there is no padding, then random.choice is returned, offsets are removed if there is padding
+    padded_location = random.choice(pruned_locations)
+    return padded_location[0] + padding, padded_location[1] + padding
 
 
 def detect_horizontal_periodicity(grid, ignore_color=None):
@@ -441,6 +472,73 @@ def detect_vertical_periodicity(grid, ignore_color=None):
             break
 
     return v_period
+
+
+def detect_rotational_symmetry(grid, ignore_color=0):
+    """
+    Finds the center of rotational symmetry of a grid.
+    Satisfies: grid[x, y] == grid[y - rotate_center_y + rotate_center_x, -x + rotate_center_y + rotate_center_x] # clockwise
+               grid[x, y] == grid[-y + rotate_center_y + rotate_center_x, x - rotate_center_y + rotate_center_x] # counterclockwise
+               for all x, y, as long as neither pixel is `ignore_color`.
+
+    Example:
+    rotate_center_x, rotate_center_y = detect_rotational_symmetry(grid, ignore_color=Color.BLACK) # ignore_color: In case parts of the object have been removed and occluded by black
+    for x, y in np.argwhere(grid != Color.BLACK):
+        # IMPORTANT! cast to int
+        rotated_x, rotated_y = y - int(rotate_center_y + rotate_center_x), -x + int(rotate_center_y + rotate_center_x)
+        assert grid[rotated_x, rotated_y] == grid[x, y] or grid[rotated_x, rotated_y] == Color.BLACK
+    """
+
+    # Find the center of the grid
+    # This is the first x,y which could serve as the center
+    n, m = grid.shape
+
+    # compute the center of mass, we search outward from that point
+    total_mass = np.sum(grid != ignore_color)
+    com_x = np.sum(np.arange(n)[:, None] * (grid != ignore_color)) / total_mass
+    com_y = np.sum(np.arange(m)[None, :] * (grid != ignore_color)) / total_mass
+
+    possibilities = [
+        (x_center + z, y_center + z)
+        for x_center in range(n)
+        for y_center in range(m)
+        for z in [0, 0.5]
+    ]
+
+    occupied_pixels = np.argwhere(grid != ignore_color)
+
+    best_rotation, best_overlap = None, 0
+    for x_center, y_center in possibilities:
+        # Check if this is a valid center, meaning that every turned on pixel maps to another turned on pixel of the same color
+
+        # rotate all the occupied pixels at once to get their new locations
+        translated_pixels = occupied_pixels - np.array([[x_center, y_center]])
+        translated_rotated_pixels = np.stack(
+            [translated_pixels[:, 1], -translated_pixels[:, 0]], axis=1
+        )
+        rotated_pixels = translated_rotated_pixels + np.array([[x_center, y_center]])
+
+        if (
+            np.any(rotated_pixels < 0)
+            or np.any(rotated_pixels[:, 0] >= n)
+            or np.any(rotated_pixels[:, 1] >= m)
+        ):
+            continue
+
+        # convert the rotated pixel coordinates to integers, so that we can use them as indices to see what's in the grid at those spots
+        rotated_pixels = rotated_pixels.astype(int)
+        rotated_values = grid[rotated_pixels[:, 0], rotated_pixels[:, 1]]
+        original_values = grid[occupied_pixels[:, 0], occupied_pixels[:, 1]]
+
+        if np.all(
+            (rotated_values == original_values) | (rotated_values == ignore_color)
+        ):
+            overlap = np.sum(rotated_values == original_values)
+            if overlap > best_overlap:
+                best_rotation = (x_center, y_center)
+                best_overlap = overlap
+
+    return best_rotation
 
 
 def show_colored_grid(grid, text=True):

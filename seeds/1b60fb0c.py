@@ -7,12 +7,12 @@ from typing import *
 # symmetry
 
 # description:
-# In the input you will see an image containing blue pixels that is almost radially symmetric, except that it is missing the section either north, south, east, or west that would make it radially symmetric
-# Color red all the pixels that would need to be colored in order to make the image radially symmetric (when rotating clockwise)
+# In the input you will see an image containing blue pixels that is almost rotationally symmetric, except that it is missing the section either north, south, east, or west that would make it rotationally symmetric
+# Color red all the pixels that would need to be colored in order to make the image rotationally symmetric (when rotating clockwise)
 
 def main(input_grid):
 
-    # The goal is to make the object radially symmetric, *not* to make the whole grid radially symmetric
+    # The goal is to make the object rotationally symmetric, *not* to make the whole grid rotationally symmetric
     # We have to extract the object from the grid and then rotate it to construct the missing section
     blue_sprite = crop(input_grid)
     rotated_blue_sprite = np.rot90(blue_sprite)
@@ -41,7 +41,28 @@ def main(input_grid):
 
     return output_grid
 
+def main(input_grid):
+    # This also works, and uses the library function `detect_rotational_symmetry``
+    
+    # Plan:
+    # 1. Detect the (x,y) point that the object is rotated around
+    # 2. Rotate each blue colored pixel around that point. If the rotated pixel is not colored, color it red.
 
+    output_grid = np.copy(input_grid)
+
+    # Find the center of rotation
+    rotate_center_x, rotate_center_y = detect_rotational_symmetry(input_grid, ignore_color=Color.BLACK)
+    
+    # Rotate the blues and color red as needed
+    blues = np.argwhere(input_grid == Color.BLUE)
+    for x, y in blues:
+        # IMPORTANT! Cast to int to avoid floating points
+        rotated_x, rotated_y = y + int(rotate_center_x - rotate_center_y), -x + int(rotate_center_y + rotate_center_x)
+
+        if input_grid[rotated_x, rotated_y] == Color.BLACK:
+            output_grid[rotated_x, rotated_y] = Color.RED
+    
+    return output_grid
 
 def generate_input():
     # make a black medium large grid
@@ -50,7 +71,7 @@ def generate_input():
 
     # make a blue radially symmetric sprite and put it at a random free location
     sprite_size = np.random.randint(8, min(n, m))
-    sprite = random_sprite(sprite_size, sprite_size, symmetry='radial', color_palette=[Color.BLUE], density=0.25)
+    sprite = random_sprite(sprite_size, sprite_size, symmetry='radial', color_palette=[Color.BLUE], density=0.2)
     x, y = random_free_location_for_object(grid, sprite)
 
     # remove a random section of the sprite to make it not radially symmetric
