@@ -335,12 +335,11 @@ def random_free_location_for_object(
     """
     n, m = grid.shape
 
-    # if padding is non-zero, we emulate padding by cropping the sprite, placing it in a larger grid, padding it, and then cropping it again
+    sprite_mask = 1 * (sprite != background)
+
+    # if padding is non-zero, we emulate padding by dilating everything within the grid
     if padding > 0:
         from scipy import ndimage
-
-        # pad the sprite with background pixels in all 4 directions
-        sprite = np.pad(sprite, padding, mode="constant", constant_values=background)
 
         if padding_connectivity == 4:
             structuring_element = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
@@ -350,19 +349,16 @@ def random_free_location_for_object(
             raise ValueError("padding_connectivity must be 4 or 8.")
 
         # use binary dilation to pad the sprite with a non-background color
-        sprite_mask = ndimage.binary_dilation(
-            sprite != background, iterations=padding, structure=structuring_element
+        grid_mask = ndimage.binary_dilation(
+            grid != background, iterations=padding, structure=structuring_element
         ).astype(int)
     else:
-        sprite_mask = 1 * (sprite != background)
+        grid_mask = 1 * (grid != background)
 
-    grid_mask = 1 * (grid != background)
-
-    dim1, dim2 = sprite.shape
     possible_locations = [
         (x, y)
-        for x in range(border_size, n + 1 - border_size)
-        for y in range(border_size, m + 1 - border_size)
+        for x in range(border_size, n + 1 - border_size - sprite.shape[0])
+        for y in range(border_size, m + 1 - border_size - sprite.shape[1])
     ]
 
     non_background_grid = np.sum(grid_mask)
@@ -385,9 +381,7 @@ def random_free_location_for_object(
     if len(pruned_locations) == 0:
         raise ValueError("No free location for sprite found.")
 
-    # if there is no padding, then random.choice is returned, offsets are removed if there is padding
-    padded_location = random.choice(pruned_locations)
-    return padded_location[0] + padding, padded_location[1] + padding
+    return random.choice(pruned_locations)
 
 
 def detect_horizontal_periodicity(grid, ignore_color=None):
