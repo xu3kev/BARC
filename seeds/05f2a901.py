@@ -40,18 +40,18 @@ def main(input_grid):
 def generate_input():
     # make a black grid first as background, roughly 5 x 5 to 10x10 works
     n, m = random.randint(5, 20), random.randint(5, 20)
-    grid = np.zeros((n, m), dtype=int)
+    grid = np.full((n, m), Color.BLACK)
 
     # make a 2x2 teal square, put it somewhere random on the grid
-    x, y = random.randint(0, n - 2), random.randint(0, m - 2)
-    grid[x:x+2, y:y+2] = Color.TEAL
+    square = np.full((2, 2), Color.TEAL)
+    x, y = random_free_location_for_object(grid, square, background=Color.BLACK, padding=1, border_size=1)
+    blit(grid, square, x, y, background=Color.BLACK)
 
     # make a random sprite of [3,4] x [3,4] with a random symmetry type and the color red
     sprite = random_sprite([3,4], [3,4], symmetry="not_symmetric", color_palette=[Color.RED])
 
     # put the sprite somewhere random on the grid
-    x, y = random_free_location_for_object(grid, sprite, background=Color.BLACK)
-
+    x, y = random_free_location_for_object(grid, sprite, background=Color.BLACK, padding=1, border_size=1)
     blit(grid, sprite, x, y, background=Color.BLACK)    
 
     # check that we could slide the object either vertically or horizontally in order to touch the red square
