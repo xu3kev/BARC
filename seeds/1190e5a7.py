@@ -52,7 +52,7 @@ def generate_input():
 
     # Creating the background grid
     n = random.randint(11, 21)
-    grid = np.full((n, n), Color.BLACK)
+    grid = np.full((n, n), background_color)
 
     # Create sprites for the bars. We will place them randomly later.
     vertical_line_sprite = np.full((1, n), bar_color)
@@ -60,28 +60,31 @@ def generate_input():
 
     # Picking how many lines to have in each dimension
     line_n, line_m = random.randint(1, n // 3), random.randint(1, n // 3)
-    vertical_line_grid = grid.copy()
 
+    # Create separate grids for horizontal and vertical lines, and then merge them later
+    # This is because horizontal/vertical are allowed to intersect, but horizontals can't touch each other (and verticals can't touch each other)
+    # So we need to do collision detection / free location separately for each type of line
+    vertical_line_grid = grid.copy()
+    horizontal_line_grid = grid.copy()
+
+    # Verticals
     for i in range(line_n):
         x, y = random_free_location_for_object(
             vertical_line_grid,
             vertical_line_sprite,
-            background=Color.BLACK,
+            background=background_color,
             padding=1
         )
         blit(vertical_line_grid, vertical_line_sprite, x, y)
 
-    # Draw horizontal lines
+    # Horizontals
     for i in range(line_m):
-        x, y = random_free_location_for_object(
-            grid, horizontal_line_sprite, background=Color.BLACK, padding=1
-        )
-        blit(grid, horizontal_line_sprite, x, y)
+        x, y = random_free_location_for_object(horizontal_line_grid, horizontal_line_sprite, background=background_color, padding=1)
+        blit(horizontal_line_grid, horizontal_line_sprite, x, y)
 
     # Combine the two line grids
-    blit(grid, vertical_line_grid, background=Color.BLACK)
-
-    grid[grid == Color.BLACK] = background_color
+    blit(grid, vertical_line_grid, background=background_color)
+    blit(grid, horizontal_line_grid, background=background_color)
 
     return grid
 
