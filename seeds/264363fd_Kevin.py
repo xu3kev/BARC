@@ -113,11 +113,11 @@ def generate_input():
         for _ in range(random.choice([1, 2, 3])):
             x, y = np.random.randint(1, w-1), np.random.randint(1, h-1)
             rectangle_sprite[x, y] = marker_color
-        x, y = random_free_location_for_object(grid, rectangle_sprite)
+        x, y = random_free_location_for_object(grid, rectangle_sprite, padding=1, padding_connectivity=8)
         blit(grid, rectangle_sprite, x, y)
 
     # Place the sprite in the grid
-    x, y = random_free_location_for_object(grid, sprite)
+    x, y = random_free_location_for_object(grid, sprite, padding=1, padding_connectivity=8)
     blit(grid, sprite, x, y)
 
     # Change the background

@@ -31,13 +31,13 @@ def generate_input():
         # generate a random up to 3x3 sprite
         n = random.randint(1, 3)
         m = random.randint(1, 2)
-        random_sprite_to_add = random_sprite(n, m, symmetry='not_symmetric')
+        random_sprite_to_add = random_sprite(n, m, symmetry='not_symmetric', color_palette=[random.choice(Color.NOT_BLACK)])
 
         # choose a random location on the grid, ensuring the bottom row is empty
         x = random.randint(0, 2)
         y = random.randint(0, 2 - m)
 
-        # place the triangle onto the grid
+        # place the sprite onto the grid
         blit(grid, random_sprite_to_add, x, y)
 
     return grid
