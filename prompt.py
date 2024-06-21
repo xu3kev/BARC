@@ -167,10 +167,8 @@ if __name__ == "__main__":
     remix_level = arguments.remix
     library_function_hint = arguments.library_function_hint
     common_lib, common_lib_function_names = get_common_lib_from_file("seeds/common.py")
-    breakpoint()
     prompts = [ make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, remix=remix_level, num_seeds=arguments.num_seeds,
                                           library_function_hint=library_function_hint) for rng_seed in tqdm(range(batch_size)) ]
-    breakpoint()
 
     client = LLMClient(provider=provider)
     samples = []
@@ -250,7 +248,8 @@ if __name__ == "__main__":
     </body>
     </html>
     """
-    file_name = f"self_instruct_remix{remix_level}_{arguments.num_seeds}_{arguments.model}_temp{arguments.temperature:.2f}.html"
+    model_name = arguments.model.replace("/", "_")
+    file_name = f"self_instruct_remix{remix_level}_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}.html"
 
     print(f"Writing to {file_name}")
     with open(file_name, "w") as f:
