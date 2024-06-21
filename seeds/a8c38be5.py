@@ -76,12 +76,8 @@ def main(input_grid):
 
 
 def generate_input():
-    # 1. create a black (15-17)x(15-17) grid
-    n = np.random.randint(15, 18)
-    m = np.random.randint(15, 18)
-    input_grid = np.full((n, m), Color.BLACK, dtype=int)
 
-    # 2. create nine 3x3 grey squares with colored objects in them.
+    # 1. create nine 3x3 grey squares with colored objects in them.
     # One is blank. Each of the 8 shapes can be defined by taking a border point, and coloring it and its 4-connected neighbors in a random color.
     squares = []
     for x in range(3):
@@ -101,12 +97,15 @@ def generate_input():
 
             squares.append(square)
 
-    # 3. place the squares randomly in the grid.
+    # 2. place the squares randomly in the grid.
     # to do so, we can put each square in a random open location greedily.
     # placement might fail if there is no open location for a square.
-    # so we try repeatedly until we succeed
+    # so try repeatedly until we succeed
     while True:
-        input_grid = np.full((14, 14), Color.BLACK, dtype=int)
+        # create a black (14-17)x(14-17) grid
+        n = np.random.randint(14, 18)
+        m = np.random.randint(14, 18)
+        input_grid = np.full((n, m), Color.BLACK, dtype=int)
         success = True
         for square in squares:
             try:
