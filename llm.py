@@ -115,9 +115,12 @@ class LLMClient:
         # If the number of cached samples is less than requested, generate more samples
         if len(cached_samples) < num_samples:
             remaining_samples = num_samples - len(cached_samples)
-            response = self.send_request(prompt, model, temperature, max_tokens, top_p, remaining_samples)
-            new_samples = [c.message.content for c in response.choices]
-            self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
+            try:
+                response = self.send_request(prompt, model, temperature, max_tokens, top_p, remaining_samples)
+                new_samples = [c.message.content for c in response.choices]
+                self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
+            except Exception as e:
+                print("Error", e)
 
         # WARN neccessary to get the samples from cache again as it might have been updated
         cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
