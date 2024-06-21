@@ -479,7 +479,7 @@ def detect_rotational_symmetry(grid, ignore_color=0):
     rotate_center_x, rotate_center_y = detect_rotational_symmetry(grid, ignore_color=Color.BLACK) # ignore_color: In case parts of the object have been removed and occluded by black
     for x, y in np.argwhere(grid != Color.BLACK):
         # IMPORTANT! cast to int
-        rotated_x, rotated_y = y - int(rotate_center_y + rotate_center_x), -x + int(rotate_center_y + rotate_center_x)
+        rotated_x, rotated_y = y + int(rotate_center_x - rotate_center_y), -x + int(rotate_center_y + rotate_center_x)
         assert grid[rotated_x, rotated_y] == grid[x, y] or grid[rotated_x, rotated_y] == Color.BLACK
     """
 
