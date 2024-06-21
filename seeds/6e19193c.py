@@ -1,0 +1,81 @@
+from common import *
+
+import numpy as np
+from typing import *
+
+# concepts:
+# direction, lines
+
+# description:
+# In the input, you will see several objects of the same color that are in an arrowhead shape and facing different directions.
+# The goal is to find the directions of the arrowheads and draw lines that would represent the path they had been moving in to go in that direction.
+
+def main(input_grid):
+    # copy the input grid to the output grid
+    output_grid = np.copy(input_grid)
+
+    # find the objects in the input grid
+    objects = find_connected_components(input_grid, connectivity=8)
+
+    # for each object, find the direction the arrowhead is pointing in by finding the relative mean position of colored and black pixels in the bounding box of the object
+    for obj in objects:
+        # find the bounding box of the object
+        x, y, w, h = bounding_box(obj)
+
+        # crop the object to just the object
+        cropped_obj = crop(obj)
+
+        # find the color of the object
+        color = np.unique(cropped_obj[cropped_obj != Color.BLACK])[0]
+
+        # find the mean position of the colored pixels
+        mean_pos = np.mean(np.argwhere(cropped_obj != Color.BLACK), axis=0)
+
+        # find the mean position of all the black pixels
+        mean_black_pos = np.mean(np.argwhere(cropped_obj == Color.BLACK), axis=0)
+
+        # find the direction the arrowhead is pointing in, it is from the mean position of the colored pixels to the mean position of the black pixels
+        direction = np.sign(mean_black_pos - mean_pos)
+
+        # draw a line in the direction the arrowhead is pointing in from the corresponding corner of the bounding box
+        if direction[0] == 1 and direction[1] == 1:
+            draw_line(output_grid, x + w, y + w, length=None, color=color, direction=(1, 1))
+        elif direction[0] == 1 and direction[1] == -1:
+            draw_line(output_grid, x + w, y - 1, length=None, color=color, direction=(1, -1))
+        elif direction[0] == -1 and direction[1] == 1:
+            draw_line(output_grid, x - 1, y + h, length=None, color=color, direction=(-1, 1))
+        elif direction[0] == -1 and direction[1] == -1:
+            draw_line(output_grid, x - 1, y - 1, length=None, color=color, direction=(-1, -1))
+
+    return output_grid
+
+def generate_input():
+    # make a 10x10 grid as background
+    grid = np.zeros((10, 10), dtype=int)
+
+    # choose the color of the arrowheads
+    color = np.random.choice(Color.NOT_BLACK)
+
+    # make the arrowheads by making a 2x2 square then removing one of the corners randomly and placing it randomly on the grid
+    for i in range(4):
+        # make at arrowhead
+        arrowhead = np.full((2, 2), color)
+        corner = np.random.randint(4)
+        arrowhead[corner // 2, corner % 2] = Color.BLACK
+        
+        # place it in a random free location with 1 cell padding
+        x, y = random_free_location_for_object(grid, arrowhead, padding=1)
+        blit(grid, arrowhead, x, y)
+ 
+    return grid
+
+
+
+    
+
+
+
+# ============= remove below this point for prompting =============
+
+if __name__ == '__main__':
+    visualize(generate_input, main)
