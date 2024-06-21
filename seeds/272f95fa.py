@@ -5,7 +5,7 @@ from typing import *
 
 
 # concepts:
-# filling, intersection, horizontal/vertical bars
+# filling, intersection, horizontal/vertical bars, partitioning
 
 # description:
 # In the input you will see a grid with two horizontal and two vertical teal bars with a black background.
