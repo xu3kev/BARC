@@ -73,10 +73,10 @@ def generate_input():
     grid = np.full((n, n), background, dtype=int)
 
     # Creating a line sprite
-    vertical_line_sprite = np.zeros((1, n - 2), dtype=int)
-    draw_line(vertical_line_sprite, 0, 0, n - 2, lines, (0, 1))
-    horizontal_line_sprite = np.zeros((n - 2, 1), dtype=int)
-    draw_line(horizontal_line_sprite, 0, 0, n - 2, lines, (1, 0))
+    vertical_line_sprite = np.zeros((1, n), dtype=int)
+    draw_line(vertical_line_sprite, 0, 0, n, lines, (0, 1))
+    horizontal_line_sprite = np.zeros((n, 1), dtype=int)
+    draw_line(horizontal_line_sprite, 0, 0, n, lines, (1, 0))
 
     # Picking how many lines to have in each dimension
     line_n, line_m = random.randint(0, n // 3), random.randint(0, n // 3)
@@ -87,46 +87,21 @@ def generate_input():
             vertical_line_grid,
             vertical_line_sprite,
             background=background,
-            border_size=1,
+            padding=1,
         )
         blit(vertical_line_grid, vertical_line_sprite, x, y)
 
     # Draw horizontal lines
     for i in range(line_m):
         x, y = random_free_location_for_object(
-            grid, horizontal_line_sprite, background=background, border_size=1
+            grid, horizontal_line_sprite, background=background, padding=1
         )
         blit(grid, horizontal_line_sprite, x, y)
 
-    show_colored_grid(grid)
-    show_colored_grid(vertical_line_grid)
     # Combine the two line grids
     blit(grid, vertical_line_grid, background=background)
-    show_colored_grid(grid)
-    """
-    # Draw vertical lines (except endpoints)
-    possible_index = np.arange(1, n - 1, 1)
-    for i in range(line_n):
-        draw_ind = random.choice(list(possible_index))
-        draw_line(grid, draw_ind, 0, n, lines, (0, 1))
-        possible_index = possible_index[
-            (possible_index != draw_ind)
-            & (possible_index != draw_ind + 1)
-            & (possible_index != draw_ind - 1)
-        ]
-    
-    # Draw horizontal lines (except endpoints)
-    possible_index = np.arange(1, n - 1, 1)
-    for i in range(line_m):
-        draw_ind = random.choice(list(possible_index))
-        draw_line(grid, 0, draw_ind, n, lines, (1, 0))
-        possible_index = possible_index[
-            (possible_index != draw_ind)
-            & (possible_index != draw_ind + 1)
-            & (possible_index != draw_ind - 1)
-        ]
-    """
-    return grid[1:-1, 1:-1]
+
+    return grid
 
 
 # ============= remove below this point for prompting =============
