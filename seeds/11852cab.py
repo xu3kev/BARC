@@ -27,7 +27,8 @@ def main(input_grid):
     for x, y in colored_pixels:
         # Get the color, which is going to be copied to the rotated positions
         color = input_grid[x, y]
-        # Loop overall rotations, going 90 degrees each time (so four times)
+        
+        # Loop over all rotations, going 90 degrees each time (so four times)
         for i in range(4):
             # Calculate rotated coordinate
             # IMPORTANT! Cast to int to avoid floats
