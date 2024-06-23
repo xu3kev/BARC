@@ -131,7 +131,7 @@ def find_connected_components(
         labeled, n_objects = label(grid != background, structure)
         connected_components = []
         for i in range(n_objects):
-            connected_component = grid * (labeled == i + 1)
+            connected_component = grid * (labeled == i + 1) + background * (labeled != i + 1)
             connected_components.append(connected_component)
 
         return connected_components
@@ -141,7 +141,7 @@ def find_connected_components(
         for color in set(grid.flatten()) - {background}:
             labeled, n_objects = label(grid == color, structure)
             for i in range(n_objects):
-                connected_component = grid * (labeled == i + 1)
+                connected_component = grid * (labeled == i + 1) + background * (labeled != i + 1)
                 connected_components.append(connected_component)
         return connected_components
 
