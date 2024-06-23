@@ -187,6 +187,17 @@ if __name__ == "__main__":
     codes = []
     for sample in samples:
         codes.extend(parse_code(sample))
+
+    model_name = arguments.model.replace("/", "_")
+    # write the codes to jsonl file
+    file_name = f"self_instruct_remix{remix_level}_fewshot_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}.jsonl"
+    print(f"Writing to jsonl {file_name}")
+    with open(file_name, "w") as f:
+        # jsonl, one json per line
+        import json
+        for code in codes:
+            f.write(json.dumps({"code": code}) + "\n")
+    print(f"{len(codes)} codes written to {file_name}")
     
     htmls = []
 
@@ -249,17 +260,8 @@ if __name__ == "__main__":
     </body>
     </html>
     """
-    model_name = arguments.model.replace("/", "_")
     file_name = f"self_instruct_remix{remix_level}_fewshot_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}.html"
 
     print(f"Writing to {file_name}")
     with open(file_name, "w") as f:
         f.write(final_html)
-
-    # write the codes to jsonl file
-    file_name = f"self_instruct_remix{remix_level}_fewshot_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}.jsonl"
-    print(f"Writing to {file_name}")
-    with open(file_name, "w") as f:
-        for code in codes:
-            f.write(code + "\n")
-    print(f"{len(codes)} codes written to {file_name}")
