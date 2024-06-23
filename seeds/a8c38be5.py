@@ -67,13 +67,15 @@ def main(input_grid):
         colored_object_center_of_mass = np.argwhere(square != Color.GREY).mean(axis=0)
         grey_center_of_mass = np.argwhere(square == Color.GREY).mean(axis=0)
 
-        direction = get_direction_between(grey_center_of_mass, colored_object_center_of_mass)
+        dx, dy = get_direction_between(grey_center_of_mass, colored_object_center_of_mass)
 
-        # place the square in the middle of the output grid, and then move it in the direction until reaching a border
-        x, y = 3, 3
-        while 0 < x < 9 - 3 and 0 < y < 9 - 3:
-            x += direction[0]
-            y += direction[1]
+        # start with the square in the middle of the canvas, which has length 9 (we will slide it afterward)
+        x, y = (9 - square_length)//2, (9 - square_length)//2
+        
+        # slide until we can't anymore
+        while 0 < x < 9 - square_length and 0 < y < 9 - square_length:
+            x += dx
+            y += dy
 
         blit(output_grid, square, x, y)
 
