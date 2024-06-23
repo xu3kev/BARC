@@ -4,10 +4,10 @@ import numpy as np
 from typing import *
 
 # concepts:
-# objects, connectivity
+# objects, topology
 
 # description:
-# In the input grid, you will see various blue objects. Some are "hollow" and contain a middle, while others do not have a middle that is separate from outside the objects.
+# In the input grid, you will see various blue objects. Some are "hollow" and contain a fully-enclosed region, while others do not have a middle that is separate from outside the object, and fully enclosed.
 # To create the output grid, copy the input grid. Then, change the color of all "hollow" shapes to be green.
 
 def main(input_grid):
@@ -25,6 +25,13 @@ def is_hollow(object):
     # - place the object in a larger black array
     # - apply flood fill starting "outside" the object
     # - if there are black squares after flood filling, the object is hollow
+    
+    # Another way is to use topology primitives:
+    # interior_mask = object_interior(object)
+    # boundary_mask = object_boundary(object)
+    # inside_but_not_on_edge = interior_mask & ~boundary_mask
+    # hollow = np.any(inside_but_not_on_edge)
+    
     padded = np.pad(object, pad_width=1)
     flood_fill(padded, 0, 0, color=Color.GREEN, connectivity=4)
     return np.any(padded == Color.BLACK)
