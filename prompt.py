@@ -145,7 +145,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", "-m", type=str, default="gpt-4-turbo", help="which model to use", 
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
     parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
-    parser.add_argument("--max_tokens", type=int, default=1500, help="max number of tokens for generation")
+    parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
     
     arguments = parser.parse_args()
 
