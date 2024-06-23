@@ -21,20 +21,11 @@ def main(input_grid):
     return output_grid
 
 def is_hollow(object):
-    # to check if hollow, we can use flood fill:
-    # - place the object in a larger black array
-    # - apply flood fill starting "outside" the object
-    # - if there are black squares after flood filling, the object is hollow
-    
-    # Another way is to use topology primitives:
-    # interior_mask = object_interior(object)
-    # boundary_mask = object_boundary(object)
-    # inside_but_not_on_edge = interior_mask & ~boundary_mask
-    # hollow = np.any(inside_but_not_on_edge)
-    
-    padded = np.pad(object, pad_width=1)
-    flood_fill(padded, 0, 0, color=Color.GREEN, connectivity=4)
-    return np.any(padded == Color.BLACK)
+    # to check if it contains a fully enclosed region, find everything that is enclosed by the object (in its interior), but not actually part of the object
+    interior_mask = object_interior(object)
+    object_mask = object != Color.BLACK
+    hollow_mask = interior_mask & ~object_mask
+    return np.any(hollow_mask)
 
 
 def generate_input():
