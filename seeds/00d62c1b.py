@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# floodfill, detecting enclosed regions. 
+# topology
 
 # description:
 # The input grid is a square grid with black and green pixels. The input grid should have regions that are enclosed by the green pixels. 
