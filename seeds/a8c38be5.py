@@ -5,28 +5,33 @@ import numpy as np
 from typing import *
 
 # concepts:
-# alignment
+# alignment, sliding objects
 
 # description:
-# In the input, you should see a black grid with nine 3x3 grey squares randomly placed in it. Each square contains a colored object of a different color, 3-4 cells in area, except for one which is blank. The colored objects are at the border of the 3x3 shape.
+# In the input, you should see a black grid with nine 3x3 grey squares randomly placed in it (some of the squares touch a little bit). Each square contains a colored object of a different color, 3-4 cells in area, except for one which is blank. The colored objects are at the border of the 3x3 shape.
 # To make the output, create a 9x9 grey grid. Now place each of the 3x3 squares from the input grid into the output grid. The location of an object is done so that the colored object in the grey square is moved "away" fromm the center square of the output grid in the direction the colored object is in the 3x3 square.
 
 def main(input_grid):
+    # Plan:
+    # 1. Extract the 3x3 grey squares from the input grid (tricky because sometimes they touch)
+    # 2. Create the output grid
+    # 3. Place the 3x3 squares into the output grid by sliding it in the direction of the colored (non-grey) portion
+
     # step 1: extract the 3x3 grey squares from the input grid.
     # the grey squares might be connected with 4-way connectivity, so we can't use find_connected_components to extract the squares.
     # instead, we can seach over all locations and extract when the 3x3 square has no black squares at that location.
     n, m = input_grid.shape
+    square_length = 3
     squares = []
-    locs = []
-    for x in range(n-3+1):
-        for y in range(m-3+1):
-            square = input_grid[x:x+3, y:y+3]
-            if not (square == Color.BLACK).any():
+    for x in range(n-square_length+1):
+        for y in range(m-square_length+1):
+            square = input_grid[x:x+square_length, y:y+square_length]
+            if np.all(square != Color.BLACK):
                 squares.append(square)
-                locs.append((x, y))
 
-    assert len(squares) == 9, "There should be exactly 9 3x3 grey squares in the input grid, but found " + str(len(squares)) + " at " + ', '.join(str(l) for l in locs)
-    # step 2: create the output grid
+    assert len(squares) == 9, "There should be exactly 9 3x3 grey squares in the input grid"
+
+    # step 2: create the output grid, which is all grey
     output_grid = np.full((9, 9), Color.GREY, dtype=int)
 
     # step 3: place the 3x3 squares into the output grid
@@ -70,7 +75,7 @@ def main(input_grid):
             x += direction[0]
             y += direction[1]
 
-        output_grid[x:x+3, y:y+3] = square
+        blit(output_grid, square, x, y)
 
     return output_grid
 
@@ -83,6 +88,8 @@ def generate_input():
     for x in range(3):
         for y in range(3):
             square = np.full((3, 3), Color.GREY, dtype=int)
+
+            # Middle square is all grey (blank square)
             if (x, y) == (1, 1):
                 squares.append(square)
                 continue
@@ -110,8 +117,8 @@ def generate_input():
         for square in squares:
             try:
                 x, y = random_free_location_for_object(input_grid, square, padding=1, padding_connectivity=4)
-                input_grid[x:x+3, y:y+3] = square
-            except ValueError as e:
+                blit(input_grid, square, x, y)
+            except: # no free location
                 success = False
                 break
 
