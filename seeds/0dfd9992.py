@@ -18,7 +18,7 @@ def main(input_grid):
 
     w, h = input_grid.shape
 
-    # Identify the horizontal/vertical period of translational symmetry
+    # Identify the translational symmetry
     h_period = detect_horizontal_periodicity(input_grid, ignore_color=Color.BLACK)
     v_period = detect_vertical_periodicity(input_grid, ignore_color=Color.BLACK)
 
