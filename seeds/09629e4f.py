@@ -12,7 +12,9 @@ from typing import *
 
 def main(input_grid: np.ndarray) -> np.ndarray:
 
-    # Trick for decomposing inputs divided into rectangular regions by horizontal/verticalbbars:
+    # First identify 
+
+    # Trick for decomposing inputs divided into rectangular regions by horizontal/vertical bars:
     # Treat the bar color as the background, and break the input up into connected components with that background color
 
     # The divider color is the color of the horizontal and vertical bars
@@ -21,7 +23,8 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     assert len(set(divider_colors)) == 1, "There should be exactly one divider color"
     divider_color = divider_colors[0] # background=divider_color
 
-    # Find multicolored regions
+    # Find multicolored regions, which are divided by divider_color, so we treat that as background, because it separates objects
+    # Within each region there can be multiple colors
     regions = find_connected_components(input_grid, background=divider_color, monochromatic=False)
     # Tag the regions with their location within the 2D grid of (divided) regions
     # First get the bounding-box locations...

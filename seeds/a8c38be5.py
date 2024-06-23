@@ -13,23 +13,17 @@ from typing import *
 
 def main(input_grid):
     # Plan:
-    # 1. Extract the 3x3 grey squares from the input grid (tricky because sometimes they touch)
+    # 1. Extract the 3x3 grey squares from the input grid (tricky because sometimes they touch, so we can't use connected components; detect_objects works better)
     # 2. Create the output grid
     # 3. Place the 3x3 squares into the output grid by sliding it in the direction of the colored (non-grey) portion
 
-    # step 1: extract the 3x3 grey squares from the input grid.
-    # the grey squares might be connected with 4-way connectivity, so we can't use find_connected_components to extract the squares.
-    # instead, we can seach over all locations and extract when the 3x3 square has no black squares at that location.
-    n, m = input_grid.shape
+    # step 1: extract the 3x3 squares, which are grey+another color
     square_length = 3
-    squares = []
-    for x in range(n-square_length+1):
-        for y in range(m-square_length+1):
-            square = input_grid[x:x+square_length, y:y+square_length]
-            if np.all(square != Color.BLACK):
-                squares.append(square)
+    square_objects = detect_objects(input_grid, background=Color.BLACK, allowed_dimensions=[(square_length, square_length)],
+                                    predicate=lambda sprite: np.all(sprite != Color.BLACK) and np.any(sprite == Color.GREY))
+    square_sprites = [crop(obj, background=Color.BLACK) for obj in square_objects]
 
-    assert len(squares) == 9, "There should be exactly 9 3x3 grey squares in the input grid"
+    assert len(square_sprites) == 9, "There should be exactly 9 3x3 grey squares in the input grid"
 
     # step 2: create the output grid, which is all grey
     output_grid = np.full((9, 9), Color.GREY, dtype=int)
@@ -38,7 +32,7 @@ def main(input_grid):
     # for each square, find the "direction" of the colored object in it, and place it in that direction of the output grid.
 
     # we can ignore the blank square, since the middle is already grey
-    squares = [square for square in squares if not (square == Color.GREY).all()]
+    square_sprites = [square for square in square_sprites if not (square == Color.GREY).all()]
 
     def get_direction_between(point1, point2):
         '''
@@ -63,7 +57,7 @@ def main(input_grid):
 
         return (sign(dx), sign(dy))
 
-    for square in squares:
+    for square in square_sprites:
         colored_object_center_of_mass = np.argwhere(square != Color.GREY).mean(axis=0)
         grey_center_of_mass = np.argwhere(square == Color.GREY).mean(axis=0)
 

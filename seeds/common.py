@@ -897,3 +897,104 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
             and np.sum(sprite[:, -1]) > 0
         ):
             return sprite
+
+def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochromatic=False, connectivity=None, allowed_dimensions=None, colors=None, can_overlap=False):
+    """
+    Detects and extracts objects from the grid that satisfy custom specification.
+
+    predicate: a function that takes a candidate object as input and returns True if it counts as an object
+    background: color treated as transparent
+    monochromatic: if True, each object is assumed to have only one color. If False, each object can include multiple colors.
+    connectivity: 4 or 8, for 4-way or 8-way connectivity. If None, the connectivity is determined automatically.
+    allowed_dimensions: a list of tuples (n, m) specifying the allowed dimensions of the objects. If None, objects of any size are allowed.
+    colors: a list of colors that the objects are allowed to have. If None, objects of any color are allowed.
+    can_overlap: if True, objects can overlap. If False, objects cannot overlap.
+
+    Returns a list of objects, where each object is a numpy array.
+    """
+
+    objects = []
+
+    if connectivity:
+        objects.extend(find_connected_components(grid, background=background, connectivity=connectivity, monochromatic=monochromatic))
+        if colors:
+            objects = [obj for obj in objects if all((color in colors) or color == background for color in obj.flatten())]
+        if predicate:
+            objects = [obj for obj in objects if predicate(crop(obj, background=background))]
+    
+    if allowed_dimensions:
+        objects = [obj for obj in objects if obj.shape in allowed_dimensions]
+
+        # Also scan through the grid
+        scan_objects = []
+        for n, m in allowed_dimensions:
+            for i in range(grid.shape[0] - n + 1):
+                for j in range(grid.shape[1] - m + 1):
+                    candidate_sprite = grid[i:i+n, j:j+m]
+
+                    if np.any(candidate_sprite != background) and \
+                        (colors is None or all((color in colors) or color == background for color in candidate_sprite.flatten())) and \
+                        (predicate is None or predicate(candidate_sprite)):
+                        candidate_object = np.full(grid.shape, background)
+                        candidate_object[i:i+n, j:j+m] = candidate_sprite
+                        if not any( np.all(candidate_object == obj) for obj in objects):
+                            scan_objects.append(candidate_object)
+        objects.extend(scan_objects)
+    
+    if not can_overlap:
+        # sort objects by size, breaking ties by mass
+        objects.sort(key=lambda obj: (crop(obj, background).shape[0] * crop(obj, background).shape[1], np.sum(obj!=background)), reverse=True)
+        overlap_matrix = np.full((len(objects), len(objects)), False)
+        for i, obj1 in enumerate(objects):
+            for j, obj2 in enumerate(objects):
+                if i != j:
+                    overlap_matrix[i, j] = np.any((obj1 != background) & (obj2 != background))
+                
+        # Pick a subset of objects that don't overlap and which cover as many pixels as possible
+        # First, we definitely pick everything that doesn't have any overlaps
+        keep_objects = [obj for i, obj in enumerate(objects) if not np.any(overlap_matrix[i])]
+
+        # Second, we might pick the remaining objects
+        remaining_indices = [i for i, obj in enumerate(objects) if np.any(overlap_matrix[i])]
+
+        # Figure out the best possible score we could get if we cover everything
+        best_possible_mask = np.zeros_like(grid, dtype=bool)
+        for i in remaining_indices:
+            best_possible_mask |= objects[i] != background
+        best_possible_score = np.sum(best_possible_mask)
+
+        # Now we just do a brute force search recursively
+        def pick_objects(remaining_indices, current_indices, current_mask):
+            nonlocal overlap_matrix 
+            
+            if not remaining_indices:
+                solution = [objects[i] for i in current_indices]
+                solution_goodness = np.sum(current_mask)
+                return solution, solution_goodness
+            
+            first_index, *rest = remaining_indices
+            # Does that object have any overlap with the current objects? If so don't pick it
+            if any( overlap_matrix[i, first_index] for i in current_indices):
+                return pick_objects(rest, current_indices, current_mask)
+            
+            # Try picking it
+            with_index, with_goodness = pick_objects(rest, current_indices + [first_index], current_mask | (objects[first_index] != background))
+
+            # Did we win?
+            if with_goodness == best_possible_score:
+                return with_index, with_goodness
+
+            # Try not picking it
+            without_index, without_goodness = pick_objects(rest, current_indices, current_mask)
+
+            if with_goodness > without_goodness:
+                return with_index, with_goodness
+            else:
+                return without_index, without_goodness
+        
+        solution, _ = pick_objects(remaining_indices, [], np.zeros_like(grid, dtype=bool))
+
+        objects = keep_objects + solution
+
+    return objects
+
