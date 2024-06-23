@@ -7,10 +7,11 @@ from typing import *
 # repeating pattern, connecting colors
 
 # description:
-# In the input grid, you will see three an all black grid with three dots of the same color in a perfect 45 degree diagonal, but spaced apart from each other.
+# In the input grid, you will see an all black grid with three dots of the same color in a perfect 45 degree diagonal, but equally spaced apart from each other.
 # To create the output grid, connect the outer two of the three dots with a square border shape. The square border contains the two dots as corners, and is centered on the third center dot. Then make another square border that is the same distance (number of background cells) from the existing border as the existing border is from the center dot. Repeat making square borders of the same distance outwards until the grid is filled.
 
 def main(input_grid):
+    # Plan:
     # 1. get the dots
     # 2. get the center dot, and the two outer dots
     # 3. calculate the distance from the center dot of the outer dots.
