@@ -523,20 +523,31 @@ def detect_vertical_periodicity(grid, ignore_color=None):
 
     return v_period
 
+class Symmetry:
+    """
+    Symmetry transformations, which transformed the 2D grid in ways that preserve visual structure.
+    Returned by `detect_rotational_symmetry`, `detect_translational_symmetry`, `detect_mirror_symmetry`.
+    """
+
+    def apply(self, x, y, iters=1):
+        """
+        Apply the symmetry transformation to the point (x, y) `iters` times.
+        Returns the transformed point (x',y')        
+        """
 
 def detect_rotational_symmetry(grid, ignore_color=0):
     """
-    Finds the center of rotational symmetry of a grid.
+    Finds rotational symmetry in a grid, or returns None if no symmetry is possible.
     Satisfies: grid[x, y] == grid[y - rotate_center_y + rotate_center_x, -x + rotate_center_y + rotate_center_x] # clockwise
                grid[x, y] == grid[-y + rotate_center_y + rotate_center_x, x - rotate_center_y + rotate_center_x] # counterclockwise
                for all x, y, as long as neither pixel is `ignore_color`.
 
     Example:
-    rotate_center_x, rotate_center_y = detect_rotational_symmetry(grid, ignore_color=Color.BLACK) # ignore_color: In case parts of the object have been removed and occluded by black
+    sym = detect_rotational_symmetry(grid, ignore_color=Color.BLACK) # ignore_color: In case parts of the object have been removed and occluded by black
     for x, y in np.argwhere(grid != Color.BLACK):
-        # IMPORTANT! cast to int
-        rotated_x, rotated_y = y + int(rotate_center_x - rotate_center_y), -x + int(rotate_center_y + rotate_center_x)
+        rotated_x, rotated_y = sym.apply(x, y, iters=1) # +1 clockwise, -1 counterclockwise
         assert grid[rotated_x, rotated_y] == grid[x, y] or grid[rotated_x, rotated_y] == Color.BLACK
+    print(sym.center_x, sym.center_y) # In case these are needed, they are floats
     """
 
     # Find the center of the grid
@@ -588,7 +599,25 @@ def detect_rotational_symmetry(grid, ignore_color=0):
                 best_rotation = (x_center, y_center)
                 best_overlap = overlap
 
-    return best_rotation
+    class RotationalSymmetry(Symmetry):
+        def __init__(self, center_x, center_y):
+            self.center_x, self.center_y = center_x, center_y
+        
+        def apply(self, x, y, iters=1):
+
+            x, y = x - self.center_x, y - self.center_y
+            
+            for _ in range(iters):
+                if iters >= 0:
+                    x, y = y, -x
+                else:
+                    x, y = -y, x
+            
+            x, y = x + self.center_x, y + self.center_y
+
+            return int(round(x)), int(round(y))
+
+    return RotationalSymmetry(*best_rotation) if best_rotation is not None else None
 
 
 def show_colored_grid(grid, text=True):

@@ -22,6 +22,7 @@ def main(input_grid):
     pixel_xs, pixel_ys = np.where(input_grid != Color.BLACK)
     pixel_locations = list(zip(list(pixel_xs), list(pixel_ys)))
     assert len(pixel_locations) == 3
+    
     # sort by x coordinate
     pixel0, pixel1, pixel2 = sorted(pixel_locations, key=lambda l: l[0])
     color = input_grid[pixel0[0], pixel0[1]]
