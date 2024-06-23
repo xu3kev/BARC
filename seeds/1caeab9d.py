@@ -35,8 +35,8 @@ def generate_input():
     # We put each sprite in a different grid, and concatenate the grids to make the input grid
 
     # make a random sprite of size (1-4)x(1-4)
-    w = np.random.randint(1, 4)
-    h = np.random.randint(1, 4)
+    w = np.random.randint(1, 5)
+    h = np.random.randint(1, 5)
     sprite = random_sprite(w, h)
 
     # Figure out the height of the output grid

@@ -440,6 +440,7 @@ def object_boundary(grid, background_color=Color.BLACK):
     
 
 
+
 def detect_horizontal_periodicity(grid, ignore_color=None):
     """
     Finds the period of a grid that was produced by repeated horizontal translation (tiling) of a smaller grid.
@@ -479,7 +480,6 @@ def detect_horizontal_periodicity(grid, ignore_color=None):
                 break
         if success:
             return h_period
-
 
 def detect_vertical_periodicity(grid, ignore_color=None):
     """
