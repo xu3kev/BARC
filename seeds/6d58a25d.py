@@ -18,8 +18,7 @@ def main(input_grid):
 
     # get the chevron
     objects = find_connected_components(input_grid, connectivity=4, monochromatic=True)
-    objects = sorted(objects, key=lambda o: np.count_nonzero(o))
-    chevron = objects[-1]
+    chevron = max(objects, key=lambda o: np.count_nonzero(o))
 
     # get the color of the chevron
     chevron_color = chevron[chevron != Color.BLACK][0]
