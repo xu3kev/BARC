@@ -18,6 +18,7 @@ def validate(problem):
     failure = False
 
     for train_pair in problem.train_pairs + problem.test_pairs:
+        if failure: break
         # transpose the input and output grids, because we index them x,y and they are stored as r,c
         input_grid = train_pair.x.T
         expected_output_grid = train_pair.y.T

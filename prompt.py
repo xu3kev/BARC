@@ -18,7 +18,6 @@ def get_common_lib_from_file(file_path="seeds/common.py"):
         common_lib = f.read()
 
     common_lib_functions = extract_functions(common_lib)
-    # Clean the common lib by removing any functions whose docstring begins/contains "internal function not used by LLM"
     common_lib_functions = [f for f in common_lib_functions if "internal function not used by LLM" not in f["docstring"]]
     common_lib_function_names = set([f["name"] for f in common_lib_functions])
 
@@ -27,6 +26,7 @@ def get_common_lib_from_file(file_path="seeds/common.py"):
     common_lib_classes = [c for c in common_lib_classes if "internal class not used by LLM" not in c["docstring"]]
 
     common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
+    print(common_lib)
     return common_lib, common_lib_function_names
 
 def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, num_seeds=None, remix=0, library_function_hint=-1):
@@ -130,7 +130,7 @@ Be sure to make the transformation `main` deterministic. Be sure to not assume o
 
     if library_function_hint_str:
         prompt += f"""\n{library_function_hint_str}"""
-        
+    
     return prompt
 
 if __name__ == "__main__":

@@ -1,31 +1,37 @@
 import re
 import ast
 
+class FunctionExtractor(ast.NodeVisitor):
+    def __init__(self, code):
+        self.functions = []
+        self.code = code
+
+    def visit_FunctionDef(self, node):
+        func_name = node.name
+        docstring = ast.get_docstring(node)
+        func_code = ast.get_source_segment(self.code, node)
+        # the api definition is just the source go to the function MINUS the actual implementation, so just the name, type signature/arguments, and docstring
+        api_definition_parsed = ast.FunctionDef(name=node.name, args=node.args, decorator_list=node.decorator_list, returns=node.returns,
+                                            type_comment=node.type_comment, body=node.body[:1] if docstring else node.body[:0])
+        api_definition = ast.unparse(ast.fix_missing_locations(api_definition_parsed))
+        if not docstring:
+            api_definition = api_definition + "\n    pass"
+        self.functions.append({
+            'name': func_name,
+            'docstring': docstring,
+            'code': func_code,
+            'api_definition': api_definition,
+            "api_definition_parsed": api_definition_parsed
+        })
+        #self.generic_visit(node)# don't recurse
+
+    def visit_ClassDef(self, node):
+        # don't recurse into classes, which picks up methods
+        pass
+
 def extract_functions(code):
-    class FunctionExtractor(ast.NodeVisitor):
-        def __init__(self):
-            self.functions = []
-
-        def visit_FunctionDef(self, node):
-            func_name = node.name
-            docstring = ast.get_docstring(node)
-            func_code = ast.get_source_segment(code, node)
-            # the api definition is just the source go to the function MINUS the actual implementation, so just the name, type signature/arguments, and docstring
-            api_definition = ast.FunctionDef(name=node.name, args=node.args, decorator_list=node.decorator_list, returns=node.returns,
-                                             type_comment=node.type_comment, body=node.body[:1] if docstring else node.body[:0])
-            api_definition = ast.unparse(ast.fix_missing_locations(api_definition))
-            if not docstring:
-                api_definition = api_definition + "\n    pass"
-            self.functions.append({
-                'name': func_name,
-                'docstring': docstring,
-                'code': func_code,
-                'api_definition': api_definition
-            })
-            self.generic_visit(node)
-
     tree = ast.parse(code)
-    extractor = FunctionExtractor()
+    extractor = FunctionExtractor(code)
     extractor.visit(tree)
     return extractor.functions
 
@@ -38,8 +44,14 @@ def extract_class_definitions(code):
             class_name = node.name
             docstring = ast.get_docstring(node)
             class_code = ast.get_source_segment(code, node)
+
+            # now we visit all the methods, accomplished using the function visitor
+            function_extractor = FunctionExtractor(code)
+            function_extractor.visit(node)
+            methods = [ f["api_definition_parsed"] for f in function_extractor.functions ]
+
             api_definition = ast.ClassDef(name=node.name, bases=node.bases, keywords=node.keywords, decorator_list=node.decorator_list,
-                                          body=node.body[:1] if docstring else node.body[:0])
+                                          body=(node.body[:1] if docstring else node.body[:0])+methods)
             api_definition = ast.unparse(ast.fix_missing_locations(api_definition))
             self.classes.append({
                 'name': class_name,
@@ -47,7 +59,11 @@ def extract_class_definitions(code):
                 'code': class_code,
                 'api_definition': api_definition
             })
-            self.generic_visit(node)
+            #self.generic_visit(node)
+        
+        def visit_FunctionDef(self, node):
+            # don't recurse into functions
+            pass
 
     tree = ast.parse(code)
     extractor = ClassExtractor()
