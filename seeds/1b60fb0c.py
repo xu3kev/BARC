@@ -50,14 +50,13 @@ def main(input_grid):
 
     output_grid = np.copy(input_grid)
 
-    # Find the center of rotation
-    rotate_center_x, rotate_center_y = detect_rotational_symmetry(input_grid, ignore_color=Color.BLACK)
+    # Find the symmetry
+    sym = detect_rotational_symmetry(input_grid, ignore_color=Color.BLACK)
     
     # Rotate the blues and color red as needed
     blues = np.argwhere(input_grid == Color.BLUE)
     for x, y in blues:
-        # IMPORTANT! Cast to int to avoid floating points
-        rotated_x, rotated_y = y + int(rotate_center_x - rotate_center_y), -x + int(rotate_center_y + rotate_center_x)
+        rotated_x, rotated_y = sym.apply(x, y, iters=1)        
 
         if input_grid[rotated_x, rotated_y] == Color.BLACK:
             output_grid[rotated_x, rotated_y] = Color.RED

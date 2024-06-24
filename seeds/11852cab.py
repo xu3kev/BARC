@@ -17,10 +17,10 @@ def main(input_grid):
     # 2. Rotate each colored pixel (4 times, rotating around the center of rotation) and fill in any missing pixels
     output_grid = input_grid.copy()
 
-    # Find the center of rotation
-    rotate_center_x, rotate_center_y = detect_rotational_symmetry(input_grid, ignore_color=Color.BLACK)
+    # Find the rotational symmetry
+    sym = detect_rotational_symmetry(input_grid, ignore_color=Color.BLACK)
 
-    # Find the coloured pixels
+    # Find the colored pixels
     colored_pixels = np.argwhere(input_grid != Color.BLACK)
 
     # Do the rotations and fill in the missing colors
@@ -29,19 +29,15 @@ def main(input_grid):
         color = input_grid[x, y]
         
         # Loop over all rotations, going 90 degrees each time (so four times)
-        for i in range(4):
+        for i in range(1, 4):
             # Calculate rotated coordinate
-            # IMPORTANT! Cast to int to avoid floats
-            rotated_x, rotated_y = y + int(rotate_center_x - rotate_center_y), -x + int(rotate_center_y + rotate_center_x)
+            rotated_x, rotated_y = sym.apply(x, y, iters=i)
 
             # Fill in the missing pixel
             if output_grid[rotated_x, rotated_y] == Color.BLACK:
                 output_grid[rotated_x, rotated_y] = color
             else:
                 assert output_grid[rotated_x, rotated_y] == color, "The object is not rotationally symmetric"
-            
-            # Update the pixel to be its rotation
-            x, y = rotated_x, rotated_y
 
     return output_grid
 

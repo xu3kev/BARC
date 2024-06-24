@@ -52,7 +52,7 @@ def _flood_fill(grid, x, y, color, old_color, connectivity):
     """
     internal function not used by LLM
     """
-    if grid[x, y] != old_color:
+    if grid[x, y] != old_color or grid[x, y] == color:
         return
 
     grid[x, y] = color
@@ -131,7 +131,7 @@ def find_connected_components(
         labeled, n_objects = label(grid != background, structure)
         connected_components = []
         for i in range(n_objects):
-            connected_component = grid * (labeled == i + 1)
+            connected_component = grid * (labeled == i + 1) + background * (labeled != i + 1)
             connected_components.append(connected_component)
 
         return connected_components
@@ -141,7 +141,7 @@ def find_connected_components(
         for color in set(grid.flatten()) - {background}:
             labeled, n_objects = label(grid == color, structure)
             for i in range(n_objects):
-                connected_component = grid * (labeled == i + 1)
+                connected_component = grid * (labeled == i + 1) + background * (labeled != i + 1)
                 connected_components.append(connected_component)
         return connected_components
 
@@ -383,6 +383,63 @@ def random_free_location_for_object(
 
     return random.choice(pruned_locations)
 
+def object_interior(grid, background_color=Color.BLACK):
+    """
+    Computes the interior of the object (including edges)
+
+    returns a new grid of `bool` where True indicates that the pixel is part of the object's interior.
+
+    Example usage:
+    interior = object_interior(obj, background_color=Color.BLACK)
+    for x, y in np.argwhere(interior):
+        # x,y is either inside the object or at least on its edge
+    """
+
+    mask = 1*(grid != background_color)
+
+    # March around the border and flood fill (with 42) wherever we find zeros
+    n, m = grid.shape
+    for i in range(n):
+        if grid[i, 0] == background_color:
+            flood_fill(mask, i, 0, 42)
+        if grid[i, m-1] == background_color: flood_fill(mask, i, m-1, 42)
+    for j in range(m):
+        if grid[0, j] == background_color: flood_fill(mask, 0, j, 42)
+        if grid[n-1, j] == background_color: flood_fill(mask, n-1, j, 42)
+    
+    return mask != 42
+
+def object_boundary(grid, background_color=Color.BLACK):
+    """
+    Computes the boundary of the object (excluding interior)
+
+    returns a new grid of `bool` where True indicates that the pixel is part of the object's boundary.
+
+    Example usage:
+    boundary = object_boundary(obj, background_color=Color.BLACK)
+    assert np.all(obj[boundary] != Color.BLACK)
+    """
+
+    # similar idea: first get the exterior, but then we search for all the pixels that are part of the object and either adjacent to 42, or are part of the boundary
+
+    exterior = ~object_interior(grid, background_color)
+
+    # Now we find all the pixels that are part of the object and adjacent to the exterior, or which are part of the object and on the boundary of the canvas
+    canvas_boundary = np.zeros_like(grid, dtype=bool)
+    canvas_boundary[0, :] = True
+    canvas_boundary[-1, :] = True
+    canvas_boundary[:, 0] = True
+    canvas_boundary[:, -1] = True
+
+    from scipy import ndimage
+    adjacent_to_exterior = ndimage.binary_dilation(exterior, iterations=1)
+
+    boundary = (grid != background_color) & (adjacent_to_exterior | canvas_boundary)
+
+    return boundary
+    
+
+
 
 def detect_horizontal_periodicity(grid, ignore_color=None):
     """
@@ -423,7 +480,6 @@ def detect_horizontal_periodicity(grid, ignore_color=None):
                 break
         if success:
             return h_period
-
 
 def detect_vertical_periodicity(grid, ignore_color=None):
     """
@@ -467,20 +523,31 @@ def detect_vertical_periodicity(grid, ignore_color=None):
 
     return v_period
 
+class Symmetry:
+    """
+    Symmetry transformations, which transformed the 2D grid in ways that preserve visual structure.
+    Returned by `detect_rotational_symmetry`, `detect_translational_symmetry`, `detect_mirror_symmetry`.
+    """
+
+    def apply(self, x, y, iters=1):
+        """
+        Apply the symmetry transformation to the point (x, y) `iters` times.
+        Returns the transformed point (x',y')        
+        """
 
 def detect_rotational_symmetry(grid, ignore_color=0):
     """
-    Finds the center of rotational symmetry of a grid.
+    Finds rotational symmetry in a grid, or returns None if no symmetry is possible.
     Satisfies: grid[x, y] == grid[y - rotate_center_y + rotate_center_x, -x + rotate_center_y + rotate_center_x] # clockwise
                grid[x, y] == grid[-y + rotate_center_y + rotate_center_x, x - rotate_center_y + rotate_center_x] # counterclockwise
                for all x, y, as long as neither pixel is `ignore_color`.
 
     Example:
-    rotate_center_x, rotate_center_y = detect_rotational_symmetry(grid, ignore_color=Color.BLACK) # ignore_color: In case parts of the object have been removed and occluded by black
+    sym = detect_rotational_symmetry(grid, ignore_color=Color.BLACK) # ignore_color: In case parts of the object have been removed and occluded by black
     for x, y in np.argwhere(grid != Color.BLACK):
-        # IMPORTANT! cast to int
-        rotated_x, rotated_y = y + int(rotate_center_x - rotate_center_y), -x + int(rotate_center_y + rotate_center_x)
+        rotated_x, rotated_y = sym.apply(x, y, iters=1) # +1 clockwise, -1 counterclockwise
         assert grid[rotated_x, rotated_y] == grid[x, y] or grid[rotated_x, rotated_y] == Color.BLACK
+    print(sym.center_x, sym.center_y) # In case these are needed, they are floats
     """
 
     # Find the center of the grid
@@ -532,7 +599,25 @@ def detect_rotational_symmetry(grid, ignore_color=0):
                 best_rotation = (x_center, y_center)
                 best_overlap = overlap
 
-    return best_rotation
+    class RotationalSymmetry(Symmetry):
+        def __init__(self, center_x, center_y):
+            self.center_x, self.center_y = center_x, center_y
+        
+        def apply(self, x, y, iters=1):
+
+            x, y = x - self.center_x, y - self.center_y
+            
+            for _ in range(iters):
+                if iters >= 0:
+                    x, y = y, -x
+                else:
+                    x, y = -y, x
+            
+            x, y = x + self.center_x, y + self.center_y
+
+            return int(round(x)), int(round(y))
+
+    return RotationalSymmetry(*best_rotation) if best_rotation is not None else None
 
 
 def show_colored_grid(grid, text=True):
@@ -843,3 +928,104 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
             and np.sum(sprite[:, -1]) > 0
         ):
             return sprite
+
+def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochromatic=False, connectivity=None, allowed_dimensions=None, colors=None, can_overlap=False):
+    """
+    Detects and extracts objects from the grid that satisfy custom specification.
+
+    predicate: a function that takes a candidate object as input and returns True if it counts as an object
+    background: color treated as transparent
+    monochromatic: if True, each object is assumed to have only one color. If False, each object can include multiple colors.
+    connectivity: 4 or 8, for 4-way or 8-way connectivity. If None, the connectivity is determined automatically.
+    allowed_dimensions: a list of tuples (n, m) specifying the allowed dimensions of the objects. If None, objects of any size are allowed.
+    colors: a list of colors that the objects are allowed to have. If None, objects of any color are allowed.
+    can_overlap: if True, objects can overlap. If False, objects cannot overlap.
+
+    Returns a list of objects, where each object is a numpy array.
+    """
+
+    objects = []
+
+    if connectivity:
+        objects.extend(find_connected_components(grid, background=background, connectivity=connectivity, monochromatic=monochromatic))
+        if colors:
+            objects = [obj for obj in objects if all((color in colors) or color == background for color in obj.flatten())]
+        if predicate:
+            objects = [obj for obj in objects if predicate(crop(obj, background=background))]
+    
+    if allowed_dimensions:
+        objects = [obj for obj in objects if obj.shape in allowed_dimensions]
+
+        # Also scan through the grid
+        scan_objects = []
+        for n, m in allowed_dimensions:
+            for i in range(grid.shape[0] - n + 1):
+                for j in range(grid.shape[1] - m + 1):
+                    candidate_sprite = grid[i:i+n, j:j+m]
+
+                    if np.any(candidate_sprite != background) and \
+                        (colors is None or all((color in colors) or color == background for color in candidate_sprite.flatten())) and \
+                        (predicate is None or predicate(candidate_sprite)):
+                        candidate_object = np.full(grid.shape, background)
+                        candidate_object[i:i+n, j:j+m] = candidate_sprite
+                        if not any( np.all(candidate_object == obj) for obj in objects):
+                            scan_objects.append(candidate_object)
+        objects.extend(scan_objects)
+    
+    if not can_overlap:
+        # sort objects by size, breaking ties by mass
+        objects.sort(key=lambda obj: (crop(obj, background).shape[0] * crop(obj, background).shape[1], np.sum(obj!=background)), reverse=True)
+        overlap_matrix = np.full((len(objects), len(objects)), False)
+        for i, obj1 in enumerate(objects):
+            for j, obj2 in enumerate(objects):
+                if i != j:
+                    overlap_matrix[i, j] = np.any((obj1 != background) & (obj2 != background))
+                
+        # Pick a subset of objects that don't overlap and which cover as many pixels as possible
+        # First, we definitely pick everything that doesn't have any overlaps
+        keep_objects = [obj for i, obj in enumerate(objects) if not np.any(overlap_matrix[i])]
+
+        # Second, we might pick the remaining objects
+        remaining_indices = [i for i, obj in enumerate(objects) if np.any(overlap_matrix[i])]
+
+        # Figure out the best possible score we could get if we cover everything
+        best_possible_mask = np.zeros_like(grid, dtype=bool)
+        for i in remaining_indices:
+            best_possible_mask |= objects[i] != background
+        best_possible_score = np.sum(best_possible_mask)
+
+        # Now we just do a brute force search recursively
+        def pick_objects(remaining_indices, current_indices, current_mask):
+            nonlocal overlap_matrix 
+            
+            if not remaining_indices:
+                solution = [objects[i] for i in current_indices]
+                solution_goodness = np.sum(current_mask)
+                return solution, solution_goodness
+            
+            first_index, *rest = remaining_indices
+            # Does that object have any overlap with the current objects? If so don't pick it
+            if any( overlap_matrix[i, first_index] for i in current_indices):
+                return pick_objects(rest, current_indices, current_mask)
+            
+            # Try picking it
+            with_index, with_goodness = pick_objects(rest, current_indices + [first_index], current_mask | (objects[first_index] != background))
+
+            # Did we win?
+            if with_goodness == best_possible_score:
+                return with_index, with_goodness
+
+            # Try not picking it
+            without_index, without_goodness = pick_objects(rest, current_indices, current_mask)
+
+            if with_goodness > without_goodness:
+                return with_index, with_goodness
+            else:
+                return without_index, without_goodness
+        
+        solution, _ = pick_objects(remaining_indices, [], np.zeros_like(grid, dtype=bool))
+
+        objects = keep_objects + solution
+
+    return objects
+

@@ -145,6 +145,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", "-m", type=str, default="gpt-4-turbo", help="which model to use", 
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
     parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
+    parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
     
     arguments = parser.parse_args()
 
@@ -177,15 +178,26 @@ if __name__ == "__main__":
 
     if arguments.sample_parallel == 1:
         for prompt in tqdm(prompts):
-            samples.extend(client.generate(prompt, num_samples=1, max_tokens=1024*2, temperature=arguments.temperature, model=model))
+            samples.extend(client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model))
     else:
-        list_of_lists_of_samples = client.generate_parallel(prompts, num_samples=1, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
+        list_of_lists_of_samples = client.generate_parallel(prompts, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
         # flatten the list
         samples = [sample for sublist in list_of_lists_of_samples for sample in sublist]
 
     codes = []
     for sample in samples:
         codes.extend(parse_code(sample))
+
+    model_name = arguments.model.replace("/", "_")
+    # write the codes to jsonl file
+    file_name = f"self_instruct_remix{remix_level}_fewshot_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}.jsonl"
+    print(f"Writing to jsonl {file_name}")
+    with open(file_name, "w") as f:
+        # jsonl, one json per line
+        import json
+        for code in codes:
+            f.write(json.dumps({"code": code}) + "\n")
+    print(f"{len(codes)} codes written to {file_name}")
     
     htmls = []
 
@@ -248,8 +260,7 @@ if __name__ == "__main__":
     </body>
     </html>
     """
-    model_name = arguments.model.replace("/", "_")
-    file_name = f"self_instruct_remix{remix_level}_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}.html"
+    file_name = f"self_instruct_remix{remix_level}_fewshot_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}.html"
 
     print(f"Writing to {file_name}")
     with open(file_name, "w") as f:

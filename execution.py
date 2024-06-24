@@ -1,14 +1,77 @@
 # Code for running ARC programs
 
 from func_timeout import func_timeout, FunctionTimedOut
-
+import concurrent.futures
+import os
+import signal
 import sys
+
 # add seeds/ to the python path so we can import common
 sys.path.append("seeds/")
 from common import *
 
 import numpy as np
 import random
+
+def _worker(task_id, source_code, return_var_name):
+    global_vars = {}
+    exec(source_code, global_vars)
+    if return_var_name not in global_vars:
+        print(f"Error: {return_var_name} not found in global_vars")
+        return None
+    ret = global_vars[return_var_name]
+    return ret
+
+def multi_process_execute(codes, return_var_name, timeout=1, num_workers=8):
+    # associate each code with an index
+    tasks = [(i, code, return_var_name) for i, code in enumerate(codes)]
+    all_results = [None] * len(tasks)
+    with concurrent.futures.ProcessPoolExecutor(num_workers) as executor:
+        # Submit all tasks
+        future_to_task = {executor.submit(_worker, *task): task for task in tasks}
+        
+        try:
+            for future in concurrent.futures.as_completed(future_to_task, timeout=timeout):
+                task = future_to_task[future]
+                try:
+                    result = future.result(timeout=0)  # Non-blocking result fetch
+                    # print(result)
+                    all_results[task[0]] = result
+                except concurrent.futures.TimeoutError:
+                    print(f"Task {task[0]} timed out")
+                except Exception as e:
+                    print(f"Task {task[0]} generated an exception: {e}")
+        except concurrent.futures.TimeoutError:
+            print(f"Timeout reached after {timeout} seconds")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+        finally:
+            # Cancel any remaining tasks
+            for future in future_to_task:
+                future.cancel()
+            
+            # Force terminate any remaining child processes
+            for child in executor._processes.values():
+                try:
+                    os.kill(child.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    # Process already terminated
+                    pass
+                except Exception as e:
+                    print(f"Error terminating process {child.pid}: {e}")
+                finally:
+                    # force terminate
+                    # TODO
+                    try:
+                        os.kill(child.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        # Process already terminated
+                        pass
+                    except Exception as e:
+                        print(f"Error forcefully terminating process {child.pid}: {e}")
+
+        return all_results
+
 
 def execute_transformation(source, input_grid, timeout=1, function_name="main"):
 
@@ -52,6 +115,40 @@ output_grid = {function_name}(input_grid)
 
     return output
 
+def multi_execute_transformation(sources, input_grids, timeout=1, function_name="main", num_workers=8):
+
+    input_grids = [np.array(input_grid) for input_grid in input_grids]
+            
+    try:
+        n, m = input_grids[0].shape
+    except:
+        breakpoint()
+    codes = []
+    for source, input_grid in zip(sources, input_grids):
+        make_input = f"input_grid = np.zeros(({n}, {m}), dtype=int)\n"
+        for i in range(n):
+            for j in range(m):
+                make_input += f"input_grid[{i}][{j}] = {input_grid[i][j]}\n"
+                
+        code = f"""import numpy as np
+from common import *
+{source}
+{make_input}
+output_grid = {function_name}(input_grid) 
+"""
+        codes.append(code)
+
+    outputs = multi_process_execute(codes, "output_grid", timeout=timeout, num_workers=num_workers)
+
+    # make sure that it is a 2d nump array of integers between 0-9
+    for idx, output in enumerate(outputs):
+        if isinstance(output, np.ndarray) and len(output.shape) == 2 and np.all((0 <= output) & (output <= 9)):
+            outputs[idx] = output
+        else:
+            outputs[idx] = "error"
+
+    return outputs
+
 def execute_input_generator(source, timeout=1, function_name="generate_input"):
 
     global_vars = {}
@@ -78,3 +175,16 @@ grid = {function_name}()
         output = f"error: {e}"
 
     return output
+
+def multi_execute_input_generator(sources, timeout=1, function_name="generate_input", num_workers=8):
+
+    codes = [f"""import random
+import numpy as np
+from common import *
+{source}
+grid = {function_name}()
+""" for source in sources]
+
+    outputs = multi_process_execute(codes, "grid", timeout=timeout, num_workers=num_workers)
+
+    return outputs

@@ -7,37 +7,58 @@ from typing import *
 # rectangular cells, color guide
 
 # description:
-# In the input you will see grey horizontal and vertical bars that divide the grid into nine 3x3 rectangular cells, each of which contains 4-5 colored pixels
-# To make the output, find the cell that has exactly 4 colored pixels, and use its colors as a guide to fill in all the other cells
+# In the input you will see grey horizontal and vertical bars that divide the grid into nine 3x3 rectangular regions, each of which contains 4-5 colored pixels
+# To make the output, find the region that has exactly 4 colored pixels, and use its colors as a guide to fill in all the other cells
 
 def main(input_grid: np.ndarray) -> np.ndarray:
 
-    # find the cell with exactly 4 colors
-    special_cell = None
-    for x in range(3):
-        for y in range(3):
-            cell_size = 3
-            distance_between_cells = cell_size + 1
-            cell = input_grid[distance_between_cells*x : distance_between_cells*x + cell_size,
-                              distance_between_cells*y : distance_between_cells*y + cell_size]
-            if np.sum(cell != Color.BLACK) == 4:
-                assert special_cell is None, "More than one special cell found"
-                special_cell = cell
+    # First identify 
 
+    # Trick for decomposing inputs divided into rectangular regions by horizontal/vertical bars:
+    # Treat the bar color as the background, and break the input up into connected components with that background color
+
+    # The divider color is the color of the horizontal and vertical bars
+    divider_colors = [ input_grid[x,y] for x in range(input_grid.shape[0]) for y in range(input_grid.shape[1])
+                     if np.all(input_grid[x,:] == input_grid[x,0]) or np.all(input_grid[:,y] == input_grid[0,y]) ]
+    assert len(set(divider_colors)) == 1, "There should be exactly one divider color"
+    divider_color = divider_colors[0] # background=divider_color
+
+    # Find multicolored regions, which are divided by divider_color, so we treat that as background, because it separates objects
+    # Within each region there can be multiple colors
+    regions = find_connected_components(input_grid, background=divider_color, monochromatic=False)
+    # Tag the regions with their location within the 2D grid of (divided) regions
+    # First get the bounding-box locations...
+    locations = []
+    for region in regions:
+        x, y, w, h = bounding_box(region, background=divider_color)
+        locations.append((x, y, region))
+    # ...then re-index them so that (x, y) is the coordinate within the grid of rectangular regions
+    grid_of_regions = []
+    for x, y, region in locations:
+        num_left_of_region = len({other_x for other_x, other_y, other_region in locations if other_x < x})
+        num_above_region = len({other_y for other_x, other_y, other_region in locations if other_y < y})
+        grid_of_regions.append((num_left_of_region, num_above_region, region))
+
+    # Find the region with exactly 4 colors
+    special_region = None
+    for region in regions:
+        not_divider_and_not_black = (region != divider_color) & (region != Color.BLACK)
+        if np.sum(not_divider_and_not_black) == 4:
+            assert special_region is None, "More than one special region found"
+            special_region = region
+    
+    # Convert to a sprite
+    special_sprite = crop(special_region, background=divider_color)
+    
+    # Create the output grid
     output_grid = np.zeros_like(input_grid)
 
-    # create grey horizontal and vertical bars, making 9 empty cells that we will later fill in with the special cell's colors as a guide
-    # 3x3 cells, so 2 horizontal/vertical dividers
-    for i in range(2): 
-        output_grid[cell_size + i*distance_between_cells, :] = Color.GREY
-        output_grid[:, cell_size + i*distance_between_cells] = Color.GREY
+    # Put the dividers back in
+    output_grid[input_grid == divider_color] = divider_color
 
-    # fill in the cells with the special cell's colors
-    for x in range(3):
-        for y in range(3):
-            cell = output_grid[distance_between_cells*x : distance_between_cells*x + cell_size,
-                               distance_between_cells*y : distance_between_cells*y + cell_size]
-            cell[:,:] = special_cell[x, y]
+    # Fill in the cells with the special colors
+    for x, y, region in grid_of_regions:
+        output_grid[region != divider_color] = special_sprite[x, y]
 
     return output_grid
 
