@@ -38,14 +38,14 @@ def main(input_grid):
         direction = np.sign(mean_black_pos - mean_pos)
 
         # draw a line in the direction the arrowhead is pointing in from the corresponding corner of the bounding box
-        if direction[0] == 1 and direction[1] == 1:
-            draw_line(output_grid, x + w, y + w, length=None, color=color, direction=(1, 1))
-        elif direction[0] == 1 and direction[1] == -1:
-            draw_line(output_grid, x + w, y - 1, length=None, color=color, direction=(1, -1))
-        elif direction[0] == -1 and direction[1] == 1:
-            draw_line(output_grid, x - 1, y + h, length=None, color=color, direction=(-1, 1))
-        elif direction[0] == -1 and direction[1] == -1:
-            draw_line(output_grid, x - 1, y - 1, length=None, color=color, direction=(-1, -1))
+        # list the corners of the bounding box
+        corners = [(x - 1, y - 1), (x + w, y - 1), (x - 1, y + h), (x + w, y + h)]
+        # compute the center of the object
+        center = (x + w / 2, y + h / 2)
+        # if the direction of the corner from the center of the object matches the direction we want to draw a line in, then draw a line
+        for corner in corners:
+            if np.sign(corner[0] - center[0]) == direction[0] and np.sign(corner[1] - center[1]) == direction[1]:
+                draw_line(output_grid, corner[0], corner[1], length=None, color=color, direction=direction.astype(int))
 
     return output_grid
 

@@ -27,11 +27,7 @@ def main(input_grid):
     # filter out unique sprites
     unique_sprites = []
     for sprite in candidate_complete_sprites:
-        is_unique = True
-        for unique_sprite in unique_sprites:
-            if sprite.shape == unique_sprite.shape and np.all(sprite == unique_sprite):
-                is_unique = False
-                break
+        is_unique = not any( np.array_equal(sprite, other_sprite) for other_sprite in unique_sprites )
         if is_unique:
             unique_sprites.append(sprite)
     candidate_complete_sprites = unique_sprites
