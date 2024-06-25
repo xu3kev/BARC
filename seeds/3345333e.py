@@ -37,7 +37,8 @@ def main(input_grid):
     output_grid[rectangle_mask] = Color.BLACK
 
     # Find the symmetry
-    mirrors = detect_mirror_symmetry(input_grid, ignore_colors=[rectangle_color, background_color])
+    # The occluder is rectangle_color, so we ignore it. In contrast, Color.BLACK is places where the object *actually* isn't located, so we can't ignore that.
+    mirrors = detect_mirror_symmetry(input_grid, ignore_colors=[rectangle_color])
 
     # Mirror each colored pixel
     for x, y in np.argwhere(output_grid != Color.BLACK):

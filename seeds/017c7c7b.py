@@ -11,25 +11,25 @@ from typing import *
 # To make the output, expand the input to have height 9, and continue to repeatedly translate the sprite vertically. Change color to red.
  
 def main(input_grid):
-    input_height = input_grid.shape[1]
-
-    # determine the period of the repeated vertical translation
-    period = detect_vertical_periodicity(input_grid)
+    # Plan:
+    # 1. Find the repeated translation, which is a symmetry
+    # 2. Extend the pattern by copying the sprite and its symmetric copies
+    # 3. Change the color from blue to red
     
-    # because the translation is vertical, the period is the height of the sprite
-    sprite = input_grid[:, :period]
+    symmetries = detect_translational_symmetry(input_grid, ignore_colors=[])
+    assert len(symmetries) > 0, "No translational symmetry found"
 
     # make the output (the height is now 9)
-    output_grid = np.zeros((input_grid.shape[0], 9), dtype=int)
-
-    # Make the sprite red
-    sprite[sprite == Color.BLUE] = Color.RED
-
-    # Copy sprite to fill the entire grid
-    # This means repeating it vertically
-    # (note: we could use np.tile here, but we'll do it manually for clarity)
-    for y in range(0, output_grid.shape[1], period):
-        blit(output_grid, sprite, 0, y)
+    output_grid = np.full((input_grid.shape[0], 9), Color.BLACK)
+    
+    # Copy all of the input pixels to the output, INCLUDING their symmetric copies (i.e. their orbit)
+    for x, y in np.argwhere(input_grid != Color.BLACK):
+        # Compute the orbit into the output grid
+        for x2, y2 in orbit(output_grid, x, y, symmetries):
+            output_grid[x2, y2] = input_grid[x, y]
+    
+    # Color change: blue -> red
+    output_grid[output_grid == Color.BLUE] = Color.RED
 
     return output_grid
 

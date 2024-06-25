@@ -56,7 +56,7 @@ def validate(problem):
 
 no_seed_provided, validation_passed, validation_failed = 0, [], []
 for problem in train_problems:
-    if len(sys.argv) > 1 and problem.uid not in sys.argv[1:]:
+    if len(sys.argv) > 1 and not any( problem.uid.startswith(prefix) for prefix in sys.argv[1:]):
         continue
 
     # check if we have a manually constructed seed solution to this problem
