@@ -162,13 +162,16 @@ def generate_problem(problem_source, num_input_grids=30, num_deterministic_check
         if len(output_grids) == 0:
             print("No output grids")
             continue
+        if not check_grids_all_equal(output_grids):
+            print("Non-deterministic transformation")
+            return None
         if not all(check_grid(output_grid) for output_grid in output_grids):
             # if any of the output grids are not well-formed, skip this particular input grid
             print('Non well-formed output grid, skipping this input grid')
             continue
-        if not check_grids_all_equal(output_grids):
-            print("Non-deterministic transformation")
-            return None
+        if np.all(output_grids[0] == 0):
+            print("Output grid is entirely black, skipping this example")
+            continue
 
         expected_output_grids = output_grids[0]
 
