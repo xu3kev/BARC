@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# direction, lines
+# direction, lines, pointing
 
 # description:
 # In the input, you will see several objects of the same color that are in an arrowhead shape and facing different directions.
@@ -22,20 +22,20 @@ def main(input_grid):
         # find the bounding box of the object
         x, y, w, h = bounding_box(obj)
 
-        # crop the object to just the object
-        cropped_obj = crop(obj)
+        # crop the object to extract the sprite
+        sprite = crop(obj)
 
         # find the color of the object
-        color = np.unique(cropped_obj[cropped_obj != Color.BLACK])[0]
+        color = np.unique(obj[obj != Color.BLACK])[0]
 
         # find the mean position of the colored pixels
-        mean_pos = np.mean(np.argwhere(cropped_obj != Color.BLACK), axis=0)
+        mean_pos = np.mean(np.argwhere(sprite != Color.BLACK), axis=0)
 
         # find the mean position of all the black pixels
-        mean_black_pos = np.mean(np.argwhere(cropped_obj == Color.BLACK), axis=0)
+        mean_black_pos = np.mean(np.argwhere(sprite == Color.BLACK), axis=0)
 
         # find the direction the arrowhead is pointing in, it is from the mean position of the colored pixels to the mean position of the black pixels
-        direction = np.sign(mean_black_pos - mean_pos)
+        direction = np.sign(mean_black_pos - mean_pos).astype(int)
 
         # draw a line in the direction the arrowhead is pointing in from the corresponding corner of the bounding box
         # list the corners of the bounding box
@@ -44,8 +44,10 @@ def main(input_grid):
         center = (x + w / 2, y + h / 2)
         # if the direction of the corner from the center of the object matches the direction we want to draw a line in, then draw a line
         for corner in corners:
-            if np.sign(corner[0] - center[0]) == direction[0] and np.sign(corner[1] - center[1]) == direction[1]:
-                draw_line(output_grid, corner[0], corner[1], length=None, color=color, direction=direction.astype(int))
+            # check if the corner is in the direction that the arrowhead is pointing
+            vector_to_corner = np.array(corner) - np.array(center)
+            if np.all(np.sign(vector_to_corner) == direction):
+                draw_line(output_grid, corner[0], corner[1], length=None, color=color, direction=direction)
 
     return output_grid
 
