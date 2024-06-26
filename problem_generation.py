@@ -6,6 +6,7 @@ import os
 import re
 import tqdm
 import json
+import time
 
 class Problem:
     def __init__(self, source_code):
@@ -142,7 +143,7 @@ def run_transformation(source, input_grid, timeout=1, function_name="main", num_
     output_grids = multi_execute_transformation([source] * num_returns, [input_grid] * num_returns, timeout, function_name)
     return output_grids
 
-def generate_problem(problem_source, num_input_grids=30, num_deterministic_check=20, num_color_permute_check=20, timeout=1):
+def generate_problem(problem_source, num_input_grids=30, num_deterministic_check=20, num_color_permute_check=20, timeout=1, total_timeout=30):
     """
     Generate a problem by generating input grids and running the transformation on them.
     Return None for the problem if:
@@ -152,12 +153,16 @@ def generate_problem(problem_source, num_input_grids=30, num_deterministic_check
     For the example input-output grid pair, remove for the example pair if:
     1. input grid is the same as the output grid
     """
+    start = time.time()
     problem = Problem(problem_source)
 
     input_grids = generate_input_grids(problem_source, num_returns=num_input_grids, timeout=timeout, deduplicate=True)
-    
+
     # Check for non-deterministic transformations
     for input_grid in input_grids:
+        if time.time() - start > total_timeout:
+            print(f"Total timeout reached after {total_timeout} seconds")
+            return None
         output_grids = run_transformation(problem_source, input_grid, timeout=timeout, num_returns=num_deterministic_check)
         if len(output_grids) == 0:
             print("No output grids")
@@ -240,7 +245,7 @@ def main():
             problems_source.append(problem["code"])
     else:
         raise ValueError("Provide one of problem_uid, run_all_seed or jsonl")
-    
+
     if problem_source_uids:
         for problem_source_uid in problem_source_uids:
             with open(f"seeds/{problem_source_uid}.py") as f:
@@ -250,7 +255,7 @@ def main():
 
     problems = []
     for i, problem_source in enumerate(tqdm.tqdm(problems_source)):
-        problem = generate_problem(problem_source)
+        problem = generate_problem(problem_source, total_timeout=30)
         if problem and len(problem.examples) >= 4:
             print(f"+1 problem with {len(problem.examples)} examples")
             problems.append(problem)
@@ -265,7 +270,7 @@ def main():
         with open(result_saving_file, "w") as f:
             for problem in problems:
                 f.write(json.dumps(problem.to_dict()) + "\n")
- 
+
 
 if __name__ == "__main__":
     main()
