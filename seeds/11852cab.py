@@ -18,7 +18,7 @@ def main(input_grid):
     output_grid = input_grid.copy()
 
     # Find the rotational symmetry
-    sym = detect_rotational_symmetry(input_grid, ignore_color=Color.BLACK)
+    sym = detect_rotational_symmetry(input_grid, ignore_colors=[Color.BLACK])
 
     # Find the colored pixels
     colored_pixels = np.argwhere(input_grid != Color.BLACK)

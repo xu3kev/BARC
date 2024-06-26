@@ -51,7 +51,7 @@ def main(input_grid):
     output_grid = np.copy(input_grid)
 
     # Find the symmetry
-    sym = detect_rotational_symmetry(input_grid, ignore_color=Color.BLACK)
+    sym = detect_rotational_symmetry(input_grid, ignore_colors=[Color.BLACK])
     
     # Rotate the blues and color red as needed
     blues = np.argwhere(input_grid == Color.BLUE)
