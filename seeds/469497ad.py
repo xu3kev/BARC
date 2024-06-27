@@ -45,14 +45,7 @@ def generate_input():
     n = m = 5
     grid = np.zeros((n,m), dtype=int)
 
-    # pick the color of the square
-    square_color = np.random.choice(list(Color.NOT_BLACK))
-
-    # put the square in the top left of the grid randomly
-    x, y = np.random.randint(2), np.random.randint(2)
-    grid[x:x+2, y:y+2] = square_color
-
-    # pick the remaining colors
+    # pick the colors for the bottom and right of the grid
     colors = list(Color.NOT_BLACK)
 
     # construct a random sequence of colors for the bottom and right of the grid
@@ -69,6 +62,16 @@ def generate_input():
     # put the same sequence on the bottom and right of the grid
     grid[-1, :] = sequence
     grid[:, -1] = sequence
+
+    # pick the color of the square
+    square_color = np.random.choice(list(Color.NOT_BLACK))
+    
+    # make the square
+    square = random_sprite(2, 2, density=1, color_palette=[square_color])
+
+    # put the square on the grid so it doesn't touch the bottom or right
+    x, y = random_free_location_for_object(grid, square, padding=1)
+    blit(grid, square, x, y)
 
 
     return grid
