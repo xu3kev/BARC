@@ -59,6 +59,9 @@ if __name__ == "__main__":
     <title>Code Visualization</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        body {{
+            padding: 0 10%;
+        }}
         .navigation-arrow {{
             position: fixed;
             top: 50%;
@@ -69,10 +72,10 @@ if __name__ == "__main__":
             z-index: 1000;
         }}
         .prev-arrow {{
-            left: 20px;
+            left: 10px;
         }}
         .next-arrow {{
-            right: 20px;
+            right: 10px;
         }}
         .good-button, .bad-button {{
             font-size: 24px;
@@ -114,7 +117,9 @@ if __name__ == "__main__":
         <i class="fas fa-arrow-right"></i>
     </div>
     <div id="progress">0/{total_problems}</div>
-    {"".join(htmls)}
+    <div>
+        {"".join(htmls)}
+    </div>
     <script>
         let currentProblem = 0;
         let totalProblems = {total_problems};
