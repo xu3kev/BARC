@@ -1,11 +1,12 @@
 import argparse
 import random
-from execution import execute_transformation, execute_input_generator
+from execution import multi_execute_transformation, multi_execute_input_generator, execute_transformation
 import numpy as np
 import os
 import re
 import tqdm
 import json
+import time
 
 class Problem:
     def __init__(self, source_code):
@@ -26,6 +27,7 @@ def check_grid(grid):
     try:
         assert isinstance(grid, np.ndarray)
         assert len(grid.shape) == 2
+        assert grid.shape[0] > 0 and grid.shape[1] > 0
         assert np.all((0 <= grid) & (grid <= 9))
     except AssertionError:
         return False
@@ -49,23 +51,27 @@ def check_identity(input_grid, output_grid):
         breakpoint()
     return np.array_equal(input_grid, output_grid)
 
-def generate_input_grids(problem_source, num_returns=3, timeout=1, function_name="generate_input", retries=50, deduplicate=True):
+def generate_input_grids(problem_source, num_returns=3, timeout=1, function_name="generate_input", retries=20, deduplicate=True):
     """
     given a problem source code, generate an input grid
     """
-    input_grids = []
+    return_input_grids = []
     tries = 0
-    while len(input_grids) < num_returns and tries < retries:
-        input_grid = execute_input_generator(problem_source, timeout, function_name)
-        if not check_grid(input_grid):
-            tries += 1
-            continue
-        if deduplicate and any(np.array_equal(input_grid, existing_grid) for existing_grid in input_grids):
-            tries += 1
-            continue
-        input_grids.append(input_grid)
+    BATCH_SIZE = num_returns
+    while len(return_input_grids) < num_returns and tries < retries:
+        input_grids = multi_execute_input_generator([problem_source] * BATCH_SIZE, timeout, function_name)
+        for input_grid in input_grids:
+            if not check_grid(input_grid):
+                tries += 1
+                print('Non well-formed input grid')
+                continue
+            if deduplicate and any(np.array_equal(input_grid, existing_grid) for existing_grid in return_input_grids):
+                tries += 1
+                print('Duplicate input grid')
+                continue
+            return_input_grids.append(input_grid)
 
-    return input_grids
+    return return_input_grids
 
 def get_random_color_mapping(only_non_black=True, permute_colors=None):
     """
@@ -134,13 +140,10 @@ def run_transformation(source, input_grid, timeout=1, function_name="main", num_
     """
     run the transformation on the input grid and return the output grid multiple times
     """
-    output_grids = []
-    for _ in range(num_returns):
-        output_grid = execute_transformation(source, input_grid, timeout, function_name)
-        output_grids.append(output_grid)
+    output_grids = multi_execute_transformation([source] * num_returns, [input_grid] * num_returns, timeout, function_name)
     return output_grids
 
-def generate_problem(problem_source, num_examples=4, num_input_grids=10, num_deterministic_check=10, num_color_permute_check=10, timeout=1):
+def generate_problem(problem_source, num_input_grids=30, num_deterministic_check=20, num_color_permute_check=20, timeout=1, total_timeout=30):
     """
     Generate a problem by generating input grids and running the transformation on them.
     Return None for the problem if:
@@ -150,36 +153,56 @@ def generate_problem(problem_source, num_examples=4, num_input_grids=10, num_det
     For the example input-output grid pair, remove for the example pair if:
     1. input grid is the same as the output grid
     """
+    start = time.time()
     problem = Problem(problem_source)
 
     input_grids = generate_input_grids(problem_source, num_returns=num_input_grids, timeout=timeout, deduplicate=True)
-    
+
     # Check for non-deterministic transformations
     for input_grid in input_grids:
+        if time.time() - start > total_timeout:
+            print(f"Total timeout reached after {total_timeout} seconds")
+            return None
         output_grids = run_transformation(problem_source, input_grid, timeout=timeout, num_returns=num_deterministic_check)
-        if not all(check_grid(output_grid) for output_grid in output_grids):
-            # if any of the output grids are not well-formed, skip this particular input grid
-            print('Non well-formed output grid, skipping this input grid')
+        if len(output_grids) == 0:
+            print("No output grids")
             continue
         if not check_grids_all_equal(output_grids):
             print("Non-deterministic transformation")
             return None
+        if not all(check_grid(output_grid) for output_grid in output_grids):
+            # if any of the output grids are not well-formed, skip this particular input grid
+            print('Non well-formed output grid, skipping this input grid')
+            continue
+        if np.all(output_grids[0] == 0):
+            print("Output grid is entirely black, skipping this example")
+            continue
+
+        expected_output_grids = output_grids[0]
 
         # Check for non-color-invariant transformations
+        permuted_input_grids = []
+        modified_problem_sources = []
+        color_mappings = []
         for _ in range(num_color_permute_check):
             color_mapping = get_random_color_mapping(only_non_black=True)
+            color_mappings.append(color_mapping)
             permuted_input_grid = apply_color_mapping(input_grid, color_mapping)
+            permuted_input_grids.append(permuted_input_grid)
             modified_problem_source = add_color_changing_code(problem_source, color_mapping)
-            permuted_output_grid = execute_transformation(modified_problem_source, permuted_input_grid, timeout, function_name="main")
-            modified_problem_source2 = add_color_changing_code(problem_source, None)
-            original_output_grid = execute_transformation(modified_problem_source2, input_grid, timeout, function_name="main")
-            # FIXME: very hacky, the order of these execution can not be reverse because of the color mapping changing permantly
-            # and it will affect the original output grid, so need to swap the colors back
-            # and also it might be problematic if the later execution crashes
-            if not check_grid(permuted_output_grid) or not check_grid(original_output_grid) or not check_grid(input_grid):
+            modified_problem_sources.append(modified_problem_source)
+
+        permuted_output_grids = multi_execute_transformation(modified_problem_sources, 
+                                                             permuted_input_grids, timeout, function_name="main")
+
+        if len(permuted_output_grids) != num_color_permute_check:
+            print("some transformations failed during permute check")
+            return None
+        for permuted_output_grid, color_mapping in zip(permuted_output_grids, color_mappings):
+            if not check_grid(permuted_output_grid) or not check_grid(input_grid):
                 print("Permute check failed due to non-well-formed grids")
                 return None
-            if not check_identity(apply_color_mapping(original_output_grid, color_mapping), permuted_output_grid):
+            if not check_identity(apply_color_mapping(expected_output_grids, color_mapping), permuted_output_grid):
                 print("Permute check failed")
                 return None
 
@@ -212,14 +235,17 @@ def main():
         problem_source_uids = [re.match(pattern, filename).group(1) for filename in seeds if re.match(pattern, filename)]
         # Now `matched_files` contains all the filenames that match the pattern
     elif args.jsonl:
+        print(f"Reading from {args.jsonl}")
+        result_saving_file = args.jsonl.replace(".jsonl", "_generated_problems.jsonl")
+        print(f"Saving to {result_saving_file}")
         with open(args.jsonl) as f:
             data = f.readlines()
         for line in data:
             problem = json.loads(line)
-            problems_source.append(problem["source"])
+            problems_source.append(problem["code"])
     else:
         raise ValueError("Provide one of problem_uid, run_all_seed or jsonl")
-    
+
     if problem_source_uids:
         for problem_source_uid in problem_source_uids:
             with open(f"seeds/{problem_source_uid}.py") as f:
@@ -228,20 +254,23 @@ def main():
 
 
     problems = []
-    for i, problem_source in tqdm.tqdm(enumerate(problems_source)):
-        problem = generate_problem(problem_source)
+    for i, problem_source in enumerate(tqdm.tqdm(problems_source)):
+        problem = generate_problem(problem_source, total_timeout=30)
         if problem and len(problem.examples) >= 4:
+            print(f"+1 problem with {len(problem.examples)} examples")
             problems.append(problem)
         else:
             if problem_source_uids:
                 print(f"Problem {problem_source_uids[i]} is not valid")
+        print(f"so far, generated {len(problems)} problems")
 
     # write list of Problem to jsonl file
     print(f'Generated {len(problems)} problems')
-    with open("generated_problems.jsonl", "w") as f:
-        for problem in problems:
-            f.write(json.dumps(problem.to_dict()) + "\n")
- 
+    if args.jsonl:
+        with open(result_saving_file, "w") as f:
+            for problem in problems:
+                f.write(json.dumps(problem.to_dict()) + "\n")
+
 
 if __name__ == "__main__":
     main()

@@ -18,7 +18,6 @@ def get_common_lib_from_file(file_path="seeds/common.py"):
         common_lib = f.read()
 
     common_lib_functions = extract_functions(common_lib)
-    # Clean the common lib by removing any functions whose docstring begins/contains "internal function not used by LLM"
     common_lib_functions = [f for f in common_lib_functions if "internal function not used by LLM" not in f["docstring"]]
     common_lib_function_names = set([f["name"] for f in common_lib_functions])
 
@@ -27,6 +26,7 @@ def get_common_lib_from_file(file_path="seeds/common.py"):
     common_lib_classes = [c for c in common_lib_classes if "internal class not used by LLM" not in c["docstring"]]
 
     common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
+    print(common_lib)
     return common_lib, common_lib_function_names
 
 def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, num_seeds=None, remix=0, library_function_hint=-1):
@@ -130,7 +130,7 @@ Be sure to make the transformation `main` deterministic. Be sure to not assume o
 
     if library_function_hint_str:
         prompt += f"""\n{library_function_hint_str}"""
-        
+    
     return prompt
 
 if __name__ == "__main__":
@@ -145,6 +145,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", "-m", type=str, default="gpt-4-turbo", help="which model to use", 
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
     parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
+    parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
     
     arguments = parser.parse_args()
 
@@ -177,15 +178,26 @@ if __name__ == "__main__":
 
     if arguments.sample_parallel == 1:
         for prompt in tqdm(prompts):
-            samples.extend(client.generate(prompt, num_samples=1, max_tokens=1024*2, temperature=arguments.temperature, model=model))
+            samples.extend(client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model))
     else:
-        list_of_lists_of_samples = client.generate_parallel(prompts, num_samples=1, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
+        list_of_lists_of_samples = client.generate_parallel(prompts, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
         # flatten the list
         samples = [sample for sublist in list_of_lists_of_samples for sample in sublist]
 
     codes = []
     for sample in samples:
         codes.extend(parse_code(sample))
+
+    model_name = arguments.model.replace("/", "_")
+    # write the codes to jsonl file
+    file_name = f"self_instruct_remix{remix_level}_fewshot_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}.jsonl"
+    print(f"Writing to jsonl {file_name}")
+    with open(file_name, "w") as f:
+        # jsonl, one json per line
+        import json
+        for code in codes:
+            f.write(json.dumps({"code": code}) + "\n")
+    print(f"{len(codes)} codes written to {file_name}")
     
     htmls = []
 
@@ -248,8 +260,7 @@ if __name__ == "__main__":
     </body>
     </html>
     """
-    model_name = arguments.model.replace("/", "_")
-    file_name = f"self_instruct_remix{remix_level}_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}.html"
+    file_name = f"self_instruct_remix{remix_level}_fewshot_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}.html"
 
     print(f"Writing to {file_name}")
     with open(file_name, "w") as f:

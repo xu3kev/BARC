@@ -12,35 +12,37 @@ from typing import *
 
 def main(input_grid):
     # Plan:
-    # 1. Find the periodicity of the translational symmetry, in both horizontal and vertical directions
-    # 2. Reconstruct the sprite by ignoring the black pixels and exploiting the periodicity
-    # 3. Make the output by tiling the sprite infinitely in all directions
+    # 1. Find the translational symmetries
+    # 2. Reconstruct the sprite by ignoring the black pixels and exploiting the symmetry
 
     w, h = input_grid.shape
 
-    # Identify the horizontal/vertical period of translational symmetry
-    h_period = detect_horizontal_periodicity(input_grid, ignore_color=Color.BLACK)
-    v_period = detect_vertical_periodicity(input_grid, ignore_color=Color.BLACK)
+    # Identify the translational symmetries
+    translations = detect_translational_symmetry(input_grid, ignore_colors=[Color.BLACK])
+    assert len(translations) > 0, "No translational symmetry found"
 
-    # Reconstruct the sprite by ignoring the black pixels and exploiting the periodicity
-    sprite = np.full((h_period, v_period), Color.BLACK)
-    for x in range(h_period):
-        for y in range(v_period):
-            possible_inputs = [input_grid[x + i*h_period, y + j*v_period] for i in range(w//h_period) for j in range(h//v_period)]
-            nonblack_inputs = [c for c in possible_inputs if c != Color.BLACK]
-            if len(nonblack_inputs) == 0:
-                sprite[x, y] = Color.BLACK
-            else:
-                sprite[x, y] = nonblack_inputs[0]
-    
-    # Make the output by tiling the sprite infinitely in all directions
-    output_grid = np.full((input_grid.shape[0], input_grid.shape[1]), Color.BLACK)
-    for x in range(0, input_grid.shape[0], h_period):
-        for y in range(0, input_grid.shape[1], v_period):
-            blit(output_grid, sprite, x, y)
+    # Reconstruct the occluded black pixels by replacing them with colors found in the orbit of the symmetries
+    output_grid = np.copy(input_grid)
+    for x in range(w):
+        for y in range(h):
+            if output_grid[x, y] == Color.BLACK:
+                # Use the translational symmetry to fill in the occluded pixels
+                # to do this we compute the ORBIT of the current pixel under the translations
+                # and take the most common non-black color in the orbit
+
+                # Compute the orbit into the output
+                orbit_pixels = orbit(output_grid, x, y, translations)
+                orbit_colors = {input_grid[transformed_x, transformed_y]
+                                for transformed_x, transformed_y in orbit_pixels}
+                
+                # occluded by black, so whatever color it is, black doesn't count
+                orbit_colors = orbit_colors - {Color.BLACK}
+
+                # Copy the color
+                assert len(orbit_colors) == 1, "Ambiguity: multiple colors in the orbit"
+                output_grid[x, y] = orbit_colors.pop()
     
     return output_grid
-
 
 def generate_input():
     # Make a random large canvas
