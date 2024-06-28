@@ -57,11 +57,22 @@ if __name__ == "__main__":
     <html>
     <head>
     <title>Code Visualization</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        .navigation {{
+        .navigation-arrow {{
             position: fixed;
-            top: 10px;
-            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 48px;
+            color: #333;
+            cursor: pointer;
+            z-index: 1000;
+        }}
+        .prev-arrow {{
+            left: 20px;
+        }}
+        .next-arrow {{
+            right: 20px;
         }}
         .good-button, .bad-button {{
             font-size: 24px;
@@ -88,15 +99,21 @@ if __name__ == "__main__":
             background-color: #e53935;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }}
+        #progress {{
+            position: fixed;
+            top: 10px;
+            right: 10px;
+        }}
     </style>
-
     </head>
     <body>
-    <div class="navigation">
-        <button onclick="prevProblem()">Previous</button>
-        <button onclick="nextProblem()">Next</button>
-        <span id="progress">0/{total_problems}</span>
+    <div class="navigation-arrow prev-arrow" onclick="prevProblem()">
+        <i class="fas fa-arrow-left"></i>
     </div>
+    <div class="navigation-arrow next-arrow" onclick="nextProblem()">
+        <i class="fas fa-arrow-right"></i>
+    </div>
+    <div id="progress">0/{total_problems}</div>
     {"".join(htmls)}
     <script>
         let currentProblem = 0;
