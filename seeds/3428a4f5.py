@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# XOR operation, ?
+# bitmasks with separator, boolean logical operations
 
 # description:
 # Compute the XOR operation of where the two grids are red, turning the output green in those locations.
@@ -14,16 +14,17 @@ from typing import *
 
 def main(input_grid):
    
-   # Find the yellow horizontal line
+    # Find the yellow horizontal line
     for y_bar in range(input_grid.shape[1]):
         if np.all(input_grid[:, y_bar] == Color.YELLOW):
             break      
-    #extract left and right patterns
+    # extract left and right patterns
     left_pattern = input_grid[:, :y_bar]
     right_pattern = input_grid[:, y_bar+1:] 
 
     output_grid = np.zeros_like(left_pattern)
-    #applying the pattern 
+
+    # applying the pattern 
     output_grid[(left_pattern==right_pattern)] = Color.BLACK
     output_grid[(left_pattern!=right_pattern)] = Color.GREEN
 
@@ -34,7 +35,7 @@ def main(input_grid):
 
 def generate_input():
   
-  # Define the grid size
+    # Define the grid size
     num_rows = 5  
     num_cols = 13 # 6 top + 1 yellow line + 6 bottom
 
@@ -42,9 +43,9 @@ def generate_input():
     input_grid = np.zeros((num_rows, num_cols), dtype=int)
 
     # Randomly assign red or black to the top and bottom patterns
-    for i in range(num_rows):
-        for j in range(num_cols):
-            input_grid[i, j] = np.random.choice([Color.BLACK, Color.RED])
+    for x in range(num_rows):
+        for y in range(num_cols):
+            input_grid[x, y] = np.random.choice([Color.BLACK, Color.RED])
    
 
     # Set the yellow vertical line
