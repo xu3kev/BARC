@@ -7,66 +7,58 @@ from typing import *
 # color, falling
 
 # description:
-# In the input, you should see a gray baseline at the bottom, and above each gray cell, there may or may not be gray pixels. If there are gray pixels, you can see a single blue pixel above it.
-# To make the output, replace any gray baseline with a blue square above it with the blue square, coloring the spot where the original blue square was black. Alternatively, take the blue squares and place them two squares down.
+# In the input, you should see a gray baseline at the bottom. For each gray baseline pixel, there may or may not be gray pixels above it. If there are gray pixels above it, you can see a blue pixel above the gray pixels.
+# To make the output, make the blue pixels fall downward, falling through the gray baseline until they hit the bottom.
 
 def main(input_grid):
-    
     output_grid = np.copy(input_grid)
 
-    rows, cols = output_grid.shape
+    width, height = output_grid.shape
 
-    # to generalize this problem to another problem with differnent colors, we solve the problem by counting the frequency of each color in the input grid and letting the least frequent color be the color that we want to replace with another color
-    # color to be blue in our example, and the baseline to be the second least frequent color in the input grid 
-    color_frequency_dict = {}
-    
-    for x in range(rows):
-      for y in range(cols):
-        key = input_grid[x][y]
-        if key in color_frequency_dict:
-          color_frequency_dict[key] += 1
-        else:
-          color_frequency_dict[key] = 1
+    # Find the color of the bottom baseline
+    baseline = output_grid[:, -1]
+    baseline_colors = np.unique(baseline)
+    assert len(baseline_colors) == 1
+    baseline_color = baseline_colors[0]
 
-    # Find the color that is the least frequent   
-    least_frequent_color = min(color_frequency_dict, key=color_frequency_dict.get)         
-    
-    # Find the color that is the second least frequent
-    color_frequency_dict.pop(least_frequent_color)
-    baseline_color = min(color_frequency_dict, key=color_frequency_dict.get)
-    
-    for x in range(rows):
-      for y in range(cols-2):
-            # checks that the square is least_frequently occuring color and the square all the way to the right is the baseline color
-            
-            if output_grid[x, y] == least_frequent_color and output_grid[x, -1] == baseline_color:
-                # replace the gray square with the least frequent color square
-                output_grid[x, -1] =least_frequent_color
-                # replace the blue square with a black square
-                output_grid[x, y] = Color.BLACK
+    # Find the color of the background, which is the most common color
+    background_color = np.argmax(np.bincount(output_grid.flatten()))
+
+    # Now make all the other colors fall down
+    for x in range(width):
+      for y in range(height):
+          if output_grid[x, y] != background_color and output_grid[x, y] != baseline_color:
+              # Make it fall to the bottom
+              # Do this by finding the background/baseline spot below it which is closest to the bottom
+              possible_y_values = [ possible_y for possible_y in range(y+1, height)
+                                   if output_grid[x, possible_y] == background_color or output_grid[x, possible_y] == baseline_color]
+              if len(possible_y_values) > 0:
+                  closest_to_bottom_y = max(possible_y_values)
+                  output_grid[x, closest_to_bottom_y] = output_grid[x, y]
+                  output_grid[x, y] = background_color                  
   
     return output_grid
 
 
 def generate_input():
-    
-    rows, cols = 5,5
-    input_grid = np.zeros((rows,cols), dtype= int)
+    width, height = 5, 5
+    input_grid = np.zeros((width,height), dtype= int)
 
-    # make the last column gray
-    input_grid[:,cols-1] = Color.GRAY
+    # make the bottom pixels gray
+    input_grid[:, height-1] = Color.GRAY
 
-
-    # randomly select 1 or 2 squares in the column two to the left of the last to be blue squares 
+    # randomly select 1 or 2 squares
     num_blue_squares = random.choice([1, 2])
-    blue_positions = random.sample(range(cols), num_blue_squares)
-    for pos in blue_positions:
-        input_grid[pos, cols-3] = Color.BLUE
 
-    # connect the blue squares to the last gray column with gray cells
-    for pos in blue_positions:
-        input_grid[pos, cols-2] = Color.GRAY
-      
+    # randomly pick where to put them
+    blue_x_positions = random.sample(range(width), num_blue_squares)
+
+    # put the blue squares above new gray squares
+    for pos in blue_x_positions:
+        # grey is directly above the bottom (directly above height-1)
+        input_grid[pos, height-2] = Color.GREY
+        # and blue is directly above that
+        input_grid[pos, height-3] = Color.BLUE
 
     return input_grid    
 

@@ -13,43 +13,43 @@ from typing import *
 # if the overlapping cells are not the same color, then the corresponding cell is colored green
 
 def main(input_grid):
+
+    width, height = input_grid.shape
    
-    # Find the yellow horizontal line
-    for y_bar in range(input_grid.shape[1]):
+    # Find the yellow horizontal line/bar
+    for y_bar in range(height):
         if np.all(input_grid[:, y_bar] == Color.YELLOW):
-            break      
+            break
+    
     # extract left and right patterns
     left_pattern = input_grid[:, :y_bar]
     right_pattern = input_grid[:, y_bar+1:] 
 
     output_grid = np.zeros_like(left_pattern)
 
-    # applying the pattern 
-    output_grid[(left_pattern==right_pattern)] = Color.BLACK
+    # applying the XOR pattern, which is where they are different
     output_grid[(left_pattern!=right_pattern)] = Color.GREEN
+    output_grid[(left_pattern==right_pattern)] = Color.BLACK
 
-    
-    
     return output_grid
 
 
 def generate_input():
   
     # Define the grid size
-    num_rows = 5  
-    num_cols = 13 # 6 top + 1 yellow line + 6 bottom
+    width = 5  
+    height = 13 # 6 top + 1 yellow line + 6 bottom
 
     # Initialize an empty grid
-    input_grid = np.zeros((num_rows, num_cols), dtype=int)
+    input_grid = np.full((width, height), Color.BLACK)
 
     # Randomly assign red or black to the top and bottom patterns
-    for x in range(num_rows):
-        for y in range(num_cols):
+    for x in range(width):
+        for y in range(height):
             input_grid[x, y] = np.random.choice([Color.BLACK, Color.RED])
-   
 
     # Set the yellow vertical line
-    input_grid[:, int(num_cols//2)] = Color.YELLOW
+    input_grid[:, int(height//2)] = Color.YELLOW
 
     return input_grid
 
