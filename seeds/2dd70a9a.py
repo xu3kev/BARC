@@ -34,15 +34,21 @@ def calc_neighbors(grid, start_x, start_y):
     return directions
 
 
-def find_path(start_x, start_y, grid, dptable):
+def find_path(start_x, start_y, grid, dptable, initial_green_loc):
     if Color.GREEN not in grid and Color.BLUE not in grid:
-        return None
-    dptable[(start_x, start_y)] = {
-        (1, 0): None,
-        (-1, 0): None,
-        (0, 1): None,
-        (0, -1): None,
-    }
+        for i in initial_green_loc:
+            grid[i[0], i[1]] = Color.GREEN
+        start_again = random.choice(initial_green_loc)
+        return find_path(
+            start_again[0], start_again[1], grid, dptable, initial_green_loc
+        )
+    if (start_x, start_y) not in dptable.keys():
+        dptable[(start_x, start_y)] = {
+            (1, 0): None,
+            (-1, 0): None,
+            (0, 1): None,
+            (0, -1): None,
+        }
     # print(dptable)
     # Look at neighboring pixels
     # print(start_x, start_y)
@@ -53,15 +59,30 @@ def find_path(start_x, start_y, grid, dptable):
     directions = calc_neighbors(grid, start_x, start_y)
     print(directions)
     print(start_x, start_y)
-
+    print(dptable)
     # Handle exit case
     if Color.RED in directions.values():
         return grid
+
+    # Compute if current point is a dead end
+    deadend = True
+
+    for i in dptable[(start_x, start_y)]:
+        if dptable[(start_x, start_y)][i] != -1 and (
+            directions[i] == Color.BLACK or directions[i] == Color.GREEN
+        ):
+            deadend = False
+            break
+
     # If you get stuck, backtrack to the previous turning point, mark the backtracked path as yellow
     if (
-        Color.BLACK not in directions.values()
-        and Color.GREEN not in directions.values()
-    ) or (None in directions.values() and grid[start_x, start_y] == Color.BLUE):
+        (
+            Color.BLACK not in directions.values()
+            and Color.GREEN not in directions.values()
+        )
+        or (None in directions.values() and grid[start_x, start_y] == Color.BLUE)
+        or deadend
+    ):
         print("backtrack")
         print(grid[start_x, start_y])
         for i in dptable[(start_x, start_y)]:
@@ -71,52 +92,43 @@ def find_path(start_x, start_y, grid, dptable):
         for start, dic in dptable.items():
             for dir, dest in dic.items():
                 if dest == (start_x, start_y):
-
+                    dptable[start][dir] = -1
                     draw_line(
                         grid,
                         start[0],
                         start[1],
                         max(abs(start_x - start[0]) + 1, abs(start_y - start[1]) + 1),
-                        Color.YELLOW,
+                        Color.BLACK,
                         dir,
                     )
-                    print("inside_loop")
+                    # print("inside_loop")
                     start_x, start_y = start
-        temp_path = find_path(start_x, start_y, grid, dptable)
+        temp_path = find_path(start_x, start_y, grid.copy(), dptable, initial_green_loc)
         if temp_path is not None:
             return temp_path
     else:
+        # Creates a greedy order of directions to choose from when determing where to go next
         greedy_directions = []
         end_x, end_y = np.argwhere(grid == Color.RED)[0]
         dist_to_end = (end_x - start_x, end_y - start_y)
         dir_to_end_vertical = (0, np.sign(dist_to_end[1]))
         dir_to_end_horizontal = (np.sign(dist_to_end[0]), 0)
         for i in [dir_to_end_horizontal, dir_to_end_vertical]:
-            print(i)
             if i in directions.keys():
-
                 greedy_directions.append((i, directions[i]))
-        print(greedy_directions)
         for i in directions.keys():
             for k, v in greedy_directions:
                 if i[0] != k[0] or i[1] != k[1]:
                     greedy_directions.append((i, directions[i]))
-        print(greedy_directions)
         for k, v in greedy_directions:
+            print(k)
             # If black / green, we want to try that direction.
             # We will color back the green start point in main function later.
             if v == Color.RED:
                 return grid
-            if v == Color.BLACK or v == Color.GREEN:
-                draw_line(
-                    grid,
-                    start_x,
-                    start_y,
-                    None,
-                    Color.BLUE,
-                    k,
-                    stop_at_color=[Color.TEAL, Color.RED],
-                )
+            if (v == Color.BLACK or v == Color.GREEN) and (
+                dptable[(start_x, start_y)][k] != -1
+            ):
                 new_x = start_x
                 new_y = start_y
                 # Updating index accordingly
@@ -126,31 +138,47 @@ def find_path(start_x, start_y, grid, dptable):
                     and new_y + k[1] < grid.shape[1]
                     and new_y + k[1] >= 0
                     and grid[new_x + k[0], new_y + k[1]] != Color.TEAL
+                    and grid[new_x + k[0], new_y + k[1]] != Color.BLUE
+                    and grid[new_x + k[0], new_y + k[1]] != Color.RED
                 ):
-                    if grid[new_x, new_y] == Color.RED:
-                        return grid
+                    # if grid[new_x, new_y] == Color.RED:
+                    #    return grid
                     new_x += k[0]
                     new_y += k[1]
+
+                draw_line(
+                    grid,
+                    start_x,
+                    start_y,
+                    max(abs(start_x - new_x) + 1, abs(start_y - new_y) + 1),
+                    Color.BLUE,
+                    k,
+                )
+                if grid[new_x, new_y] == Color.RED:
+                    return grid
                 print("new")
                 print(new_x, new_y)
-                if (new_x, new_y) not in dptable.keys() or dptable[(new_x, new_y)][
-                    k
-                ] != -1:
-                    dptable[(start_x, start_y)][k] = (new_x, new_y)
-                    temp_path = find_path(new_x, new_y, grid, dptable)
-                    if temp_path is not None:
-                        return temp_path
-                else:
-                    dptable[(start_x, start_y)][k] = -1
-                    draw_line(
-                        grid,
-                        start_x,
-                        start_y,
-                        None,
-                        Color.YELLOW,
-                        k,
-                        stop_at_color=[Color.TEAL, Color.RED],
-                    )
+                # if (new_x, new_y) not in dptable.keys() or dptable[(new_x, new_y)][
+                #    k
+                # ] != -1:
+                dptable[(start_x, start_y)][k] = (new_x, new_y)
+                temp_path = find_path(
+                    new_x, new_y, grid.copy(), dptable, initial_green_loc
+                )
+                if temp_path is not None:
+                    return temp_path
+
+                # else:
+                #    dptable[(start_x, start_y)][k] = -1
+                #    draw_line(
+                #        grid,
+                #        start_x,
+                #        start_y,
+                #        None,
+                #        Color.BLACK,
+                #        k,
+                #        stop_at_color=[Color.TEAL, Color.RED],
+                #    )
 
 
 def main(input_grid):
@@ -159,7 +187,7 @@ def main(input_grid):
     start_x, start_y = green_loc[0]
     neighbors = calc_neighbors(input_grid, start_x, start_y)
     dptable = {}
-    grid = find_path(start_x, start_y, input_grid.copy(), dptable)
+    grid = find_path(start_x, start_y, input_grid.copy(), dptable, green_loc)
     # Put back start point
     for x, y in green_loc:
         grid[x, y] = Color.GREEN
@@ -168,7 +196,7 @@ def main(input_grid):
     grid[grid == Color.BLUE] = Color.GREEN
 
     # Color visited dead ends to black
-    grid[grid == Color.YELLOW] = Color.BLACK
+    # grid[grid == Color.YELLOW] = Color.BLACK
 
     return grid
 
