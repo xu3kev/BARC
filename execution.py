@@ -5,6 +5,9 @@ import concurrent.futures
 import os
 import signal
 import sys
+import psutil
+import time
+
 
 # add seeds/ to the python path so we can import common
 sys.path.append("seeds/")
@@ -22,53 +25,90 @@ def _worker(task_id, source_code, return_var_name):
     ret = global_vars[return_var_name]
     return ret
 
+def kill_process(pid):
+    """Attempt to terminate the process gracefully, then forcefully if needed."""
+    try:
+        os.kill(pid, signal.SIGTERM)
+        time.sleep(1)  # Give some time for graceful termination
+        if psutil.pid_exists(pid):
+            os.kill(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass  # Process is already terminated
+    except Exception as e:
+        print(f"Error while trying to terminate the process: {e}")
+
+def terminate_all_processes():
+    """Terminate all child processes of the current process."""
+    current_process = psutil.Process()
+    for child in current_process.children(recursive=True):
+        kill_process(child.pid)
+
+def _worker_with_id(args):
+    task_id, source_code, return_var_name = args
+    global_vars = {}
+    exec(source_code, global_vars)
+    if return_var_name not in global_vars:
+        print(f"Error: {return_var_name} not found in global_vars")
+        return None
+    ret = global_vars[return_var_name]
+    return task_id, ret
+
 def multi_process_execute(codes, return_var_name, timeout=1, num_workers=8):
+    from pebble import ProcessPool, ProcessExpired
+
+    tasks = [(i, code, return_var_name) for i, code in enumerate(codes)]
+    ordered_results = [None] * len(tasks)
+    with ProcessPool(max_workers=num_workers) as pool:
+        future = pool.map(_worker_with_id, tasks, timeout=timeout)
+
+        iterator = future.result()
+
+        while True:
+            try:
+                result = next(iterator)
+                if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], int):
+                    task_id, value = result
+                    ordered_results[task_id] = value
+            except StopIteration:
+                break
+            except TimeoutError as error:
+                print("function took longer than %d seconds" % error.args[1])
+            except ProcessExpired as error:
+                print("%s. Exit code: %d" % (error, error.exitcode))
+            except Exception as error:
+                print("function raised %s" % error)
+                # print(error.traceback)  # Python's traceback of remote process
+    return ordered_results
+
+def multi_process_execute_v2(codes, return_var_name, timeout=1, num_workers=8):
     # associate each code with an index
     tasks = [(i, code, return_var_name) for i, code in enumerate(codes)]
     all_results = [None] * len(tasks)
     with concurrent.futures.ProcessPoolExecutor(num_workers) as executor:
-        # Submit all tasks
-        future_to_task = {executor.submit(_worker, *task): task for task in tasks}
-        
+        future_to_task = {executor.submit(_worker, task[0], *task[1:]): task for task in tasks}
+
         try:
-            for future in concurrent.futures.as_completed(future_to_task, timeout=timeout):
+            completed_futures = concurrent.futures.wait(future_to_task.keys(), timeout=timeout, return_when=concurrent.futures.ALL_COMPLETED)
+            
+            # Process completed futures
+            for future in completed_futures.done:
                 task = future_to_task[future]
                 try:
-                    result = future.result(timeout=0)  # Non-blocking result fetch
-                    # print(result)
+                    result = future.result()  # Non-blocking result fetch
                     all_results[task[0]] = result
                 except concurrent.futures.TimeoutError:
                     print(f"Task {task[0]} timed out")
                 except Exception as e:
                     print(f"Task {task[0]} generated an exception: {e}")
-        except concurrent.futures.TimeoutError:
-            print(f"Timeout reached after {timeout} seconds")
+
+            # Cancel remaining futures
+            for future in completed_futures.not_done:
+                future.cancel()
+
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
         finally:
-            # Cancel any remaining tasks
-            for future in future_to_task:
-                future.cancel()
-            
-            # Force terminate any remaining child processes
-            for child in executor._processes.values():
-                try:
-                    os.kill(child.pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    # Process already terminated
-                    pass
-                except Exception as e:
-                    print(f"Error terminating process {child.pid}: {e}")
-                finally:
-                    # force terminate
-                    # TODO
-                    try:
-                        os.kill(child.pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        # Process already terminated
-                        pass
-                    except Exception as e:
-                        print(f"Error forcefully terminating process {child.pid}: {e}")
+            terminate_all_processes()
 
         return all_results
 
