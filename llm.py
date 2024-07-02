@@ -6,6 +6,7 @@ import diskcache as dc
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
+import time
 
 
 class Provider(Enum):
@@ -115,12 +116,22 @@ class LLMClient:
         # If the number of cached samples is less than requested, generate more samples
         if len(cached_samples) < num_samples:
             remaining_samples = num_samples - len(cached_samples)
-            try:
-                response = self.send_request(prompt, model, temperature, max_tokens, top_p, remaining_samples)
-                new_samples = [c.message.content for c in response.choices]
-                self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
-            except Exception as e:
-                print("Error", e)
+            actually_got_samples = False
+            backoff_timer = 1
+            while not actually_got_samples:
+                try:
+                    response = self.send_request(prompt, model, temperature, max_tokens, top_p, remaining_samples)
+                    new_samples = [c.message.content for c in response.choices]
+                    self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
+                    actually_got_samples = True
+                except Exception as e:
+                    if "Rate limit reached for model" in str(e):
+                        print("Rate limit reached, backoff for", backoff_timer, "seconds")
+                        time.sleep(backoff_timer)
+                        backoff_timer *= 2
+                    else:
+                        print("Error, going to try again in 1 second", e)
+                        time.sleep(1)
 
         # WARN neccessary to get the samples from cache again as it might have been updated
         cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
