@@ -29,7 +29,7 @@ def get_common_lib_from_file(file_path="seeds/common.py"):
     print(common_lib)
     return common_lib, common_lib_function_names
 
-def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, num_seeds=None, remix=0, library_function_hint=-1):
+def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, num_seeds=None, remix=0, library_function_hint=-1, use_generator_prompt=True):
     """
     remix: how many example seeds the prompt tells the LLM to remix.
     0 means no remixing, just shows all the seeds. 1 tells it to remix one of the examples, 2 tells it to remix two of the examples, etc.
@@ -122,11 +122,18 @@ To give you ideas, here are some examples of other puzzles that middle schoolers
 Your task is to create a new puzzle that is similar to the examples provided, {remix1}following these steps:
 1. First pick some `# concepts` from the example puzzles{remix2}. You can combine concepts from different examples. The concepts in the examples are:
    {concept_list}
-2. Brainstorm a possible puzzle using those concepts, thinking of the physical/geometric/topological/logical details
-3. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
-
-Be sure to make the transformation `main` deterministic. Be sure to not assume or impose any ordering to the colors. Use physical, geometric, topological, and logical concepts.
 """
+    if use_generator_prompt:
+        prompt+="""2. Brainstorm a list of 20 concepts similar to the concept, thinking of the physical/geometric/topological/logical details
+3. Pick one of the concepts from the brainstorming list, and create a new puzzle using that concept.
+4. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
+"""
+    else:
+        prompt+="""2. Brainstorm a possible puzzle using those concepts, thinking of the physical/geometric/topological/logical details
+3. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
+"""
+
+    prompt += """Be sure to make the transformation `main` deterministic. Be sure to not assume or impose any ordering to the colors. Use physical, geometric, topological, and logical concepts."""
 
     if library_function_hint_str:
         prompt += f"""\n{library_function_hint_str}"""
