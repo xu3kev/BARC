@@ -29,7 +29,7 @@ def get_common_lib_from_file(file_path="seeds/common.py"):
     print(common_lib)
     return common_lib, common_lib_function_names
 
-def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, num_seeds=None, remix=0, library_function_hint=-1, uncreative=False):
+def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, num_seeds=None, remix=0, library_function_hint=-1, uncreative=False, use_generator_prompt=True):
     """
     remix: how many example seeds the prompt tells the LLM to remix.
     0 means no remixing, just shows all the seeds. 1 tells it to remix one of the examples, 2 tells it to remix two of the examples, etc.
@@ -136,7 +136,14 @@ To give you ideas, here are some examples of other puzzles that middle schoolers
 Your task is to create a new puzzle that is similar to the examples provided, {remix1}following these steps:
 1. First pick some `# concepts` from the example puzzles{remix2}. You can combine concepts from different examples. The concepts in the examples are:
    {concept_list}
-2. Brainstorm a possible puzzle using those concepts, thinking of the physical/geometric/topological/logical details
+"""
+        if use_generator_prompt:
+            prompt+="""2. Brainstorm a list of 20 concepts similar to the concept, thinking of the physical/geometric/topological/logical details
+3. Pick one of the concepts from the brainstorming list, and create a new puzzle using that concept.
+4. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
+"""
+        else:
+            prompt+="""2. Brainstorm a possible puzzle using those concepts, thinking of the physical/geometric/topological/logical details
 3. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
 """
     else:
@@ -155,7 +162,7 @@ Your task is to look especially at the last example and make a new puzzle simila
     prompt += f"""
 Be sure to make the transformation `main` deterministic. Be sure to not assume or impose any ordering to the colors. Use physical, geometric, topological, and logical concepts.
 """
-
+    
     if library_function_hint_str:
         prompt += f"""\n{library_function_hint_str}"""
     
@@ -174,7 +181,8 @@ if __name__ == "__main__":
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
     parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
     parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
-    parser.add_argument("--uncreative", action="store_true", help="use this flag to generate a prompt encourages less creativity, helpful for dumber LLMs", default=False)
+    parser.add_argument("--uncreative", "-u", action="store_true", help="use this flag to generate a prompt encourages less creativity, helpful for dumber LLMs", default=False)
+    parser.add_argument("--generator_prompt", "-gp", action="store_true", help="use this flag to generate a list of concepts and have it pick one", default=False)
     
     arguments = parser.parse_args()
 
@@ -198,7 +206,7 @@ if __name__ == "__main__":
     library_function_hint = arguments.library_function_hint
     common_lib, common_lib_function_names = get_common_lib_from_file("seeds/common.py")
     prompts = [ make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, remix=remix_level, num_seeds=arguments.num_seeds,
-                                          library_function_hint=library_function_hint, uncreative=arguments.uncreative)
+                                          library_function_hint=library_function_hint, uncreative=arguments.uncreative, use_generator_prompt=arguments.generator_prompt)
                for rng_seed in tqdm(range(batch_size)) ]
 
     client = LLMClient(provider=provider)
