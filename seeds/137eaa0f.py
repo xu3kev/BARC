@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# <list of concepts, separated by commas>
+# objects, alignment by color
 
 # description:
 # In the input you will see some objects scattered around on a black grid. Each object has a single grey pixel, but everything else is a single other color.
@@ -23,7 +23,7 @@ def main(input_grid):
     objects = find_connected_components(input_grid, monochromatic=False, connectivity=8)
 
     # Convert the objects into sprites by cropping them
-    sprites = [crop(obj) for obj in objects]
+    sprites = [crop(obj, background=Color.BLACK) for obj in objects]
 
     # Make a big output grid
     output_grid = np.full(input_grid.shape, Color.BLACK)
