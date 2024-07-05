@@ -6,6 +6,7 @@ import diskcache as dc
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
+import time
 
 
 class Provider(Enum):
@@ -13,6 +14,7 @@ class Provider(Enum):
     GROQ = 'groq'
     DEEPSEEK = 'deepseek'
     VLLM = 'vllm'
+    OPENROUTER = 'openrouter'
 
 class OpenAIModels(Enum):
     GPT_4_TURBO = 'gpt-4-turbo'
@@ -29,12 +31,17 @@ class DEEPSEEKModels(Enum):
 class VLLMModels(Enum):
     LLAMA3_70B = 'meta-llama/Meta-Llama-3-70B-Instruct'
 
+class OpenRouterModels(Enum):
+    SONNET35 = "anthropic/claude-3.5-sonnet:beta"
+    LLAMA3_70B = "meta-llama/llama-3-70b-instruct"
+
 class LLMClient:
     AVAILABLE_MODELS = {
         Provider.OPENAI: OpenAIModels,
         Provider.GROQ: GroqModels,
         Provider.DEEPSEEK: DEEPSEEKModels,
-        Provider.VLLM: VLLMModels
+        Provider.VLLM: VLLMModels,
+        Provider.OPENROUTER: OpenRouterModels
     }
 
     def __init__(self, system_content=None, provider=Provider.OPENAI, cache_dir='cache', key=None):
@@ -52,6 +59,9 @@ class LLMClient:
             return os.getenv("DEEPSEEK_API_KEY")
         elif self.provider == Provider.VLLM:
             return "EMPTY"
+        elif self.provider == Provider.OPENROUTER:
+            return os.getenv("OPENROUTER_API_KEY")
+
         return os.getenv("OPENAI_API_KEY")
 
     def _initialize_client(self):
@@ -61,6 +71,8 @@ class LLMClient:
             return OpenAI(api_key=self.api_key, base_url="https://api.deepseek.com/v1")
         elif self.provider == Provider.VLLM:
             return OpenAI(api_key="EMPTY", base_url="http://localhost:8100/v1")
+        elif self.provider == Provider.OPENROUTER:
+            return OpenAI(api_key=self.api_key, base_url="https://openrouter.ai/api/v1")
         return OpenAI(api_key=self.api_key)
 
     def _hash_prompt(self, prompt, model, temperature, max_tokens, top_p):
@@ -115,12 +127,22 @@ class LLMClient:
         # If the number of cached samples is less than requested, generate more samples
         if len(cached_samples) < num_samples:
             remaining_samples = num_samples - len(cached_samples)
-            try:
-                response = self.send_request(prompt, model, temperature, max_tokens, top_p, remaining_samples)
-                new_samples = [c.message.content for c in response.choices]
-                self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
-            except Exception as e:
-                print("Error", e)
+            actually_got_samples = False
+            backoff_timer = 1
+            while not actually_got_samples:
+                try:
+                    response = self.send_request(prompt, model, temperature, max_tokens, top_p, remaining_samples)
+                    new_samples = [c.message.content for c in response.choices]
+                    self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
+                    actually_got_samples = True
+                except Exception as e:
+                    if "Rate limit reached for model" in str(e):
+                        print("Rate limit reached, backoff for", backoff_timer, "seconds")
+                        time.sleep(backoff_timer)
+                        backoff_timer *= 2
+                    else:
+                        print("Error, going to try again in 1 second", e)
+                        time.sleep(1)
 
         # WARN neccessary to get the samples from cache again as it might have been updated
         cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
