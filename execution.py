@@ -145,13 +145,17 @@ output_grid = {function_name}(input_grid)
         print("Error: Code execution timed out after 10 seconds")
         output = "timeout"
     except Exception as e:
+        import traceback
         print("Error in executing code")
-        print(f"Error: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
         output = f"error: {e}"
 
     # make sure that it is a 2d nump array of integers between 0-9
-    if isinstance(output, np.ndarray) and len(output.shape) == 2 and np.all((0 <= output) & (output <= 9)):
-        return output
+    # if output_validator is None:
+    #     output_validator = lambda out: isinstance(out, np.ndarray) and len(out.shape) == 2 and np.all((0 <= out) & (out <= 9))
+    
+    # if output_validator(output):
+    #     return output
 
     return output
 

@@ -13,9 +13,24 @@ import sys
 sys.path.append("seeds/")
 from common import *
 
-def get_common_lib_from_file(file_path="seeds/common.py"):
+def get_common_lib_from_file(file_path="seeds/common.py", reference_code=None):
+    """
+    reference_code: a string containing the code that we are trying to use the common library to understand
+    if it is provided then the only functions from the common_lib that are returned are the ones that are called in the reference_code
+    """
     with open(file_path) as f:
         common_lib = f.read()
+    
+    if reference_code is not None:
+        common_functions_calls = extract_function_calls(reference_code)
+        common_functions_calls = set(common_functions_calls)
+        common_lib_functions = extract_functions(common_lib)
+        common_lib_function_names = set([f["name"] for f in common_lib_functions])
+        common_functions_calls = common_functions_calls.intersection(common_lib_function_names)
+        common_lib_functions = [f for f in common_lib_functions if f["name"] in common_functions_calls]
+        common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions])
+        return common_lib, common_lib_function_names
+    
 
     common_lib_functions = extract_functions(common_lib)
     common_lib_functions = [f for f in common_lib_functions if "internal function not used by LLM" not in f["docstring"]]
@@ -26,7 +41,7 @@ def get_common_lib_from_file(file_path="seeds/common.py"):
     common_lib_classes = [c for c in common_lib_classes if "internal class not used by LLM" not in c["docstring"]]
 
     common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
-    print(common_lib)
+    
     return common_lib, common_lib_function_names
 
 def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, num_seeds=None, remix=0, library_function_hint=-1, uncreative=False, use_generator_prompt=True):
