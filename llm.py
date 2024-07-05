@@ -35,6 +35,7 @@ class VLLMModels(Enum):
 class OpenRouterModels(Enum):
     SONNET35 = "anthropic/claude-3.5-sonnet:beta"
     LLAMA3_70B = "meta-llama/llama-3-70b-instruct"
+    DEEPSEEKCODER = "deepseek/deepseek-coder"
 
 class LLMClient:
     AVAILABLE_MODELS = {
