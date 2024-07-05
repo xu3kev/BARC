@@ -22,9 +22,11 @@ if __name__ == "__main__":
     with open(args.jsonl, "r") as f:
         data = [json.loads(line) for line in f]
 
+    data = data[0::32]
     total_problems = len(data)
     htmls = []
 
+    all_uids = []
     for idx, problem in enumerate(data):
         code = problem["source"]
         code = remove_trailing_code(code)
@@ -37,6 +39,7 @@ if __name__ == "__main__":
         hash_code = hashlib.md5(code.encode()).hexdigest()
         hash_examples = hashlib.md5(str(examples[0:4]).encode()).hexdigest()
         uid = f"{hash_code[0:8]}{hash_examples[0:8]}"
+        all_uids.append(uid)
 
         examples_input_output = [ {"input": input_grid.tolist(), "output": output_grid.tolist()}
                                     for input_grid, output_grid in zip(input_grids, output_grids) 
@@ -65,24 +68,26 @@ if __name__ == "__main__":
             <h2>Problem UID {uid}</h2>
             {grid_html}
             <div style="text-align: center; margin-top: 20px;">
-                <div style="font-size:32px">Grid Example</div>
+                <div style="font-size:32px">Grid Example: <div style="font-size:17px">A grid example is "good" if you feel confident that you can explain to another person using language of the underlying transformation pattern</div></div>
                 <button class="good-button" id="example_good_{idx}" onclick="annotate('example', 'good', {idx})">Good</button>
                 <button class="ok-button" id="example_ok_{idx}" onclick="annotate('example', 'ok', {idx})">Ok</button>
                 <button class="bad-button" id="example_bad_{idx}" onclick="annotate('example', 'bad', {idx})">Bad</button>
                 <br>
-                <div style="font-size:32px">Solution Code</div>
+                <div style="font-size:32px">Solution Code: <div style="font-size:17px">A solution code is "good" if the comment / code pair is consistent with _a potential_ natural language transformation description</div></div>
                 <button class="good-button" id="code_good_{idx}" onclick="annotate('code', 'good', {idx})">Good</button>
                 <button class="ok-button" id="code_ok_{idx}" onclick="annotate('code', 'ok', {idx})">Ok</button>
                 <button class="bad-button" id="code_bad_{idx}" onclick="annotate('code', 'bad', {idx})">Bad</button>
                 <br>
                 <button class="download-button" onclick="download_to_file('{uid}.py', '{code_base64}')">Download Source Code</button>
-                <button class="download-button" onclick="download_to_file('{uid}.json', '{json_data_base64}')">Download JSON Data</button>
+                <button class="download-button" onclick="download_with_annotations('{uid}.json', '{json_data_base64}', '{uid}')">Download JSON Data</button>
                 <button class="download-button" onclick="download_div_to_image('img_{uid}', '{uid}.png')">Download Image</button>
             </div>
             {code_html}
         </div>
         """
         htmls.append(problem_html)
+
+    all_uids_javascript_str = "const all_uids = " + json.dumps(all_uids) + ";"
 
     final_html = f"""
     <!DOCTYPE html>
@@ -198,21 +203,46 @@ body {{
         {"".join(htmls)}
     </div>
     <script>
+        {all_uids_javascript_str}
         let currentProblem = 0;
+        let currentUid = all_uids[currentProblem];
         const totalProblems = {total_problems};
         let annotatedCount = 0;
 
         const all_metrics = ['example', 'code'];
 
-        let annotations = new Array(totalProblems).fill(null).map(() => Object.fromEntries(all_metrics.map(metric => [metric, null])));
+        //let annotations = new Array(totalProblems).fill(null).map(() => Object.fromEntries(all_metrics.map(metric => [metric, null])));
+        // annotations is a dictionary of dictionaries, with the outer dictionary indexed by uid and the inner dictionary indexed by metric
+        let annotations = {{}}
+        all_uids.forEach(key => {{
+            annotations[key] = {{}};
+            all_metrics.forEach(metric => {{
+                annotations[key][metric] = null;
+            }});
+        }});
 
+        function getAnnotationCount() {{
+            let count = 0;
+            for (let i = 0; i < all_uids.length; i++) {{
+                if (annotations[all_uids[i]]['example'] !== null && annotations[all_uids[i]]['code'] !== null) {{
+                    count += 1;
+                }}
+            }}
+            return count;
+        }}
         function loadAnnotations() {{
             const savedAnnotations = localStorage.getItem('annotations');
             if (savedAnnotations) {{
-                annotations = JSON.parse(savedAnnotations);
-                annotatedCount = annotations.filter(a => 
-                    a !== null && a['example'] !== null && a['code'] !== null
-                ).length;
+                prev_annotations = JSON.parse(savedAnnotations);
+                // get all notations from the previous annotations with the same uid
+                for (let i = 0; i < all_uids.length; i++) {{
+                    const uid = all_uids[i];
+                    // check if the uid is in the previous annotations
+                    if (uid in prev_annotations) {{
+                        annotations[uid] = prev_annotations[uid];
+                    }}
+                }}
+                annotatedCount = getAnnotationCount();
                 updateProgress();
                 updateButtons();
             }}
@@ -243,10 +273,8 @@ body {{
         }}
 
         function annotate(metric_name, annotation, index) {{
-            annotations[index][metric_name] = annotation;
-            annotatedCount = annotations.filter(a => 
-                a !== null && a['example'] !== null && a['code'] !== null
-            ).length;
+            annotations[all_uids[index]][metric_name] = annotation;
+            annotatedCount = getAnnotationCount();
             saveAnnotations();
             updateProgress();
             updateButtons();
@@ -269,18 +297,18 @@ body {{
             codeGoodButton.classList.remove('pressed');
             codeOkButton.classList.remove('pressed');
             codeBadButton.classList.remove('pressed');
-            if (annotations[currentProblem]['example'] === 'good') {{
+            if (annotations[all_uids[currentProblem]]['example'] === 'good') {{
                 exampleGoodButton.classList.add('pressed');
-            }} else if (annotations[currentProblem]['example'] === 'ok') {{
+            }} else if (annotations[all_uids[currentProblem]]['example'] === 'ok') {{
                 exampleOkButton.classList.add('pressed');
-            }} else if (annotations[currentProblem]['example'] === 'bad') {{
+            }} else if (annotations[all_uids[currentProblem]]['example'] === 'bad') {{
                 exampleBadButton.classList.add('pressed');
             }}
-            if (annotations[currentProblem]['code'] === 'good') {{
+            if (annotations[all_uids[currentProblem]]['code'] === 'good') {{
                 codeGoodButton.classList.add('pressed');
-            }} else if (annotations[currentProblem]['code'] === 'ok') {{
+            }} else if (annotations[all_uids[currentProblem]]['code'] === 'ok') {{
                 codeOkButton.classList.add('pressed');
-            }} else if (annotations[currentProblem]['code'] === 'bad') {{
+            }} else if (annotations[all_uids[currentProblem]]['code'] === 'bad') {{
                 codeBadButton.classList.add('pressed');
             }}
         }}
@@ -328,6 +356,19 @@ body {{
                     console.error('Error generating image:', error);
                 }});
             }}, 100);
+        }}
+
+        function download_with_annotations(filename, jsonBase64, uid) {{
+            const jsonData = JSON.parse(atob(jsonBase64));
+            newJsonData = {{
+                "uid": jsonData.uid,
+                "annotations": annotations[uid],
+                "metadata": jsonData.metadata,
+                "examples": jsonData.examples,
+                "code": jsonData.code,
+            }};
+            const updatedJsonBase64 = btoa(JSON.stringify(newJsonData, null, 2));
+            download_to_file(filename, updatedJsonBase64);
         }}
 
         window.onload = function() {{
