@@ -5,6 +5,7 @@ from utils import remove_trailing_code, generate_html_grid
 from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
+import hashlib
 
 def highlight_code(code):
     formatter = HtmlFormatter()
@@ -31,6 +32,15 @@ if __name__ == "__main__":
         input_grids = [np.array(example[0]) for example in examples[0:4]]
         output_grids = [np.array(example[1]) for example in examples[0:4]]
 
+        # create unique ID for each problem
+        # The ID string consists of two parts: hash from the code and hash from the examples
+        # This is to ensure that the ID is unique for each problem
+
+        hash_code = hashlib.md5(code.encode()).hexdigest()
+        # use the first 4 examples to create the hash
+        hash_examples = hashlib.md5(str(examples[0:4]).encode()).hexdigest()
+        uid = f"{hash_code[0:8]}{hash_examples[0:8]}"
+
         examples_input_output = [ {"input": input_grid, "output": output_grid}
                                     for input_grid, output_grid in zip(input_grids, output_grids) 
                                     if isinstance(output_grid, np.ndarray) ]
@@ -43,6 +53,7 @@ if __name__ == "__main__":
         
         problem_html = f"""
         <div class="problem" id="problem_{idx}" style="display: {'block' if idx == 0 else 'none'};">
+            <h2>Problem UID {uid}</h2>
             {grid_html}
             <div style="text-align: center; margin-top: 20px;">
                 <button class="good-button" id="good_{idx}" onclick="annotate('good', {idx})">Good</button>
