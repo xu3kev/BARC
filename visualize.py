@@ -22,13 +22,14 @@ if __name__ == "__main__":
     with open(args.jsonl, "r") as f:
         data = [json.loads(line) for line in f]
 
-    data = data[0::32]
     total_problems = len(data)
     htmls = []
 
     all_uids = []
     for idx, problem in enumerate(data):
         code = problem["source"]
+        seeds = problem["seeds"]
+        
         code = remove_trailing_code(code)
         
         examples = problem["examples"]
@@ -62,10 +63,24 @@ if __name__ == "__main__":
             }
         }
         json_data_base64 = base64.b64encode(json.dumps(json_data).encode()).decode()
+        # show a list of icon such as https://mc-larc.github.io/images/thumbnails/{seed_id}.png
+        # along with the seed id as caption
+        base_url = "https://mc-larc.github.io/images/thumbnails/"
+        # seeds_html = "".join([f'<img src="{base_url}{seed_id[:-3]}.png" style="width: 100px; height: 100px; margin: 10px;">' for seed_id in seeds])
+        seeds_html = "".join([
+    f'<div style="display: inline-block; text-align: center; margin: 10px;">'
+    f'<img src="{base_url}{seed_id[:-3]}.png" style="width: 100px; height: 100px; margin: 10px;">'
+    f'<div>{seed_id[:-3]}</div>'
+    f'</div>'
+    for seed_id in seeds
+])
 
         problem_html = f"""
         <div class="problem" id="problem_{idx}" style="display: {'block' if idx == 0 else 'none'};">
             <h2>Problem UID {uid}</h2>
+            <h3>Parent Seed IDs</h3>
+            {seeds_html}
+            <hr>
             {grid_html}
             <div style="text-align: center; margin-top: 20px;">
                 <div style="font-size:32px">Grid Example: <div style="font-size:17px">A grid example is "good" if you feel confident that you can explain to another person using language of the underlying transformation pattern</div></div>
