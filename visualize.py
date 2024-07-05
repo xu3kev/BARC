@@ -85,14 +85,15 @@ if __name__ == "__main__":
         htmls.append(problem_html)
 
     final_html = f"""
-    <html>
-    <head>
+    <!DOCTYPE html>
+<html>
+<head>
     <title>Code Visualization</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
-        body {{
+body {{
             padding: 0 10%;
         }}
         .navigation-arrow {{
@@ -184,8 +185,8 @@ if __name__ == "__main__":
             border-radius: 5px;
         }}
     </style>
-    </head>
-    <body>
+</head>
+<body>
     <div class="navigation-arrow prev-arrow" onclick="prevProblem()">
         <i class="fas fa-arrow-left"></i>
     </div>
@@ -198,12 +199,28 @@ if __name__ == "__main__":
     </div>
     <script>
         let currentProblem = 0;
-        let totalProblems = {total_problems};
+        const totalProblems = {total_problems};
         let annotatedCount = 0;
-        all_metrics = ['example', 'code'];
-        //let annotations = new Array(totalProblems).fill(null);
-        // nested dict to store annotations for each metric
+
+        const all_metrics = ['example', 'code'];
+
         let annotations = new Array(totalProblems).fill(null).map(() => Object.fromEntries(all_metrics.map(metric => [metric, null])));
+
+        function loadAnnotations() {{
+            const savedAnnotations = localStorage.getItem('annotations');
+            if (savedAnnotations) {{
+                annotations = JSON.parse(savedAnnotations);
+                annotatedCount = annotations.filter(a => 
+                    a !== null && a['example'] !== null && a['code'] !== null
+                ).length;
+                updateProgress();
+                updateButtons();
+            }}
+        }}
+
+        function saveAnnotations() {{
+            localStorage.setItem('annotations', JSON.stringify(annotations));
+        }}
 
         function showProblem(index) {{
             document.querySelector(`#problem_${{currentProblem}}`).style.display = 'none';
@@ -228,8 +245,9 @@ if __name__ == "__main__":
         function annotate(metric_name, annotation, index) {{
             annotations[index][metric_name] = annotation;
             annotatedCount = annotations.filter(a => 
-                            a !== null && a['example'] !== null && a['code'] !== null
+                a !== null && a['example'] !== null && a['code'] !== null
             ).length;
+            saveAnnotations();
             updateProgress();
             updateButtons();
         }}
@@ -277,9 +295,9 @@ if __name__ == "__main__":
             a.click();
             URL.revokeObjectURL(url);
         }}
+
         function download_div_to_image(div_id, filename) {{
             const div = document.getElementById(div_id);
-            // add a pop-up indicating that the image is being generated
             const loading = document.createElement('div');
             loading.textContent = 'Generating image...';
             loading.style.position = 'fixed';
@@ -288,32 +306,37 @@ if __name__ == "__main__":
             loading.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
             loading.style.padding = '10px';
             loading.style.borderRadius = '5px';
-            // center the loading pop-up
             loading.style.left = '50%';
             loading.style.top = '50%';
             loading.style.transform = 'translate(-50%, -50%)';
             loading.style.backdropFilter = 'blur(5px)';
-
             document.body.appendChild(loading);
 
-    // add a short delay to ensure the loading pop-up is rendered
-    setTimeout(() => {{
-        html2canvas(div).then(canvas => {{
-            // remove the loading pop-up
-            document.body.removeChild(loading);
-            // create an image from the canvas
-            const image = canvas.toDataURL('image/png');
-            // create a link to download the image
-            const a = document.createElement('a');
-            a.href = image;
-            a.download = filename;
-            a.click();
-        }});
-        }}, 100); // 100ms delay to ensure the pop-up is rendered
-    }}
+            setTimeout(() => {{
+                html2canvas(div).then(canvas => {{
+                    document.body.removeChild(loading);
+                    const image = canvas.toDataURL('image/png');
+                    const a = document.createElement('a');
+                    a.href = image;
+                    a.download = filename;
+                    a.click();
+                }}).catch(error => {{
+                    const loadingElement = document.getElementById('loadingPopup');
+                    if (loadingElement) {{
+                        document.body.removeChild(loadingElement);
+                    }}
+                    console.error('Error generating image:', error);
+                }});
+            }}, 100);
+        }}
+
+        window.onload = function() {{
+            loadAnnotations();
+            showProblem(0);
+        }};
     </script>
-    </body>
-    </html>
+</body>
+</html>
     """
     file_name = args.jsonl.replace(".jsonl", ".html")
 
