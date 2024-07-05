@@ -15,8 +15,6 @@ import time
 # You will start with a direction that is parallel to the starting two pixels.
 # Your goal is to go from the start point to the end point.
 
-# Negative x coord sometimes?
-
 
 def calc_neighbors(grid, start_x, start_y):
     directions = {(1, 0): None, (-1, 0): None, (0, 1): None, (0, -1): None}
@@ -49,17 +47,14 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc):
             (0, 1): None,
             (0, -1): None,
         }
-    # print(dptable)
+
     # Look at neighboring pixels
     # print(start_x, start_y)
-    show_colored_grid(grid)
-    print("\n")
+    # show_colored_grid(grid)
     # time.sleep(1)
-    print(start_x, start_y)
+    # print(dptable)
     directions = calc_neighbors(grid, start_x, start_y)
-    print(directions)
-    print(start_x, start_y)
-    print(dptable)
+
     # Handle exit case
     if Color.RED in directions.values():
         return grid
@@ -141,8 +136,7 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc):
                     and grid[new_x + k[0], new_y + k[1]] != Color.BLUE
                     and grid[new_x + k[0], new_y + k[1]] != Color.RED
                 ):
-                    # if grid[new_x, new_y] == Color.RED:
-                    #    return grid
+
                     new_x += k[0]
                     new_y += k[1]
 
@@ -158,27 +152,13 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc):
                     return grid
                 print("new")
                 print(new_x, new_y)
-                # if (new_x, new_y) not in dptable.keys() or dptable[(new_x, new_y)][
-                #    k
-                # ] != -1:
+
                 dptable[(start_x, start_y)][k] = (new_x, new_y)
                 temp_path = find_path(
                     new_x, new_y, grid.copy(), dptable, initial_green_loc
                 )
                 if temp_path is not None:
                     return temp_path
-
-                # else:
-                #    dptable[(start_x, start_y)][k] = -1
-                #    draw_line(
-                #        grid,
-                #        start_x,
-                #        start_y,
-                #        None,
-                #        Color.BLACK,
-                #        k,
-                #        stop_at_color=[Color.TEAL, Color.RED],
-                #    )
 
 
 def main(input_grid):
