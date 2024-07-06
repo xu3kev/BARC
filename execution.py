@@ -159,7 +159,7 @@ output_grid = {function_name}(input_grid)
 
     return output
 
-def multi_execute_transformation(sources, input_grids, timeout=1, function_name="main", num_workers=8):
+def multi_execute_transformation(sources, input_grids, timeout=1, function_name="main", num_workers=32):
 
     input_grids = [np.array(input_grid) for input_grid in input_grids]
             

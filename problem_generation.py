@@ -12,13 +12,16 @@ class Problem:
     def __init__(self, source_code):
         self.source = source_code
         self.examples = []
+        self.seeds = []
+        
 
     def add_example(self, input_grid, output_grid):
         self.examples.append((input_grid, output_grid))
     def to_dict(self):
         return {
             "source": self.source,
-            "examples": [(input_grid.tolist(), output_grid.tolist()) for input_grid, output_grid in self.examples]
+            "examples": [(input_grid.tolist(), output_grid.tolist()) for input_grid, output_grid in self.examples],
+            "seeds": self.seeds
         }
 
 
@@ -225,6 +228,7 @@ def main():
     assert sum([args.problem_source_uid is not None, args.run_all_seed, args.jsonl is not None]) == 1, "Provide one of problem_uid, run_all_seed or jsonl"
 
     problems_source = []
+    problems_seeds = []
     problem_source_uids = []
     if args.problem_source_uid:
         problem_source_uids = [args.problem_source_uid]
@@ -243,6 +247,7 @@ def main():
         for line in data:
             problem = json.loads(line)
             problems_source.append(problem["code"])
+            problems_seeds.append(problem["seeds"])
     else:
         raise ValueError("Provide one of problem_uid, run_all_seed or jsonl")
 
@@ -258,6 +263,7 @@ def main():
         problem = generate_problem(problem_source, total_timeout=30)
         if problem and len(problem.examples) >= 4:
             print(f"+1 problem with {len(problem.examples)} examples")
+            problem.seeds = problems_seeds[i]
             problems.append(problem)
         else:
             if problem_source_uids:

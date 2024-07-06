@@ -54,6 +54,9 @@ def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_n
 
     # Sort the seeds so that the order is consistent
     seeds = list(sorted(seeds))
+    rng.shuffle(seeds)
+    if num_seeds is not None:
+        seeds = seeds[:num_seeds]
 
     seed_content = []
     for seed in seeds:
@@ -62,11 +65,6 @@ def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_n
             assert "# ============= remove below this point for prompting =============" in content
             content = content.split("# ============= remove below this point for prompting =============")[0].strip()
             seed_content.append(content)
-
-    rng.shuffle(seed_content)
-    if num_seeds is not None:
-        seed_content = seed_content[:num_seeds]
-
 
     #common_functions_calls_counter = {}
     concepts_in_seeds = []
@@ -181,7 +179,7 @@ Be sure to make the transformation `main` deterministic. Be sure to not assume o
     if library_function_hint_str:
         prompt += f"""\n{library_function_hint_str}"""
     
-    return prompt
+    return prompt, tuple(seeds)
 
 if __name__ == "__main__":
     import argparse
@@ -198,6 +196,8 @@ if __name__ == "__main__":
     parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
     parser.add_argument("--uncreative", "-u", action="store_true", help="use this flag to generate a prompt encourages less creativity, helpful for dumber LLMs", default=False)
     parser.add_argument("--generator_prompt", "-gp", action="store_true", help="use this flag to generate a list of concepts and have it pick one", default=False)
+    parser.add_argument("--rng_offset", default=0, type=int)
+    parser.add_argument("--nohtml", action="store_true", help="use this flag to not generate html", default=False)
     
     arguments = parser.parse_args()
 
@@ -215,35 +215,47 @@ if __name__ == "__main__":
 
     # print all files
     print(f"Using the following {len(seeds)} seeds:", ", ".join(seeds).replace(".py", ""))
-
+    # derive a offset from rng_seed_offset by hashing it if the rng_seed_orig is not 0
+    from hashlib import md5
+    if arguments.rng_offset != 0:
+        rng_offset_str = md5(str(arguments.rng_offset).encode()).hexdigest()[:7]
+        # to integer
+        rng_offset = int(rng_offset_str, 16)
+    else:
+        rng_offset = 0
     batch_size = arguments.batch_size
     remix_level = arguments.remix
     library_function_hint = arguments.library_function_hint
     common_lib, common_lib_function_names = get_common_lib_from_file("seeds/common.py")
-    prompts = [ make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, remix=remix_level, num_seeds=arguments.num_seeds,
+    prompts_and_seeds = [ make_self_instruct_prompt(seeds, rng_seed + rng_offset, common_lib, common_lib_function_names, remix=remix_level, num_seeds=arguments.num_seeds,
                                           library_function_hint=library_function_hint, uncreative=arguments.uncreative, use_generator_prompt=arguments.generator_prompt)
                for rng_seed in tqdm(range(batch_size)) ]
 
     client = LLMClient(provider=provider)
-    samples = []
+    samples_and_seeds = []
     # use tqdm to go through the prompts and complete each of them
     from tqdm import tqdm
 
     if arguments.sample_parallel == 1:
-        for prompt in tqdm(prompts):
-            samples.extend(client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model))
+        for prompt, seed in tqdm(prompts_and_seeds):
+            sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model)
+            samples_and_seeds.extend((sample, seed))
     else:
-        list_of_lists_of_samples = client.generate_parallel(prompts, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
+        list_of_lists_of_samples = client.generate_parallel(prompts_and_seeds, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
         # flatten the list
         samples = [sample for sublist in list_of_lists_of_samples for sample in sublist]
 
-    codes = []
-    for sample in samples:
-        codes.extend(parse_code(sample))
+
+    codes_and_seeds = []
+    for sample, seeds in samples:
+        parsed_codes = parse_code(sample)
+        if parsed_codes:
+            parsed_code = parsed_codes[0]
+        codes_and_seeds.append((parsed_code, seeds))
 
     model_name = arguments.model.replace("/", "_")
     # write the codes to jsonl file
-    file_name_base = f"self_instruct_remix{remix_level}_fewshot_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}"
+    file_name_base = f"self_instruct_remix{remix_level}_fewshot_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}_maxtokens{arguments.max_tokens}_rng{arguments.rng_offset}"
     if arguments.uncreative:
         file_name_base += "_uncreative"
     file_name_json = file_name_base + ".jsonl"
@@ -251,14 +263,18 @@ if __name__ == "__main__":
     with open(file_name_json, "w") as f:
         # jsonl, one json per line
         import json
-        for code in codes:
-            f.write(json.dumps({"code": code}) + "\n")
-    print(f"{len(codes)} codes written to {file_name_json}")
+        for code, seeds in codes_and_seeds:
+            f.write(json.dumps({"code": code,
+                                "seeds": seeds
+                                }) + "\n")
+    print(f"{len(codes_and_seeds)} codes written to {file_name_json}")
     
+    if arguments.nohtml:
+        exit()
     htmls = []
 
     common_functions_calls_counter = {}
-    for code in codes:
+    for code, seeds in codes_and_seeds:
         code = remove_trailing_code(code)
         # try:
         #     function_calls = extract_function_calls(code)
@@ -286,7 +302,7 @@ if __name__ == "__main__":
 
         # an html string showing the Common Lib Function call names
         info_html = "" #f"""<div>Used Common Library Functions: {", ".join(list(common_functions_calls))}</div>"""
-        grid_html = generate_html_grid(examples_input_output)
+        grid_html = generate_html_grid(examples_input_output, uid="None")
         # an html string showing the function calls in the code, use syntax highlighting
         # Syntax highlighting for the code
         from pygments import highlight

@@ -122,7 +122,7 @@ class LLMClient:
         cached_samples.extend(samples)
         self.cache[cache_key] = cached_samples
 
-    def generate(self, prompt, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1):
+    def generate(self, prompt, seeds, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1):
         model = self.check_model_name(model)
         cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
 
@@ -153,12 +153,12 @@ class LLMClient:
         if len(cached_samples) > num_samples:
             return random.sample(cached_samples, num_samples)
 
-        return cached_samples[:num_samples]
+        return [(sample, seeds) for sample in cached_samples[:num_samples]]
 
-    def generate_parallel(self, prompts, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1, num_workers=8):
+    def generate_parallel(self, prompts_and_seeds, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1, num_workers=8):
         """use concurrent futures to generate samples in parallel"""
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            futures = [executor.submit(self.generate, prompt, num_samples, model, temperature, max_tokens, top_p) for prompt in prompts]
+            futures = [executor.submit(self.generate, prompt, seeds, num_samples, model, temperature, max_tokens, top_p) for prompt, seeds in prompts_and_seeds]
             results = []
             for future in tqdm(as_completed(futures), total=len(futures), desc="Generating samples"):
                 results.append(future.result())
