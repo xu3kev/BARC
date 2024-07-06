@@ -159,7 +159,7 @@ output_grid = {function_name}(input_grid)
 
     return output
 
-def multi_execute_transformation(sources, input_grids, timeout=1, function_name="main", num_workers=32):
+def multi_execute_transformation(sources, input_grids, random_seeds, timeout=1, function_name="main", num_workers=32):
 
     input_grids = [np.array(input_grid) for input_grid in input_grids]
             
@@ -168,7 +168,7 @@ def multi_execute_transformation(sources, input_grids, timeout=1, function_name=
     except:
         breakpoint()
     codes = []
-    for source, input_grid in zip(sources, input_grids):
+    for source, input_grid, seed in zip(sources, input_grids, random_seeds):
         make_input = f"input_grid = np.zeros(({n}, {m}), dtype=int)\n"
         for i in range(n):
             for j in range(m):
@@ -176,6 +176,9 @@ def multi_execute_transformation(sources, input_grids, timeout=1, function_name=
                 
         code = f"""import numpy as np
 from common import *
+import random as random98762
+random98762.seed({seed})
+np.random.seed({seed})
 {source}
 {make_input}
 output_grid = {function_name}(input_grid) 
@@ -220,14 +223,17 @@ grid = {function_name}()
 
     return output
 
-def multi_execute_input_generator(sources, timeout=1, function_name="generate_input", num_workers=8):
+def multi_execute_input_generator(sources, random_seeds, timeout=1, function_name="generate_input", num_workers=8):
 
     codes = [f"""import random
 import numpy as np
+random.seed({random_seed})
+np.random.seed({random_seed})
 from common import *
 {source}
 grid = {function_name}()
-""" for source in sources]
+""" for source, random_seed in zip(sources, random_seeds)]
+
 
     outputs = multi_process_execute(codes, "grid", timeout=timeout, num_workers=num_workers)
 
