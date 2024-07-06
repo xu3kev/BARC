@@ -7,6 +7,7 @@ from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
 import hashlib
 import base64
+import os
 
 def highlight_code(code):
     formatter = HtmlFormatter()
@@ -59,7 +60,7 @@ if __name__ == "__main__":
             "examples": examples_input_output,
             "code": code,
             "metadata": {
-                "source_file": args.jsonl
+                "source_file": os.path.basename(args.jsonl)
             }
         }
         json_data_base64 = base64.b64encode(json.dumps(json_data).encode()).decode()
@@ -67,9 +68,16 @@ if __name__ == "__main__":
         # along with the seed id as caption
         base_url = "https://mc-larc.github.io/images/thumbnails/"
         # seeds_html = "".join([f'<img src="{base_url}{seed_id[:-3]}.png" style="width: 100px; height: 100px; margin: 10px;">' for seed_id in seeds])
+        def convert_seed_id(seed_id):
+            ret = ""
+            if seed_id.endswith(".py"):
+                ret = seed_id[:-3]
+            if "_" in ret:
+                ret = ret.split("_")[0]
+            return ret
         seeds_html = "".join([
     f'<div style="display: inline-block; text-align: center; margin: 10px;">'
-    f'<img src="{base_url}{seed_id[:-3]}.png" style="width: 100px; height: 100px; margin: 10px;">'
+    f'<img src="{base_url}{convert_seed_id(seed_id)}.png" style="width: 100px; height: 100px; margin: 10px;">'
     f'<div>{seed_id[:-3]}</div>'
     f'</div>'
     for seed_id in seeds
@@ -83,12 +91,12 @@ if __name__ == "__main__":
             <hr>
             {grid_html}
             <div style="text-align: center; margin-top: 20px;">
-                <div style="font-size:32px">Grid Example: <div style="font-size:17px">A grid example is "good" if you feel confident that you can explain to another person using language of the underlying transformation pattern</div></div>
+                <div style="font-size:32px">Problem Examples: <div style="font-size:17px">Considering the input/output examples, do they form a good ARC problem? A good ARC problem is one where you feel confident that you can explain the underlying transformation pattern to another person and where the problem is not overly trivial (although being easy is acceptable).</div></div>
                 <button class="good-button" id="example_good_{idx}" onclick="annotate('example', 'good', {idx})">Good</button>
                 <button class="ok-button" id="example_ok_{idx}" onclick="annotate('example', 'ok', {idx})">Ok</button>
                 <button class="bad-button" id="example_bad_{idx}" onclick="annotate('example', 'bad', {idx})">Bad</button>
                 <br>
-                <div style="font-size:32px">Solution Code: <div style="font-size:17px">A solution code is "good" if the comment / code pair is consistent with _a potential_ natural language transformation description</div></div>
+                <div style="font-size:32px">Solution Code: <div style="font-size:17px">A solution code is "good" if the comment / code pair is consistent with a potential natural language transformation description</div></div>
                 <button class="good-button" id="code_good_{idx}" onclick="annotate('code', 'good', {idx})">Good</button>
                 <button class="ok-button" id="code_ok_{idx}" onclick="annotate('code', 'ok', {idx})">Ok</button>
                 <button class="bad-button" id="code_bad_{idx}" onclick="annotate('code', 'bad', {idx})">Bad</button>
