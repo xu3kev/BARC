@@ -44,7 +44,7 @@ def get_common_lib_from_file(file_path="seeds/common.py", reference_code=None):
     
     return common_lib, common_lib_function_names
 
-def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_names, num_seeds=None, remix=0, library_function_hint=-1, uncreative=False, use_generator_prompt=True):
+def make_self_instruct_prompt(seeds, rng_seed, brief_common=False, num_seeds=None, remix=0, library_function_hint=-1, uncreative=False, use_generator_prompt=True):
     """
     remix: how many example seeds the prompt tells the LLM to remix.
     0 means no remixing, just shows all the seeds. 1 tells it to remix one of the examples, 2 tells it to remix two of the examples, etc.
@@ -111,6 +111,10 @@ def make_self_instruct_prompt(seeds, rng_seed, common_lib, common_lib_function_n
     else:
         remix1 = f"in particular, making a new variation of the last {remix} examples, by "
         remix2 = f", but remembering it should be a variation of the last {remix} examples"
+    
+    # Load the common library
+    common_lib, common_lib_function_names = get_common_lib_from_file("seeds/common.py",
+                                                                     reference_code=("\n".join(seed_content) if brief_common else None))
 
     if library_function_hint == -1:
         library_function_hint_str = ""
@@ -195,6 +199,7 @@ if __name__ == "__main__":
     parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
     parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
     parser.add_argument("--uncreative", "-u", action="store_true", help="use this flag to generate a prompt encourages less creativity, helpful for dumber LLMs", default=False)
+    parser.add_argument("--brief_common", "-bc", action="store_true", help="use this flag to only include common library functions that are called in the examples", default=False)
     parser.add_argument("--generator_prompt", "-gp", action="store_true", help="use this flag to generate a list of concepts and have it pick one", default=False)
     parser.add_argument("--rng_offset", default=0, type=int)
     parser.add_argument("--nohtml", action="store_true", help="use this flag to not generate html", default=False)
@@ -227,27 +232,27 @@ if __name__ == "__main__":
     remix_level = arguments.remix
     library_function_hint = arguments.library_function_hint
     common_lib, common_lib_function_names = get_common_lib_from_file("seeds/common.py")
-    prompts_and_seeds = [ make_self_instruct_prompt(seeds, rng_seed + rng_offset, common_lib, common_lib_function_names, remix=remix_level, num_seeds=arguments.num_seeds,
+    prompts_and_seeds = [ make_self_instruct_prompt(seeds, rng_seed + rng_offset, brief_common=arguments.brief_common, remix=remix_level, num_seeds=arguments.num_seeds,
                                           library_function_hint=library_function_hint, uncreative=arguments.uncreative, use_generator_prompt=arguments.generator_prompt)
                for rng_seed in tqdm(range(batch_size)) ]
 
     client = LLMClient(provider=provider)
     samples_and_seeds = []
-    # use tqdm to go through the prompts and complete each of them
-    from tqdm import tqdm
 
     if arguments.sample_parallel == 1:
         for prompt, seed in tqdm(prompts_and_seeds):
-            sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model)
-            samples_and_seeds.extend((sample, seed))
+            sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model)[0]
+            samples_and_seeds.append((sample, seed))        
     else:
-        list_of_lists_of_samples = client.generate_parallel(prompts_and_seeds, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
+        just_the_prompts = [prompt for prompt, seed in prompts_and_seeds]
+        list_of_lists_of_samples = client.generate_parallel(just_the_prompts, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
         # flatten the list
         samples = [sample for sublist in list_of_lists_of_samples for sample in sublist]
+        samples_and_seeds = list(zip(samples, [seed for prompt, seed in prompts_and_seeds]))
 
 
     codes_and_seeds = []
-    for sample, seeds in samples:
+    for sample, seeds in samples_and_seeds:
         parsed_codes = parse_code(sample)
         if parsed_codes:
             parsed_code = parsed_codes[0]
@@ -258,6 +263,10 @@ if __name__ == "__main__":
     file_name_base = f"self_instruct_remix{remix_level}_fewshot_{arguments.num_seeds}_{model_name}_temp{arguments.temperature:.2f}_maxtokens{arguments.max_tokens}_rng{arguments.rng_offset}"
     if arguments.uncreative:
         file_name_base += "_uncreative"
+    if arguments.brief_common:
+        file_name_base += "_briefcommon"
+    if arguments.generator_prompt:
+        file_name_base += "_generatorprompt"
     file_name_json = file_name_base + ".jsonl"
     print(f"Writing to jsonl {file_name_json}")
     with open(file_name_json, "w") as f:
