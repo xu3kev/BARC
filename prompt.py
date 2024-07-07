@@ -156,9 +156,12 @@ Your task is to create a new puzzle that is similar to the examples provided, {r
 """
         if use_generator_prompt:
             prompt+="""2. Brainstorm a list of 20 concepts similar to the concept, thinking of the physical/geometric/topological/logical details
-3. Pick one of the concepts from the brainstorming list, and create a new puzzle using that concept.
+3. Pick one of the concepts from the brainstorming list, and create a new puzzle using that concept. To create a new puzzle:
 4. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
 """
+            # this seemed to work okay:
+            #3(a). Brainstorm what the input should look like. What are the objects, patterns, or structures that the middle schoolers should be looking at?
+            #3(b). Brainstorm what the transformation should look like. How do the objects, patterns, or structures change in the output? What moves, changes, grows, shrinks, changes color, gets added, or gets removed?
         else:
             prompt+="""2. Brainstorm a possible puzzle using those concepts, thinking of the physical/geometric/topological/logical details
 3. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.

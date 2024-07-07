@@ -81,7 +81,7 @@ def generate_input():
     y = random.randint(2, m - height - 2)
 
     # place the triangle onto the grid
-    blit(grid, triangle_sprite, x, y)
+    blit_sprite(grid, triangle_sprite, x, y)
 
     return grid
 

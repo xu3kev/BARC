@@ -55,15 +55,15 @@ def generate_input():
     # Place the sprite in the canvas
     for x in range(0, grid.shape[0], w):
         for y in range(0, grid.shape[1], h):
-            blit(grid, sprite, x, y)
+            blit_sprite(grid, sprite, x, y)
     
     # Create random occluders
     n_occluders = random.randint(1, 5)
     for _ in range(n_occluders):
         x, y = random.randint(0, grid.shape[0]), random.randint(0, grid.shape[1])
         w, h = random.randint(3, 7), random.randint(3, 7)
-        occluder = np.full((w, h), Color.BLACK)
-        blit(grid, occluder, x, y)
+        occluder_sprite = np.full((w, h), Color.BLACK)
+        blit_sprite(grid, occluder_sprite, x, y)
 
     return grid
 

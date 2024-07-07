@@ -60,7 +60,7 @@ def main(input_grid):
         # for each special pixel, extend the crosshair pattern
         for x, y in np.argwhere(cropped_rectangle == special_color):
             # first color the special pixel with the crosshair sprite centered on it
-            cropped_rectangle = blit(cropped_rectangle, crosshair_sprite, x - width // 2, y - height // 2, background=background_color)
+            cropped_rectangle = blit_sprite(cropped_rectangle, crosshair_sprite, x - width // 2, y - height // 2, background=background_color)
 
             # then extend the points in the crosshair pattern until they reach the edge of the rectangle
             if horizontal:
@@ -73,7 +73,7 @@ def main(input_grid):
                         cropped_rectangle[x, y0] = point_color
         
         # add the rectangle back to the grid
-        blit(output_grid, cropped_rectangle, rec_x, rec_y, background=background_color)
+        blit_sprite(output_grid, cropped_rectangle, rec_x, rec_y, background=background_color)
 
     return output_grid
 

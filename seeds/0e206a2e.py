@@ -26,7 +26,7 @@ def main(input_grid):
     # Make the pixel mask, which shows where the pixels are. These guide the placement of objects.
     pixel_mask = np.full(input_grid.shape, Color.BLACK)
     for pixel_object in pixels:
-        blit(pixel_mask, pixel_object, background=Color.BLACK)
+        blit_object(pixel_mask, pixel_object, background=Color.BLACK)
     
     output_grid = np.full(input_grid.shape, Color.BLACK)
     
@@ -41,7 +41,7 @@ def main(input_grid):
         best_output, best_pixels_covered = None, 0
         for x, y, sprite_variation in [(x, y, variant) for x in range(input_grid.shape[0]) for y in range(input_grid.shape[1]) for variant in sprite_variations]:
             test_grid = np.copy(output_grid)
-            blit(test_grid, sprite_variation, x, y, background=Color.BLACK)
+            blit_sprite(test_grid, sprite_variation, x, y, background=Color.BLACK)
             # Check if there was any color mismatch: A colored pixel in the mask which is different from what we just made
             # If there is a mismatch, we can't place the object here
             if np.any((pixel_mask != Color.BLACK) & (test_grid != Color.BLACK) & (pixel_mask != test_grid)):
@@ -85,8 +85,8 @@ def generate_input():
 
     # place everything on the canvas but make sure that nothing overlaps, so they all have their own free location with a little bit of padding
     for sprite in sprites + occluded_sprites:
-        x, y = random_free_location_for_object(grid, sprite, padding=2, border_size=2)
-        blit(grid, sprite, x, y)
+        x, y = random_free_location_for_sprite(grid, sprite, padding=2, border_size=2)
+        blit_sprite(grid, sprite, x, y)
     
     return grid     
 

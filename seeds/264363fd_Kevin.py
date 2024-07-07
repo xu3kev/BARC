@@ -44,7 +44,7 @@ def main(input_grid):
         colored_pixels = np.where((rectangle != Color.BLACK) & (rectangle != main_rectangle_color))
         for x, y in zip(*colored_pixels):
             # Place a copy of the sprite centered on the colored pixel. If any of the sprite goes out of bounds, crop it to the legal region (inside the rectangle)
-            blit(output_grid, sprite, x - sprite.shape[0]//2, y - sprite.shape[1]//2, background=Color.BLACK)
+            blit_sprite(output_grid, sprite, x - sprite.shape[0]//2, y - sprite.shape[1]//2, background=Color.BLACK)
             # bounds check accomplished by overwriting with black
             output_grid[input_grid == Color.BLACK] = Color.BLACK
 
@@ -113,12 +113,12 @@ def generate_input():
         for _ in range(random.choice([1, 2, 3])):
             x, y = np.random.randint(1, w-1), np.random.randint(1, h-1)
             rectangle_sprite[x, y] = marker_color
-        x, y = random_free_location_for_object(grid, rectangle_sprite, padding=1, padding_connectivity=8)
-        blit(grid, rectangle_sprite, x, y)
+        x, y = random_free_location_for_sprite(grid, rectangle_sprite, padding=1, padding_connectivity=8)
+        blit_sprite(grid, rectangle_sprite, x, y)
 
     # Place the sprite in the grid
-    x, y = random_free_location_for_object(grid, sprite, padding=1, padding_connectivity=8)
-    blit(grid, sprite, x, y)
+    x, y = random_free_location_for_sprite(grid, sprite, padding=1, padding_connectivity=8)
+    blit_sprite(grid, sprite, x, y)
 
     # Change the background
     grid[grid == Color.BLACK] = background_color

@@ -21,20 +21,20 @@ def main(input_grid):
     # get the blue pattern from the third section and copy it to make the base of the output grid
     blue_pattern = input_grid[red_bars_x[1]+1:, :]
     output_grid = blue_pattern
-    # could also have used blit:
-    # output_grid = blit(output_grid, blue_pattern, x=0, y=0)
+    # could also have used blit_sprite:
+    # output_grid = blit_sprite(output_grid, blue_pattern, x=0, y=0)
 
     # get the maroon pattern from the second section and overlay it on output grid
     maroon_pattern = input_grid[red_bars_x[0]+1:red_bars_x[1], :]
     output_grid = np.where(maroon_pattern, maroon_pattern, output_grid)
     # could also have used blit:
-    # output_grid = blit(output_grid, maroon_pattern, x=0, y=0)
+    # output_grid = blit_sprite(output_grid, maroon_pattern, x=0, y=0)
 
     # get the yellow pattern from the first section and overlay it on output grid
     yellow_pattern = input_grid[0:red_bars_x[0], :]
     output_grid = np.where(yellow_pattern, yellow_pattern, output_grid)
     # could also have used blit:
-    # output_grid = blit(output_grid, yellow_pattern, x=0, y=0)
+    # output_grid = blit_sprite(output_grid, yellow_pattern, x=0, y=0)
 
     return output_grid
 

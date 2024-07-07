@@ -166,11 +166,34 @@ def blit(grid, sprite, x=0, y=0, background=None):
 
     return new_grid
 
+def blit_object(grid, obj, background=Color.BLACK):
+    """
+    Draws an object onto the grid using its current location.
+
+    Example usage:
+    blit_object(output_grid, an_object, background=background_color)
+    """
+    return blit(grid, obj, x=0, y=0, background=background)
+
+def blit_sprite(grid, sprite, x, y, background=Color.BLACK):
+    """
+    Draws a sprite onto the grid at the specified location.
+
+    Example usage:
+    blit_sprite(output_grid, the_sprite, x=x, y=y, background=background_color)
+    """
+    return blit(grid, sprite, x=x, y=y, background=background)
+
 
 def bounding_box(grid, background=Color.BLACK):
     """
     Find the bounding box of the non-background pixels in the grid.
     Returns a tuple (x, y, width, height) of the bounding box.
+
+    Example usage:
+    objects = find_connected_components(input_grid, monochromatic=True, background=Color.BLACK, connectivity=8)
+    teal_object = [ obj for obj in objects if np.any(obj == Color.TEAL) ][0]
+    teal_x, teal_y, teal_w, teal_h = bounding_box(teal_object)
     """
     n, m = grid.shape
     x_min, x_max = n, -1
@@ -190,19 +213,24 @@ def bounding_box(grid, background=Color.BLACK):
 def crop(grid, background=Color.BLACK):
     """
     Crop the grid to the smallest bounding box that contains all non-background pixels.
+
+    Example usage:
+    # Extract a sprite from an object
+    sprite = crop(an_object, background=background_color)
     """
     x, y, w, h = bounding_box(grid, background)
     return grid[x : x + w, y : y + h]
 
-
-def translate(grid, x, y, background=Color.BLACK):
+def translate(obj, x, y, background=Color.BLACK):
     """
-    Translate the grid by the vector (x, y). Fills in the new pixels with the background color.
+    Translate by the vector (x, y). Fills in the new pixels with the background color.
 
     Example usage:
-    red_object = input_grid[input_grid==Color.RED]
+    red_object = ... # extract some object
     shifted_red_object = translate(red_object, x=1, y=1)
+    blit_object(output_grid, shifted_red_object, background=background_color)
     """
+    grid = obj
     n, m = grid.shape
     new_grid = np.zeros((n, m), dtype=grid.dtype)
     new_grid[:, :] = background
@@ -323,7 +351,7 @@ def random_free_location_for_object(
 ):
     """
     Find a random free location for the sprite in the grid
-    Returns a tuple (x, y) of the top-left corner of the sprite in the grid, which can be passed to `blit`
+    Returns a tuple (x, y) of the top-left corner of the sprite in the grid, which can be passed to `blit_sprite`
 
     border_size: minimum distance from the edge of the grid
     background: color treated as transparent
@@ -333,7 +361,7 @@ def random_free_location_for_object(
     Example usage:
     x, y = random_free_location_for_object(grid, sprite) # find the location
     assert not collision(object1=grid, object2=sprite, x2=x, y2=y)
-    blit(grid, sprite, x, y)
+    blit_sprite(grid, sprite, x, y)
     """
     n, m = grid.shape
 

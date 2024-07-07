@@ -40,7 +40,7 @@ def main(input_grid):
         x, y = center_x - grey_pixel_x, center_y - grey_pixel_y
         
         # Place the sprite into the output grid
-        blit(output_grid, sprite, x, y, background=Color.BLACK)
+        blit_sprite(output_grid, sprite, x, y, background=Color.BLACK)
 
     # Make the output as small as you can to contain all the objects
     output_grid = crop(output_grid)
@@ -79,8 +79,8 @@ def generate_input():
     n, m = np.random.randint(10, 20), np.random.randint(10, 20)
     grid = np.full((n, m), Color.BLACK)
     for sprite in sprites:
-        x, y = random_free_location_for_object(grid, sprite, padding=2, padding_connectivity=8)
-        blit(grid, sprite, x, y)
+        x, y = random_free_location_for_sprite(grid, sprite, padding=2, padding_connectivity=8)
+        blit_sprite(grid, sprite, x, y)
 
     return grid
 

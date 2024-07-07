@@ -29,7 +29,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
                     else:
                         transformed_object[x, y] = obj[x, y]
 
-        blit(output_grid, transformed_object, 0, 0, background=Color.BLACK)
+        blit_object(output_grid, transformed_object, background=Color.BLACK)
 
     return output_grid
 
@@ -62,11 +62,11 @@ def generate_input():
 
         # place the object randomly on the grid, assuming we can find a spot
         try:
-            x, y = random_free_location_for_object(grid, obj, background=Color.BLACK, padding=2, padding_connectivity=8, border_size=2)
+            x, y = random_free_location_for_sprite(grid, obj, background=Color.BLACK, padding=2, padding_connectivity=8, border_size=2)
         except:
             continue
 
-        blit(grid, obj, x, y, background=Color.BLACK)
+        blit_sprite(grid, obj, x=x, y=y, background=Color.BLACK)
 
     # Make sure that we actually generated something
     if np.all(grid == Color.BLACK):

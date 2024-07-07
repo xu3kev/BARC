@@ -13,10 +13,11 @@ from typing import *
 
 def main(input_grid):
     # find the connected component, which is a monochromatic object
-    object = find_connected_components(input_grid, background=Color.BLACK, connectivity=8, monochromatic=True)[0]
+    objects = find_connected_components(input_grid, background=Color.BLACK, connectivity=8, monochromatic=True)
+    obj = objects[0]
 
     # translate the object down by one pixel
-    output_grid = translate(object, 0, 1, background=Color.BLACK)
+    output_grid = translate(obj, 0, 1, background=Color.BLACK)
 
     return output_grid
 
@@ -38,7 +39,7 @@ def generate_input():
         y = random.randint(0, 2 - m)
 
         # place the sprite onto the grid
-        blit(grid, random_sprite_to_add, x, y)
+        blit_sprite(grid, random_sprite_to_add, x, y)
 
     return grid
 

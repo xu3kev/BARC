@@ -45,13 +45,13 @@ def main(input_grid: np.ndarray) -> np.ndarray:
         displacement_vector = biggest_displacement_vector
 
         # color change
-        color_of_other_object = np.unique(other_object)[1]
+        color_of_other_object = np.unique(other_object[other_object != Color.BLACK])[0]
         central_object[central_object != Color.BLACK] = color_of_other_object
 
         # repeat the displacement indefinitely until it falls off the canvas
         for i in range(1, 10):
-            displacement = (displacement_vector[0] * i, displacement_vector[1] * i)
-            blit(output_grid, central_object, displacement[0], displacement[1], background=Color.BLACK)
+            displaced_central_object = translate(central_object, displacement_vector[0] * i, displacement_vector[1] * i, background=Color.BLACK)
+            blit_object(output_grid, displaced_central_object, background=Color.BLACK)
             
     return output_grid
 
@@ -64,11 +64,11 @@ def generate_input() -> np.ndarray:
 
     # make a 3x3 object
     central_color = np.random.choice(Color.NOT_BLACK)
-    central_object = random_sprite(3, 3, color_palette=[central_color])
+    central_sprite = random_sprite(3, 3, color_palette=[central_color])
 
     # place the central object near the center
     x, y = np.random.randint(int(0.3*n), int(0.7*n)), np.random.randint(int(0.3*m), int(0.7*m))
-    blit(grid, central_object, x, y, background=Color.BLACK)
+    blit_sprite(grid, central_sprite, x, y, background=Color.BLACK)
 
     # possible displacement vectors can range in any of the eight different directions (cardinal directions and in between them)
     # they should be close to just a little more than the length of the central object, however
@@ -82,23 +82,23 @@ def generate_input() -> np.ndarray:
 
         # make a random object by recoloring the central object, translating by the vector,
         # and then randomly removing parts of it by flipping random pixels to black
-        other_object = np.copy(central_object)
-        other_object[other_object != Color.BLACK] = np.random.choice(Color.NOT_BLACK)
+        other_sprite = np.copy(central_sprite)
+        other_sprite[other_sprite != Color.BLACK] = np.random.choice(Color.NOT_BLACK)
 
         # flip some random pixels to black:
         # first find the foreground (nonblack) pixels,
         # then randomly sample a subset of them to color black
-        nonblack_pixels = np.argwhere(other_object != Color.BLACK)
+        nonblack_pixels = np.argwhere(other_sprite != Color.BLACK)
         num_nonblack = len(nonblack_pixels)
         num_to_flip = np.random.randint(1, num_nonblack-3)
         random_subset_of_nonblack_pixels = random.sample(list(nonblack_pixels), k=num_to_flip)
 
         # color black
         for pixel in random_subset_of_nonblack_pixels:
-            other_object[pixel[0], pixel[1]] = Color.BLACK        
+            other_sprite[pixel[0], pixel[1]] = Color.BLACK        
 
         # place the new object near the center, but offset by the vector
-        blit(grid, other_object, x + vector[0], y + vector[1], background=Color.BLACK)
+        blit_sprite(grid, other_sprite, x + vector[0], y + vector[1], background=Color.BLACK)
 
     return grid
 

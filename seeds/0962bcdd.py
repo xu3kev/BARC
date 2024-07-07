@@ -58,10 +58,10 @@ def generate_input():
         cross[1, 1] = center_color
 
         # find a free place on the grid
-        x, y = random_free_location_for_object(input_grid, cross)
+        x, y = random_free_location_for_sprite(input_grid, cross)
 
         # blit the cross to the canvas
-        blit(input_grid, cross, x, y)
+        blit_sprite(input_grid, cross, x, y)
 
     return input_grid
 

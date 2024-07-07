@@ -39,17 +39,17 @@ def generate_input():
     grid = np.zeros((n, m), dtype=int)
 
     # make a 2x2 red square sprite
-    red_square = np.full((2,2), Color.RED, dtype=int)
+    red_square_sprite = np.full((2,2), Color.RED, dtype=int)
 
     # place a red square sprite at two random places on the grid
-    x1, y1 = random.randint(0, n - 2), random.randint(0, m - 2)
-    blit(grid, red_square, x1, y1)
-    x2, y2 = random_free_location_for_object(grid, red_square)
-    blit(grid, red_square, x2, y2)
+    x1, y1 = random_free_location_for_sprite(grid, red_square_sprite, padding=1)
+    blit_sprite(grid, red_square_sprite, x1, y1)
+    x2, y2 = random_free_location_for_sprite(grid, red_square_sprite, padding=1)
+    blit_sprite(grid, red_square_sprite, x2, y2)
 
     # check that the red squares do not touch
     # if they do, then try again
-    if contact(object1=red_square, object2=red_square, x1=x1, y1=y1, x2=x2, y2=y2):
+    if contact(object1=red_square_sprite, object2=red_square_sprite, x1=x1, y1=y1, x2=x2, y2=y2):
         return generate_input()
 
     # sprinkle teal pixels over the black parts of the grid so they cover roughly a third of it

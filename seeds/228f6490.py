@@ -63,7 +63,7 @@ def main(input_grid):
 
                 # place the sprite in the black hole by blitting it
                 interior_x, interior_y, interior_width, interior_height = bounding_box(interior_obj_mask)
-                blit(output_grid, sprite, interior_x, interior_y, background=Color.BLACK)
+                blit_sprite(output_grid, sprite, interior_x, interior_y, background=Color.BLACK)
                 break
 
     return output_grid            
@@ -87,12 +87,12 @@ def generate_input():
         # it should be smaller than the grey object
         hole_width, hole_height = np.random.randint(1, grey_width-2), np.random.randint(1, grey_height-2)
         hole_sprite = random_sprite(hole_width, hole_height, color_palette=[Color.BLACK], background=Color.GREY, symmetry="not_symmetric")
-        hole_x, hole_y = random_free_location_for_object(grey_sprite, hole_sprite, border_size=1, background=Color.GREY)
-        blit(grey_sprite, hole_sprite, hole_x, hole_y, background=Color.GREY)
+        hole_x, hole_y = random_free_location_for_sprite(grey_sprite, hole_sprite, border_size=1, background=Color.GREY)
+        blit_sprite(grey_sprite, hole_sprite, hole_x, hole_y, background=Color.GREY)
 
         # place the grey object in the input grid
-        x, y = random_free_location_for_object(input_grid, grey_sprite, padding=1, border_size=1)
-        blit(input_grid, grey_sprite, x, y, background=Color.BLACK)
+        x, y = random_free_location_for_sprite(input_grid, grey_sprite, padding=1, border_size=1)
+        blit_sprite(input_grid, grey_sprite, x, y, background=Color.BLACK)
 
         # each hole has a corresponding colored object somewhere on the grid waiting for it with the same shape as the whole
         # this is going to have the perfect fit, so it needs to have the same mask as the hole but a different color (but not the special colors of gray or the distracter)
@@ -101,16 +101,16 @@ def generate_input():
         object_sprite[hole_sprite == Color.BLACK] = color
 
         # place the object sprite in the input grid
-        x, y = random_free_location_for_object(input_grid, object_sprite, padding=1, border_size=1)
-        blit(input_grid, object_sprite, x, y, background=Color.BLACK)
+        x, y = random_free_location_for_sprite(input_grid, object_sprite, padding=1, border_size=1)
+        blit_sprite(input_grid, object_sprite, x, y, background=Color.BLACK)
 
     # place small distracter objects
     n_distracter_objects = np.random.randint(5, 10)
     for k in range(n_distracter_objects):
         distracter_width, distracter_height = np.random.randint(1, 3, size=2)
         distracter_sprite = random_sprite(distracter_width, distracter_height, color_palette=[distracter_color], background=Color.BLACK)
-        x, y = random_free_location_for_object(input_grid, distracter_sprite, padding=1)
-        blit(input_grid, distracter_sprite, x, y, background=Color.BLACK)
+        x, y = random_free_location_for_sprite(input_grid, distracter_sprite, padding=1)
+        blit_sprite(input_grid, distracter_sprite, x, y, background=Color.BLACK)
 
     return input_grid
 

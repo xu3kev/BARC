@@ -71,7 +71,7 @@ def main(input_grid):
             x += dx
             y += dy
 
-        blit(output_grid, square, x, y)
+        blit_sprite(output_grid, square, x=x, y=y)
 
     return output_grid
 
@@ -112,8 +112,8 @@ def generate_input():
         success = True
         for square in squares:
             try:
-                x, y = random_free_location_for_object(input_grid, square, padding=1, padding_connectivity=4)
-                blit(input_grid, square, x, y)
+                x, y = random_free_location_for_sprite(input_grid, square, padding=1, padding_connectivity=4)
+                blit_sprite(input_grid, square, x=x, y=y)
             except: # no free location
                 success = False
                 break

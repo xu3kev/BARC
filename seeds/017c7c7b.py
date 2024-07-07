@@ -35,7 +35,7 @@ def main(input_grid):
 
 
 def generate_input():
-    # Create output grid, which is always 3x6
+    # grid is always 3x6
     grid = np.zeros((3, 6),dtype = int)
 
     # The input is always blue
@@ -50,8 +50,8 @@ def generate_input():
     vertically_repeated = np.tile(sprite, (1, 100))
     # crop to the size of the grid
     vertically_repeated = vertically_repeated[:, :grid.shape[1]]
-    # copy the sprite to the grid
-    blit(grid, vertically_repeated, 0, 0)
+    # copy to the grid
+    grid[:,:] = vertically_repeated
 
     return grid
 
