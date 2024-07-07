@@ -341,7 +341,7 @@ def contact(
     return False
 
 
-def random_free_location_for_object(
+def random_free_location_for_sprite(
     grid,
     sprite,
     background=Color.BLACK,
@@ -359,7 +359,7 @@ def random_free_location_for_object(
     padding_connectivity: 4 or 8, for 4-way or 8-way connectivity when padding the sprite
 
     Example usage:
-    x, y = random_free_location_for_object(grid, sprite) # find the location
+    x, y = random_free_location_for_sprite(grid, sprite, padding=1, padding_connectivity=8, border_size=1, background=Color.BLACK) # find the location, using generous padding
     assert not collision(object1=grid, object2=sprite, x2=x, y2=y)
     blit_sprite(grid, sprite, x, y)
     """
@@ -412,6 +412,14 @@ def random_free_location_for_object(
         raise ValueError("No free location for sprite found.")
 
     return random.choice(pruned_locations)
+
+def random_free_location_for_object(*args, **kwargs):
+    """
+    internal function not used by LLM
+
+    exists for backward compatibility
+    """
+    return random_free_location_for_sprite(*args, **kwargs)
 
 def object_interior(grid, background=Color.BLACK):
     """
