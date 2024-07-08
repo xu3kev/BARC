@@ -23,20 +23,21 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     output_grid = np.full(input_grid.shape, Color.BLACK)
 
     for obj in decomposition:
-        # Color change based on dimensions: 2x2 -> teal, 1x3/3x1 -> red
-        w, h = crop(obj, background=Color.BLACK).shape
+        x, y, w, h = bounding_box(obj, background=Color.BLACK)
+        sprite = crop(obj, background=Color.BLACK)
+
+        # Color change based on dimensions: 2x2 -> teal, 1x3/3x1 -> red        
         if w == 2 and h == 2:
-            obj[obj == Color.GREY] = Color.TEAL
+            sprite[sprite == Color.GREY] = Color.TEAL
         elif (w == 3 and h == 1) or (w == 1 and h == 3):
-            obj[obj == Color.GREY] = Color.RED
+            sprite[sprite == Color.GREY] = Color.RED
         else:
             assert 0, "Invalid object found"
         
-        # Copy the object back into the output grid
-        blit(output_grid, obj, background=Color.BLACK)
+        # Copy the sprite back into the output grid
+        blit_sprite(output_grid, sprite, x, y, background=Color.BLACK)
 
     return output_grid
-
 
 
 def generate_input():
@@ -53,11 +54,11 @@ def generate_input():
 
         # place it randomly on the grid, assuming we can find a spot
         try:
-            x, y = random_free_location_for_object(grid, sprite, background=Color.BLACK)
+            x, y = random_free_location_for_sprite(grid, sprite, background=Color.BLACK)
         except:
             continue
 
-        blit(grid, sprite, x, y, background=Color.BLACK)
+        blit_sprite(grid, sprite, x, y, background=Color.BLACK)
 
     return grid
 

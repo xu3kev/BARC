@@ -32,7 +32,7 @@ def main(input_grid):
         translated_red_object = translate(red_object, x, y, background=Color.BLACK)
         if contact(object1=teal_object, object2=translated_red_object):
             # put the red object where it belongs
-            blit(output_grid, translated_red_object, background=Color.BLACK)
+            blit_object(output_grid, translated_red_object, background=Color.BLACK)
             return output_grid
             
     assert 0, "No valid slide found"
@@ -43,16 +43,16 @@ def generate_input():
     grid = np.full((n, m), Color.BLACK)
 
     # make a 2x2 teal square, put it somewhere random on the grid
-    square = np.full((2, 2), Color.TEAL)
-    x, y = random_free_location_for_object(grid, square, background=Color.BLACK, padding=1, border_size=1)
-    blit(grid, square, x, y, background=Color.BLACK)
+    square_sprite = np.full((2, 2), Color.TEAL)
+    x, y = random_free_location_for_sprite(grid, square_sprite, background=Color.BLACK, padding=1, border_size=1)
+    blit_sprite(grid, square_sprite, x, y, background=Color.BLACK)
 
     # make a random sprite of [3,4] x [3,4] with a random symmetry type and the color red
     sprite = random_sprite([3,4], [3,4], symmetry="not_symmetric", color_palette=[Color.RED])
 
     # put the sprite somewhere random on the grid
-    x, y = random_free_location_for_object(grid, sprite, background=Color.BLACK, padding=1, border_size=1)
-    blit(grid, sprite, x, y, background=Color.BLACK)    
+    x, y = random_free_location_for_sprite(grid, sprite, background=Color.BLACK, padding=1, border_size=1)
+    blit_sprite(grid, sprite, x, y, background=Color.BLACK)    
 
     # check that we could slide the object either vertically or horizontally in order to touch the red square
     # this will be true if there is a row or column that has both red and blue

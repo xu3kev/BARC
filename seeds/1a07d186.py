@@ -28,7 +28,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     
     # copy the bars to the output grid
     for bar in bars:
-        blit(output_grid, bar, background=Color.BLACK)
+        blit_object(output_grid, bar, background=Color.BLACK)
     
     # slide each pixel until it just barely touches the bar with the matching color
     for pixel in pixels:
@@ -46,7 +46,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
         for dx, dy in possible_displacements:
             new_pixel = translate(pixel, dx, dy, background=Color.BLACK)
             if contact(object1=matching_bars[0], object2=new_pixel):
-                blit(output_grid, new_pixel, background=Color.BLACK)
+                blit_object(output_grid, new_pixel, background=Color.BLACK)
                 break
     
     return output_grid
@@ -89,9 +89,12 @@ def generate_input() -> np.ndarray:
         x, y = np.random.randint(0, n), np.random.randint(0, m)
         just_the_pixels[x, y] = np.random.choice(list(not_a_bar_color))
 
-    # put the bars on top of the pixels by blitting them on top
+    # put the bars on top of the pixels by copying them on top
     grid = just_the_pixels.copy()
-    blit(grid, just_the_bars, 0, 0, background=Color.BLACK)
+    blit_object(grid, just_the_bars, background=Color.BLACK)
+    # Equivalent to:
+    # grid[just_the_bars != Color.BLACK] = just_the_bars[just_the_bars != Color.BLACK]
+    
 
     return grid
 

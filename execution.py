@@ -10,8 +10,8 @@ import time
 
 
 # add seeds/ to the python path so we can import common
-sys.path.append("seeds/")
-from common import *
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(f"{CURRENT_DIR}/seeds/")
 
 import numpy as np
 import random
@@ -145,17 +145,21 @@ output_grid = {function_name}(input_grid)
         print("Error: Code execution timed out after 10 seconds")
         output = "timeout"
     except Exception as e:
+        import traceback
         print("Error in executing code")
-        print(f"Error: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
         output = f"error: {e}"
 
     # make sure that it is a 2d nump array of integers between 0-9
-    if isinstance(output, np.ndarray) and len(output.shape) == 2 and np.all((0 <= output) & (output <= 9)):
-        return output
+    # if output_validator is None:
+    #     output_validator = lambda out: isinstance(out, np.ndarray) and len(out.shape) == 2 and np.all((0 <= out) & (out <= 9))
+    
+    # if output_validator(output):
+    #     return output
 
     return output
 
-def multi_execute_transformation(sources, input_grids, timeout=1, function_name="main", num_workers=8):
+def multi_execute_transformation(sources, input_grids, random_seeds, timeout=1, function_name="main", num_workers=32):
 
     input_grids = [np.array(input_grid) for input_grid in input_grids]
             
@@ -164,7 +168,7 @@ def multi_execute_transformation(sources, input_grids, timeout=1, function_name=
     except:
         breakpoint()
     codes = []
-    for source, input_grid in zip(sources, input_grids):
+    for source, input_grid, seed in zip(sources, input_grids, random_seeds):
         make_input = f"input_grid = np.zeros(({n}, {m}), dtype=int)\n"
         for i in range(n):
             for j in range(m):
@@ -172,6 +176,9 @@ def multi_execute_transformation(sources, input_grids, timeout=1, function_name=
                 
         code = f"""import numpy as np
 from common import *
+import random as random98762
+random98762.seed({seed})
+np.random.seed({seed})
 {source}
 {make_input}
 output_grid = {function_name}(input_grid) 
@@ -216,14 +223,17 @@ grid = {function_name}()
 
     return output
 
-def multi_execute_input_generator(sources, timeout=1, function_name="generate_input", num_workers=8):
+def multi_execute_input_generator(sources, random_seeds, timeout=1, function_name="generate_input", num_workers=8):
 
     codes = [f"""import random
 import numpy as np
+random.seed({random_seed})
+np.random.seed({random_seed})
 from common import *
 {source}
 grid = {function_name}()
-""" for source in sources]
+""" for source, random_seed in zip(sources, random_seeds)]
+
 
     outputs = multi_process_execute(codes, "grid", timeout=timeout, num_workers=num_workers)
 

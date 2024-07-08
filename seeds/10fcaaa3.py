@@ -16,7 +16,7 @@ def main(input_grid):
    output_grid = np.zeros((2*input_grid.shape[0], 2* input_grid.shape[1]),dtype=int)
    for i in range(2):
       for j in range(2):
-         blit(output_grid, input_grid, i*input_grid.shape[0], j*input_grid.shape[1])
+         blit_sprite(output_grid, input_grid, i*input_grid.shape[0], j*input_grid.shape[1])
   
    # Create diagonal directions
    diagonal_dx_dy = [(1,1),(-1,1),(1,-1),(-1,-1)]
@@ -52,8 +52,8 @@ def generate_input():
     
     # Randomly place n_colored_pixels pixels on the grid
     for i in range(n_colored_pixels):
-      x,y = random_free_location_for_object(grid,sprite)
-      blit(grid, sprite, x,y)
+      x,y = random_free_location_for_sprite(grid,sprite)
+      blit_sprite(grid, sprite, x,y)
 
     return grid
 

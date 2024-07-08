@@ -66,8 +66,8 @@ def generate_input():
         arrowhead[corner // 2, corner % 2] = Color.BLACK
         
         # place it in a random free location with 1 cell padding
-        x, y = random_free_location_for_object(grid, arrowhead, padding=1)
-        blit(grid, arrowhead, x, y)
+        x, y = random_free_location_for_sprite(grid, arrowhead, padding=1)
+        blit_sprite(grid, arrowhead, x=x, y=y)
  
     return grid
 

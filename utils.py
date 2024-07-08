@@ -85,7 +85,7 @@ def extract_function_calls(function_code):
     extractor.visit(tree)
     return list(extractor.called_functions)
 
-def generate_html_grid(data):
+def generate_html_grid(data, uid):
     color_map = {
         0: 'black',
         1: 'blue',
@@ -110,7 +110,7 @@ def generate_html_grid(data):
         html += '</table>'
         return html
 
-    html = '<div>'
+    html = f'<div id="img_{uid}">'
     for item in data:
         input_html = array_to_html(item['input'])
         output_html = array_to_html(item['output'])

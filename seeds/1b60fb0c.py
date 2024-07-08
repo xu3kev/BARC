@@ -23,7 +23,7 @@ def main(input_grid):
         for y in range(input_grid.shape[1]):
             
             test_grid = np.copy(input_grid)
-            blit(test_grid, rotated_blue_sprite, x, y, background=Color.BLACK)
+            blit_sprite(test_grid, rotated_blue_sprite, x, y, background=Color.BLACK)
             test_blue_sprite = crop(test_grid)
 
             # Check if the resulting object is radially symmetric
@@ -71,7 +71,7 @@ def generate_input():
     # make a blue radially symmetric sprite and put it at a random free location
     sprite_size = np.random.randint(8, min(n, m))
     sprite = random_sprite(sprite_size, sprite_size, symmetry='radial', color_palette=[Color.BLUE], density=0.2)
-    x, y = random_free_location_for_object(grid, sprite)
+    x, y = random_free_location_for_sprite(grid, sprite)
 
     # remove a random section of the sprite to make it not radially symmetric
     remove_length = np.random.randint(1, sprite_size//4)
@@ -85,7 +85,7 @@ def generate_input():
     elif quadrant == 'west':
         sprite[sprite_size//2 :, sprite_size//2 - remove_length : sprite_size//2 + remove_length] = Color.BLACK
 
-    blit(grid, sprite, x, y)
+    blit_sprite(grid, sprite, x, y)
 
     return grid
 

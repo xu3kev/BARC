@@ -73,8 +73,8 @@ def generate_input():
     output_grid = np.full((width, height), Color.BLACK)
 
     # Place the pyramid in the output grid
-    x, y = random_free_location_for_object(output_grid, rotated_pyramid, border_size=1)
-    blit(output_grid, rotated_pyramid, x, y, background=Color.BLACK)
+    x, y = random_free_location_for_sprite(output_grid, rotated_pyramid, border_size=1)
+    blit_sprite(output_grid, rotated_pyramid, x, y, background=Color.BLACK)
 
     return output_grid
 

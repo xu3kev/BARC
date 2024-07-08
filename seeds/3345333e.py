@@ -60,8 +60,8 @@ def generate_input():
     sprite = random_sprite(np.random.randint(5, n-2), np.random.randint(5, m-2), density=0.5, symmetry="horizontal", color_palette=[object_color])
     rectangle = np.full((np.random.randint(2, 5), np.random.randint(2, 5)), rectangle_color)
 
-    sprite_x, sprite_y = random_free_location_for_object(grid, sprite)
-    blit(grid, sprite, sprite_x, sprite_y)
+    sprite_x, sprite_y = random_free_location_for_sprite(grid, sprite)
+    blit_sprite(grid, sprite, x=sprite_x, y=sprite_y)
 
     # Find a random place for the rectangle that is NOT free (because the rectangle occludes the sprite)
     while True:
@@ -70,7 +70,7 @@ def generate_input():
             # Equivalently, could have done:
             # collision(object1=sprite, object2=rectangle, x1=sprite_x, y1=sprite_y, x2=rectangle_x, y2=rectangle_y)
             break
-    blit(grid, rectangle, rectangle_x, rectangle_y, background=Color.BLACK)
+    blit_sprite(grid, rectangle, x=rectangle_x, y=rectangle_y, background=Color.BLACK)
     return grid
     
 

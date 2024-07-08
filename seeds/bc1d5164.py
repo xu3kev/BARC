@@ -12,28 +12,28 @@ from typing import *
 
 def main(input_grid):
     # get the patterns from the input
-    patterns = find_connected_components(input_grid, connectivity=8)
+    objects = find_connected_components(input_grid, connectivity=8)
 
     # find the bounding box of each pattern
-    pattern_bounding_boxes = [bounding_box(pattern) for pattern in patterns]
+    bounding_boxes = [bounding_box(obj) for obj in objects]
 
     # figure out how big the output grid should be (the pattern is a square and the output should be one pixel larger in each dimension)
-    n = m = max([max(pattern[2], pattern[3]) for pattern in pattern_bounding_boxes]) + 1
+    n = m = max([max(pattern[2], pattern[3]) for pattern in bounding_boxes]) + 1
 
     # make the output grid
-    output_grid = np.zeros((n, m), dtype=int)
+    output_grid = np.full((n, m), Color.BLACK)
 
     # copy the patterns to the output grid
-    for pattern, (x, y, _, _) in zip(patterns, pattern_bounding_boxes):
+    for obj, (x, y, _, _) in zip(objects, bounding_boxes):
         # adjust the position of the pattern in the output grid if necessary
         if x >= n - 1:
             x = x - input_grid.shape[0] + n
         if y >= m - 1:
             y = y - input_grid.shape[1] + m
         # crop the pattern to remove any extra rows or columns of black pixels
-        cropped_pattern = crop(pattern)
+        sprite = crop(obj)
         # copy the pattern to the output grid
-        blit(output_grid, cropped_pattern, x, y, Color.BLACK)
+        blit_sprite(output_grid, sprite, x=x, y=y, background=Color.BLACK)
     
     return output_grid
     

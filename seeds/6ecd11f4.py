@@ -23,28 +23,28 @@ def main(input_grid):
         else:
             square = obj
     
-    # cut out the bounding box of the square
+    # get the square location and cut out the bounding box
     x, y, width, height = bounding_box(square)
-    square = square[x:x+width, y:y+height]
+    square_sprite = square[x:x+width, y:y+height]
 
     # cut out the bounding box of the pattern
     x2, y2, width2, height2 = bounding_box(pattern)
     # make sure the pattern is square
     if width2 != height2:
         width2 = height2 = max(width2, height2)
-    pattern = pattern[x2:x2+width2, y2:y2+height2]
+    pattern_sprite = pattern[x2:x2+width2, y2:y2+height2]
 
     # figure out how much bigger the pattern is than the square
     scale = width2 // width
 
     # scale down the pattern to fit the square
-    scaled_pattern = np.zeros_like(square) 
+    scaled_pattern = np.zeros_like(square_sprite) 
     for i in range(width):
         for j in range(height):
-            scaled_pattern[i,j] = pattern[i * scale, j * scale]
+            scaled_pattern[i,j] = pattern_sprite[i * scale, j * scale]
     
     # if the pixel is in the pattern, keep the color from the square otherwise make it black in the output grid
-    output_grid = np.where(scaled_pattern, square, Color.BLACK)
+    output_grid = np.where(scaled_pattern, square_sprite, Color.BLACK)
 
     return output_grid
 
@@ -80,14 +80,14 @@ def generate_input():
 
     # put the pattern on the grid randomly
     x, y = np.random.randint(0, n - size * scale), np.random.randint(0, m - size * scale)
-    blit(grid, pattern, x, y)
+    blit_sprite(grid, pattern, x=x, y=y)
 
     # put the multi-colored square on the grid randomly but not touching the pattern
-    x2, y2 = random_free_location_for_object(grid, square)
+    x2, y2 = random_free_location_for_sprite(grid, square)
     # make sure the multi-colored square is not touching the pattern, if it is then keep looking for a place to put it
     while contact(object1=grid, object2=square, x2=x2, y2=y2, connectivity=8):
-        x2, y2 = random_free_location_for_object(grid, square)
-    blit(grid, square, x2, y2)
+        x2, y2 = random_free_location_for_sprite(grid, square)
+    blit_sprite(grid, square, x=x2, y=y2)
 
     return grid
 

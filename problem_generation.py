@@ -12,13 +12,16 @@ class Problem:
     def __init__(self, source_code):
         self.source = source_code
         self.examples = []
+        self.seeds = []
+        
 
     def add_example(self, input_grid, output_grid):
         self.examples.append((input_grid, output_grid))
     def to_dict(self):
         return {
             "source": self.source,
-            "examples": [(input_grid.tolist(), output_grid.tolist()) for input_grid, output_grid in self.examples]
+            "examples": [(input_grid.tolist(), output_grid.tolist()) for input_grid, output_grid in self.examples],
+            "seeds": self.seeds
         }
 
 
@@ -28,8 +31,13 @@ def check_grid(grid):
         assert isinstance(grid, np.ndarray)
         assert len(grid.shape) == 2
         assert grid.shape[0] > 0 and grid.shape[1] > 0
+        # integer type
+        assert np.all(np.equal(np.mod(grid, 1), 0))
         assert np.all((0 <= grid) & (grid <= 9))
     except AssertionError:
+        return False
+    except Exception as e:
+        print(e)
         return False
     return True
 
@@ -55,11 +63,14 @@ def generate_input_grids(problem_source, num_returns=3, timeout=1, function_name
     """
     given a problem source code, generate an input grid
     """
+    random.seed(0)
+
     return_input_grids = []
     tries = 0
     BATCH_SIZE = num_returns
     while len(return_input_grids) < num_returns and tries < retries:
-        input_grids = multi_execute_input_generator([problem_source] * BATCH_SIZE, timeout, function_name)
+        random_seeds = [random.randint(0, 1<<30) for _ in range(BATCH_SIZE)]
+        input_grids = multi_execute_input_generator([problem_source] * BATCH_SIZE, random_seeds, timeout, function_name)
         for input_grid in input_grids:
             if not check_grid(input_grid):
                 tries += 1
@@ -140,7 +151,9 @@ def run_transformation(source, input_grid, timeout=1, function_name="main", num_
     """
     run the transformation on the input grid and return the output grid multiple times
     """
-    output_grids = multi_execute_transformation([source] * num_returns, [input_grid] * num_returns, timeout, function_name)
+    random.seed(0)
+    random_seeds = [random.randint(0, 1<<30) for _ in range(num_returns)]
+    output_grids = multi_execute_transformation([source] * num_returns, [input_grid] * num_returns, random_seeds, timeout, function_name)
     return output_grids
 
 def generate_problem(problem_source, num_input_grids=30, num_deterministic_check=20, num_color_permute_check=20, timeout=1, total_timeout=30):
@@ -157,6 +170,7 @@ def generate_problem(problem_source, num_input_grids=30, num_deterministic_check
     problem = Problem(problem_source)
 
     input_grids = generate_input_grids(problem_source, num_returns=num_input_grids, timeout=timeout, deduplicate=True)
+    random.seed(0)
 
     # Check for non-deterministic transformations
     for input_grid in input_grids:
@@ -192,8 +206,9 @@ def generate_problem(problem_source, num_input_grids=30, num_deterministic_check
             modified_problem_source = add_color_changing_code(problem_source, color_mapping)
             modified_problem_sources.append(modified_problem_source)
 
+        random_seeds = [random.randint(0, 1<<30) for _ in range(num_color_permute_check)]
         permuted_output_grids = multi_execute_transformation(modified_problem_sources, 
-                                                             permuted_input_grids, timeout, function_name="main")
+                                                             permuted_input_grids, random_seeds, timeout, function_name="main")
 
         if len(permuted_output_grids) != num_color_permute_check:
             print("some transformations failed during permute check")
@@ -219,12 +234,15 @@ def main():
     parser.add_argument("--jsonl", type=str, help="Path to jsonl file containing program generation")
     parser.add_argument("--problem_source_uid", type=str, help="Problem id of a seed problem to validate")
     parser.add_argument("--run_all_seed", action="store_true", help="Run all seed problems")
+    parser.add_argument("--py_file", type=str, help="Path to the python file containing the problem")
     args = parser.parse_args()
 
     # only one of problem_uid or run_all_seed or jsonl should be provided
-    assert sum([args.problem_source_uid is not None, args.run_all_seed, args.jsonl is not None]) == 1, "Provide one of problem_uid, run_all_seed or jsonl"
+    assert sum([args.problem_source_uid is not None, args.run_all_seed, args.jsonl is not None,
+                args.py_file is not None]) == 1, "Provide one of problem_uid, run_all_seed or jsonl"
 
     problems_source = []
+    problems_seeds = []
     problem_source_uids = []
     if args.problem_source_uid:
         problem_source_uids = [args.problem_source_uid]
@@ -243,6 +261,11 @@ def main():
         for line in data:
             problem = json.loads(line)
             problems_source.append(problem["code"])
+            problems_seeds.append(problem["seeds"])
+    elif args.py_file:
+        with open(args.py_file) as f:
+            source = f.read()
+        problems_source.append(source)
     else:
         raise ValueError("Provide one of problem_uid, run_all_seed or jsonl")
 
@@ -258,6 +281,8 @@ def main():
         problem = generate_problem(problem_source, total_timeout=30)
         if problem and len(problem.examples) >= 4:
             print(f"+1 problem with {len(problem.examples)} examples")
+            if args.jsonl:
+                problem.seeds = problems_seeds[i]
             problems.append(problem)
         else:
             if problem_source_uids:

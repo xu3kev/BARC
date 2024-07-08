@@ -43,11 +43,11 @@ def generate_input():
         sprite[interior_but_not_edges] = Color.BLACK
 
         try:
-            x, y = random_free_location_for_object(grid, sprite, border_size=1, padding=1)
+            x, y = random_free_location_for_sprite(grid, sprite, border_size=1, padding=1)
         except:
             continue
 
-        blit(grid, sprite, x, y, background=Color.BLACK)
+        blit_sprite(grid, sprite, x, y, background=Color.BLACK)
     
     return grid 
 
