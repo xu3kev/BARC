@@ -10,8 +10,8 @@ import time
 
 
 # add seeds/ to the python path so we can import common
-sys.path.append("seeds/")
-from common import *
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(f"{CURRENT_DIR}/seeds/")
 
 import numpy as np
 import random

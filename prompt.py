@@ -10,10 +10,9 @@ from llm import *
 
 import sys
 # add seeds/ to the python path
-sys.path.append("seeds/")
-from common import *
+from seeds.common import *
 
-def get_common_lib_from_file(file_path="seeds/common.py", reference_code=None):
+def get_common_lib_from_file(file_path):
     """
     reference_code: a string containing the code that we are trying to use the common library to understand
     if it is provided then the only functions from the common_lib that are returned are the ones that are called in the reference_code
@@ -21,17 +20,6 @@ def get_common_lib_from_file(file_path="seeds/common.py", reference_code=None):
     with open(file_path) as f:
         common_lib = f.read()
     
-    if reference_code is not None:
-        common_functions_calls = extract_function_calls(reference_code)
-        common_functions_calls = set(common_functions_calls)
-        common_lib_functions = extract_functions(common_lib)
-        common_lib_function_names = set([f["name"] for f in common_lib_functions])
-        common_functions_calls = common_functions_calls.intersection(common_lib_function_names)
-        common_lib_functions = [f for f in common_lib_functions if f["name"] in common_functions_calls]
-        common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions])
-        return common_lib, common_lib_function_names
-    
-
     common_lib_functions = extract_functions(common_lib)
     common_lib_functions = [f for f in common_lib_functions if "internal function not used by LLM" not in f["docstring"]]
     common_lib_function_names = set([f["name"] for f in common_lib_functions])
@@ -44,7 +32,27 @@ def get_common_lib_from_file(file_path="seeds/common.py", reference_code=None):
     
     return common_lib, common_lib_function_names
 
-def make_self_instruct_prompt(seeds, rng_seed, brief_common=False, num_seeds=None, remix=0, library_function_hint=-1, uncreative=False, use_generator_prompt=True):
+def prune_common_lib(common_lib, reference_code):
+    exceptions = ["Color"]
+    called_functions = extract_function_calls(reference_code)
+    called_functions = set(called_functions)
+    common_lib_functions = extract_functions(common_lib)
+    common_lib_function_names = set([f["name"] for f in common_lib_functions])
+    called_common_lib_function_names = called_functions.intersection(common_lib_function_names)
+    called_common_lib_functions = [f for f in common_lib_functions 
+                                   if f["name"] in called_common_lib_function_names]
+    called_common_lib = "\n\n".join([f["api_definition"] for f in called_common_lib_functions]) 
+    common_lib_classes = extract_class_definitions(common_lib)
+    # TODO: what's the best way to handle classes?
+    # if `detect_rotational_symmetry`, `detect_translational_symmetry`, `detect_mirror_symmetry` is called, then we should include the Symmetry class
+    symmtry_related_functions = ["detect_rotational_symmetry", "detect_translational_symmetry", "detect_mirror_symmetry"]
+    included_classes_names = exceptions + ["Symmetry"] if any([f in called_functions for f in symmtry_related_functions]) else exceptions
+    called_common_lib += "\n\n" + "\n\n".join([c["api_definition"] for c in common_lib_classes if c["name"] in included_classes_names])
+
+    return called_common_lib, called_common_lib_function_names
+
+def make_self_instruct_prompt(seeds_contents, rng_seed, common_lib, common_lib_function_names,
+                               brief_common=False, num_seeds=None, remix=0, library_function_hint=-1, uncreative=False, use_generator_prompt=True):
     """
     remix: how many example seeds the prompt tells the LLM to remix.
     0 means no remixing, just shows all the seeds. 1 tells it to remix one of the examples, 2 tells it to remix two of the examples, etc.
@@ -53,18 +61,18 @@ def make_self_instruct_prompt(seeds, rng_seed, brief_common=False, num_seeds=Non
     rng = random.Random(rng_seed)
 
     # Sort the seeds so that the order is consistent
-    seeds = list(sorted(seeds))
-    rng.shuffle(seeds)
+    seeds_contents = list(sorted(seeds_contents, key=lambda x: x[0]))
+    rng.shuffle(seeds_contents)
     if num_seeds is not None:
-        seeds = seeds[:num_seeds]
+        seeds_contents = seeds_contents[:num_seeds]
 
     seed_content = []
-    for seed in seeds:
-        with open(f"seeds/{seed}") as f:
-            content = f.read()
-            assert "# ============= remove below this point for prompting =============" in content
-            content = content.split("# ============= remove below this point for prompting =============")[0].strip()
-            seed_content.append(content)
+    for _ , content in seeds_contents:
+        assert "# ============= remove below this point for prompting =============" in content
+        content = content.split("# ============= remove below this point for prompting =============")[0].strip()
+        seed_content.append(content)
+    if brief_common:
+        common_lib, common_lib_function_names = prune_common_lib(common_lib, "\n".join(seed_content))
 
     #common_functions_calls_counter = {}
     concepts_in_seeds = []
@@ -112,10 +120,6 @@ def make_self_instruct_prompt(seeds, rng_seed, brief_common=False, num_seeds=Non
         remix1 = f"in particular, making a new variation of the last {remix} examples, by "
         remix2 = f", but remembering it should be a variation of the last {remix} examples"
     
-    # Load the common library
-    common_lib, common_lib_function_names = get_common_lib_from_file("seeds/common.py",
-                                                                     reference_code=("\n".join(seed_content) if brief_common else None))
-
     if library_function_hint == -1:
         library_function_hint_str = ""
     elif library_function_hint == 0:
@@ -186,9 +190,10 @@ Be sure to make the transformation `main` deterministic. Be sure to not assume o
     if library_function_hint_str:
         prompt += f"""\n{library_function_hint_str}"""
     
-    return prompt, tuple(seeds)
+    seeds = [seed for seed, _ in seeds_contents]
+    return prompt, seeds
 
-if __name__ == "__main__":
+def main():
     import argparse
     parser = argparse.ArgumentParser(description = "problem generator")
 
@@ -216,10 +221,20 @@ if __name__ == "__main__":
             break
 
     # get all files in seeds directory
-    seeds = os.listdir("seeds")
+    # get current directory path
+    current_file_dir = os.path.dirname(os.path.realpath(__file__))
+    seeds = os.listdir(os.path.join(current_file_dir, "seeds"))
     # filter files with .py extension and 8 hex value characters in the file name
     pattern = r"[0-9a-f]{8}(_[a-zA-Z]+)?\.py"
+    # get all files and its content
     seeds = [seed for seed in seeds if re.match(pattern, seed)]
+    seeds_contents = []
+    for seed in seeds:
+        with open(os.path.join(current_file_dir, "seeds", seed)) as f:
+            seeds_contents.append((seed, f.read()))
+
+    # Load the common library
+    common_lib, common_lib_function_names = get_common_lib_from_file(f"{current_file_dir}/seeds/common.py")
 
     # print all files
     print(f"Using the following {len(seeds)} seeds:", ", ".join(seeds).replace(".py", ""))
@@ -234,12 +249,19 @@ if __name__ == "__main__":
     batch_size = arguments.batch_size
     remix_level = arguments.remix
     library_function_hint = arguments.library_function_hint
-    common_lib, common_lib_function_names = get_common_lib_from_file("seeds/common.py")
-    prompts_and_seeds = [ make_self_instruct_prompt(seeds, rng_seed + rng_offset, brief_common=arguments.brief_common, remix=remix_level, num_seeds=arguments.num_seeds,
-                                          library_function_hint=library_function_hint, uncreative=arguments.uncreative, use_generator_prompt=arguments.generator_prompt)
+    prompts_and_seeds = [ make_self_instruct_prompt(seeds_contents=seeds_contents, 
+                                                    rng_seed=rng_seed + rng_offset, 
+                                                    common_lib=common_lib,
+                                                    common_lib_function_names=common_lib_function_names,
+                                                    brief_common=arguments.brief_common, 
+                                                    remix=remix_level, 
+                                                    num_seeds=arguments.num_seeds,
+                                                    library_function_hint=library_function_hint, 
+                                                    uncreative=arguments.uncreative, 
+                                                    use_generator_prompt=arguments.generator_prompt)
                for rng_seed in tqdm(range(batch_size)) ]
 
-    client = LLMClient(provider=provider)
+    client = LLMClient(provider=provider, cache_dir=f"{current_file_dir}/cache")
     samples_and_seeds = []
 
     if arguments.sample_parallel == 1:
@@ -259,6 +281,8 @@ if __name__ == "__main__":
         parsed_codes = parse_code(sample)
         if parsed_codes:
             parsed_code = parsed_codes[0]
+        else:
+            parsed_code = ""
         codes_and_seeds.append((parsed_code, seeds))
 
     model_name = arguments.model.replace("/", "_")
@@ -349,3 +373,6 @@ if __name__ == "__main__":
     print(f"Writing to {file_name_html}")
     with open(file_name_html, "w") as f:
         f.write(final_html)
+
+if __name__ == "__main__":
+    main()

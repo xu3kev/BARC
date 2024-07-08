@@ -31,8 +31,13 @@ def check_grid(grid):
         assert isinstance(grid, np.ndarray)
         assert len(grid.shape) == 2
         assert grid.shape[0] > 0 and grid.shape[1] > 0
+        # integer type
+        assert np.all(np.equal(np.mod(grid, 1), 0))
         assert np.all((0 <= grid) & (grid <= 9))
     except AssertionError:
+        return False
+    except Exception as e:
+        print(e)
         return False
     return True
 
