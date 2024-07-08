@@ -275,7 +275,6 @@ def main():
         samples = [sample for sublist in list_of_lists_of_samples for sample in sublist]
         samples_and_seeds = list(zip(samples, [seed for prompt, seed in prompts_and_seeds]))
 
-
     codes_and_seeds = []
     for sample, seeds in samples_and_seeds:
         parsed_codes = parse_code(sample)

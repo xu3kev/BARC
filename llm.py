@@ -158,8 +158,12 @@ class LLMClient:
     def generate_parallel(self, prompts, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1, num_workers=8):
         """use concurrent futures to generate samples in parallel"""
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            futures = [executor.submit(self.generate, prompt, num_samples, model, temperature, max_tokens, top_p) for prompt in prompts ]
-            results = []
-            for future in tqdm(as_completed(futures), total=len(futures), desc="Generating samples"):
-                results.append(future.result())
+            future_to_index = {
+                executor.submit(self.generate, prompt, num_samples, model, temperature, max_tokens, top_p): i
+                for i, prompt in enumerate(prompts)
+            }
+            results = [None] * len(prompts)  # Pre-allocate the results list
+            for future in tqdm(as_completed(future_to_index), total=len(future_to_index), desc="Generating samples"):
+                index = future_to_index[future]
+                results[index] = future.result()
             return results
