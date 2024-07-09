@@ -69,8 +69,8 @@ def generate_input():
     symmetric_sprite = random_sprite(width, height, symmetry=symmetry, color_palette=[color], connectivity=8)
 
     # place the sprite randomly on the grid
-    x, y = random_free_location_for_object(grid, symmetric_sprite, padding=1)
-    blit(grid, symmetric_sprite, x, y)
+    x, y = random_free_location_for_sprite(grid, symmetric_sprite, padding=1)
+    blit_sprite(grid, symmetric_sprite, x=x, y=y)
 
     # add some non-symmetric sprites:
     for _ in range(np.random.randint(3, 6)):
@@ -91,8 +91,8 @@ def generate_input():
 
         # place the sprite randomly on the grid if there is space
         try:
-          x, y = random_free_location_for_object(grid, non_symmetric_sprite, padding=1)
-          blit(grid, non_symmetric_sprite, x, y)
+          x, y = random_free_location_for_sprite(grid, non_symmetric_sprite, padding=1)
+          blit_sprite(grid, non_symmetric_sprite, x=x, y=y)
         except:
           pass
 

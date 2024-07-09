@@ -46,7 +46,7 @@ def generate_input():
     
     # make random sprite and put it in middle of grid
     sprite = random_sprite(n-2, m-2, "not_symmetric", [sprite_color])
-    blit(grid, sprite, 1, 1)
+    blit_sprite(grid, sprite, x=1, y=1)
 
     # put a single pixel in the bottom left corner
     grid[0, -1] = corner_color

@@ -45,8 +45,8 @@ def generate_input():
         while np.sum(sprite == Color.GREY) < 2 or np.sum(sprite == Color.GREY) > 4:
             sprite = random_sprite(np.random.randint(1, 4), np.random.randint(1, 4), symmetry="not_symmetric", color_palette=[Color.GREY])
         try:
-            x, y = random_free_location_for_object(grid, sprite, padding=1, padding_connectivity=8)
-            blit(grid, sprite, x, y)
+            x, y = random_free_location_for_sprite(grid, sprite, padding=1, padding_connectivity=8)
+            blit_sprite(grid, sprite, x=x, y=y)
         except:
             pass
 

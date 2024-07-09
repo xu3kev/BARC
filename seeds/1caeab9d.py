@@ -57,8 +57,8 @@ def generate_input():
         colored_sprite[sprite != Color.BLACK] = color
 
         # put the shape in a random spot in its grid
-        x, y = random_free_location_for_object(subgrid, colored_sprite)
-        blit(subgrid, colored_sprite, x, y)
+        x, y = random_free_location_for_sprite(subgrid, colored_sprite)
+        blit_sprite(subgrid, colored_sprite, x, y)
         subgrids.append(subgrid)
 
     # now concatenate the subgrids along the x axis to make the input grid

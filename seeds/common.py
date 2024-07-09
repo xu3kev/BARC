@@ -29,6 +29,8 @@ class Color:
     ORANGE = 7
     TEAL = 8
     MAROON = 9
+    TRANSPARENT = 0 # sometimes the language model likes to pretend that there is something called transparent/background, and black is a reasonable default
+    BACKGROUND = 0
 
     ALL_COLORS = [BLACK, BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON]
     NOT_BLACK = [BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON]
@@ -164,11 +166,34 @@ def blit(grid, sprite, x=0, y=0, background=None):
 
     return new_grid
 
+def blit_object(grid, obj, background=Color.BLACK):
+    """
+    Draws an object onto the grid using its current location.
+
+    Example usage:
+    blit_object(output_grid, an_object, background=background_color)
+    """
+    return blit(grid, obj, x=0, y=0, background=background)
+
+def blit_sprite(grid, sprite, x, y, background=Color.BLACK):
+    """
+    Draws a sprite onto the grid at the specified location.
+
+    Example usage:
+    blit_sprite(output_grid, the_sprite, x=x, y=y, background=background_color)
+    """
+    return blit(grid, sprite, x=x, y=y, background=background)
+
 
 def bounding_box(grid, background=Color.BLACK):
     """
     Find the bounding box of the non-background pixels in the grid.
     Returns a tuple (x, y, width, height) of the bounding box.
+
+    Example usage:
+    objects = find_connected_components(input_grid, monochromatic=True, background=Color.BLACK, connectivity=8)
+    teal_object = [ obj for obj in objects if np.any(obj == Color.TEAL) ][0]
+    teal_x, teal_y, teal_w, teal_h = bounding_box(teal_object)
     """
     n, m = grid.shape
     x_min, x_max = n, -1
@@ -188,19 +213,24 @@ def bounding_box(grid, background=Color.BLACK):
 def crop(grid, background=Color.BLACK):
     """
     Crop the grid to the smallest bounding box that contains all non-background pixels.
+
+    Example usage:
+    # Extract a sprite from an object
+    sprite = crop(an_object, background=background_color)
     """
     x, y, w, h = bounding_box(grid, background)
     return grid[x : x + w, y : y + h]
 
-
-def translate(grid, x, y, background=Color.BLACK):
+def translate(obj, x, y, background=Color.BLACK):
     """
-    Translate the grid by the vector (x, y). Fills in the new pixels with the background color.
+    Translate by the vector (x, y). Fills in the new pixels with the background color.
 
     Example usage:
-    red_object = input_grid[input_grid==Color.RED]
+    red_object = ... # extract some object
     shifted_red_object = translate(red_object, x=1, y=1)
+    blit_object(output_grid, shifted_red_object, background=background_color)
     """
+    grid = obj
     n, m = grid.shape
     new_grid = np.zeros((n, m), dtype=grid.dtype)
     new_grid[:, :] = background
@@ -311,7 +341,7 @@ def contact(
     return False
 
 
-def random_free_location_for_object(
+def random_free_location_for_sprite(
     grid,
     sprite,
     background=Color.BLACK,
@@ -321,7 +351,7 @@ def random_free_location_for_object(
 ):
     """
     Find a random free location for the sprite in the grid
-    Returns a tuple (x, y) of the top-left corner of the sprite in the grid, which can be passed to `blit`
+    Returns a tuple (x, y) of the top-left corner of the sprite in the grid, which can be passed to `blit_sprite`
 
     border_size: minimum distance from the edge of the grid
     background: color treated as transparent
@@ -329,9 +359,9 @@ def random_free_location_for_object(
     padding_connectivity: 4 or 8, for 4-way or 8-way connectivity when padding the sprite
 
     Example usage:
-    x, y = random_free_location_for_object(grid, sprite) # find the location
+    x, y = random_free_location_for_sprite(grid, sprite, padding=1, padding_connectivity=8, border_size=1, background=Color.BLACK) # find the location, using generous padding
     assert not collision(object1=grid, object2=sprite, x2=x, y2=y)
-    blit(grid, sprite, x, y)
+    blit_sprite(grid, sprite, x, y)
     """
     n, m = grid.shape
 
@@ -383,46 +413,54 @@ def random_free_location_for_object(
 
     return random.choice(pruned_locations)
 
-def object_interior(grid, background_color=Color.BLACK):
+def random_free_location_for_object(*args, **kwargs):
+    """
+    internal function not used by LLM
+
+    exists for backward compatibility
+    """
+    return random_free_location_for_sprite(*args, **kwargs)
+
+def object_interior(grid, background=Color.BLACK):
     """
     Computes the interior of the object (including edges)
 
     returns a new grid of `bool` where True indicates that the pixel is part of the object's interior.
 
     Example usage:
-    interior = object_interior(obj, background_color=Color.BLACK)
+    interior = object_interior(obj, background=Color.BLACK)
     for x, y in np.argwhere(interior):
         # x,y is either inside the object or at least on its edge
     """
 
-    mask = 1*(grid != background_color)
+    mask = 1*(grid != background)
 
     # March around the border and flood fill (with 42) wherever we find zeros
     n, m = grid.shape
     for i in range(n):
-        if grid[i, 0] == background_color:
+        if grid[i, 0] == background:
             flood_fill(mask, i, 0, 42)
-        if grid[i, m-1] == background_color: flood_fill(mask, i, m-1, 42)
+        if grid[i, m-1] == background: flood_fill(mask, i, m-1, 42)
     for j in range(m):
-        if grid[0, j] == background_color: flood_fill(mask, 0, j, 42)
-        if grid[n-1, j] == background_color: flood_fill(mask, n-1, j, 42)
+        if grid[0, j] == background: flood_fill(mask, 0, j, 42)
+        if grid[n-1, j] == background: flood_fill(mask, n-1, j, 42)
     
     return mask != 42
 
-def object_boundary(grid, background_color=Color.BLACK):
+def object_boundary(grid, background=Color.BLACK):
     """
     Computes the boundary of the object (excluding interior)
 
     returns a new grid of `bool` where True indicates that the pixel is part of the object's boundary.
 
     Example usage:
-    boundary = object_boundary(obj, background_color=Color.BLACK)
+    boundary = object_boundary(obj, background=Color.BLACK)
     assert np.all(obj[boundary] != Color.BLACK)
     """
 
     # similar idea: first get the exterior, but then we search for all the pixels that are part of the object and either adjacent to 42, or are part of the boundary
 
-    exterior = ~object_interior(grid, background_color)
+    exterior = ~object_interior(grid, background)
 
     # Now we find all the pixels that are part of the object and adjacent to the exterior, or which are part of the object and on the boundary of the canvas
     canvas_boundary = np.zeros_like(grid, dtype=bool)
@@ -434,7 +472,7 @@ def object_boundary(grid, background_color=Color.BLACK):
     from scipy import ndimage
     adjacent_to_exterior = ndimage.binary_dilation(exterior, iterations=1)
 
-    boundary = (grid != background_color) & (adjacent_to_exterior | canvas_boundary)
+    boundary = (grid != background) & (adjacent_to_exterior | canvas_boundary)
 
     return boundary
 
@@ -820,22 +858,37 @@ def show_colored_grid(grid, text=True):
         print()
 
 
-def visualize(input_generator, transform, n_examples=5):
+def visualize(input_generator, transform, n_examples=5, n_attempts=100):
     """
     internal function not used by LLM
     """
 
-    for index in range(n_examples):
-        input_grid = input_generator()
+    successes = []
+    failures = []
+    for _ in range(n_attempts):
+        if len(successes) >= n_examples:
+            break
+        try:
+            input_grid = input_generator()
+            output_grid = transform(input_grid)
+            successes.append((input_grid, output_grid))
+        except Exception as e:
+            # also save the line number where the failure happened
+            import traceback
+            error_message = traceback.format_exc()
+            failures.append(error_message)
+
+    for index, (input_grid, output_grid) in enumerate(successes):
+        print("Example", index)
         print("Input:")
         show_colored_grid(input_grid)
-
-        output_grid = transform(input_grid)
         print("Output:")
         show_colored_grid(output_grid)
+        print("\n\n---------------------\n\n")
 
-        if index < n_examples - 1:
-            print("\n\n---------------------\n\n")
+    if len(failures) > 0:
+        print(f"{len(failures)}/{len(successes)+len(failures)} failures ({len(failures)/(len(failures)+len(successes))}). For example:")
+        print(failures[0])
 
 
 def apply_symmetry(sprite, symmetry_type):
@@ -861,7 +914,7 @@ def apply_symmetry(sprite, symmetry_type):
     return sprite
 
 
-def apply_diagonal_symmetry(sprite):
+def apply_diagonal_symmetry(sprite, background=Color.BLACK):
     """
     internal function not used by LLM
     Apply diagonal symmetry within the bounds of the sprite. Assumes square sprite.
@@ -871,7 +924,10 @@ def apply_diagonal_symmetry(sprite):
         raise ValueError("Diagonal symmetry requires a square sprite.")
     for x in range(n):
         for y in range(x + 1, m):
-            sprite[x, y] = sprite[y, x] = sprite[x, y] or sprite[y, x]
+            c=background
+            if sprite[y, x]!=background: c=sprite[y, x]
+            if sprite[x, y]!=background: c=sprite[x, y]
+            sprite[x, y] = sprite[y, x] = c
     return sprite
 
 
@@ -905,6 +961,7 @@ def generate_sprite(
     max_colors=9,
     color_palate=None,
     connectivity=4,
+    background=Color.BLACK
 ):
     """
     internal function not used by LLM
@@ -914,11 +971,11 @@ def generate_sprite(
         n_colors = 1
         while n_colors < max_colors and random.random() < 0.3:
             n_colors += 1
-        color_palate = random.sample(range(1, 10), n_colors)
+        color_palate = random.sample([c for c in Color.ALL_COLORS if c!=background ], n_colors)
     else:
         n_colors = len(color_palate)
 
-    grid = np.zeros((n, m), dtype=int)
+    grid = np.full((n, m), background)
     if symmetry_type == "not_symmetric":
         x, y = random.randint(0, n - 1), random.randint(0, m - 1)
     elif symmetry_type == "horizontal":
@@ -951,7 +1008,7 @@ def generate_sprite(
         raise ValueError("Connectivity must be 4 or 8.")
 
     color_index = 0
-    while np.sum(grid > 0) < fill_percentage * n * m:
+    while np.sum(grid != background) < fill_percentage * n * m:
         grid[x, y] = color_palate[color_index]
         if random.random() < 0.33:
             color_index = random.choice(range(n_colors))
@@ -964,10 +1021,10 @@ def generate_sprite(
         grid = apply_symmetry(grid, symmetry_type)
     elif symmetry_type == "radial":
         # this requires resizing
-        output = np.zeros((original_length, original_length), dtype=int)
-        blit(output, grid)
+        output = np.full((original_length, original_length), background)
+        blit(output, grid, background=background)
         for _ in range(3):
-            blit(output, np.rot90(output), background=Color.BLACK)
+            blit(output, np.rot90(output), background=background)
         grid = output
 
     elif symmetry_type == "diagonal":
@@ -982,7 +1039,7 @@ def generate_sprite(
     return grid
 
 
-def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connectivity=4):
+def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connectivity=4, background=Color.BLACK):
     """
     Generate a sprite (an object), represented as a numpy array.
 
@@ -1039,16 +1096,17 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
             color_palate=color_palette,
             fill_percentage=density,
             connectivity=connectivity,
+            background=background,
         )
         assert is_contiguous(
-            sprite, connectivity=connectivity
+            sprite, connectivity=connectivity, background=background
         ), "Generated sprite is not contiguous."
         # check that the sprite has pixels that are flushed with the border
         if (
-            np.sum(sprite[0, :]) > 0
-            and np.sum(sprite[-1, :]) > 0
-            and np.sum(sprite[:, 0]) > 0
-            and np.sum(sprite[:, -1]) > 0
+            np.sum(sprite[0, :]!=background) > 0
+            and np.sum(sprite[-1, :]!=background) > 0
+            and np.sum(sprite[:, 0]!=background) > 0
+            and np.sum(sprite[:, -1]!=background) > 0
         ):
             return sprite
 

@@ -69,22 +69,22 @@ def generate_input():
 
     # Verticals
     for i in range(line_n):
-        x, y = random_free_location_for_object(
+        x, y = random_free_location_for_sprite(
             vertical_line_grid,
             vertical_line_sprite,
             background=background_color,
             padding=1
         )
-        blit(vertical_line_grid, vertical_line_sprite, x, y)
+        blit_sprite(vertical_line_grid, vertical_line_sprite, x, y)
 
     # Horizontals
     for i in range(line_m):
-        x, y = random_free_location_for_object(horizontal_line_grid, horizontal_line_sprite, background=background_color, padding=1)
-        blit(horizontal_line_grid, horizontal_line_sprite, x, y)
+        x, y = random_free_location_for_sprite(horizontal_line_grid, horizontal_line_sprite, background=background_color, padding=1)
+        blit_sprite(horizontal_line_grid, horizontal_line_sprite, x, y)
 
     # Combine the two line grids
-    blit(grid, vertical_line_grid, background=background_color)
-    blit(grid, horizontal_line_grid, background=background_color)
+    blit_object(grid, vertical_line_grid, background=background_color)
+    blit_object(grid, horizontal_line_grid, background=background_color)
 
     return grid
 

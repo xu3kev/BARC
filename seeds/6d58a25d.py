@@ -68,7 +68,7 @@ def generate_input():
     chevron[np.logical_and(y == 3, np.logical_or(x == 0, x == 6))] = chevron_color
     # put the chevron at a random location in the upper half of the grid
     x, y = np.random.randint(0, 20 - 7), np.random.randint(0, 10 - 4)
-    blit(input_grid, chevron, x, y)
+    blit_sprite(input_grid, chevron, x=x, y=y)
 
     # generate 5-25 pixels at random (unfilled) spots.
     n_pixels = np.random.randint(5, 26)

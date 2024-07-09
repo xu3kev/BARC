@@ -36,28 +36,28 @@ def generate_input():
     # make a random number of blue square sprites and place them at random places on the grid but don't have them touch
     blue_square = np.full((2,2), Color.BLUE, dtype=int)
     for _ in range(np.random.randint(2,6)):
-        x, y = random_free_location_for_object(grid, blue_square)
+        x, y = random_free_location_for_sprite(grid, blue_square)
         if not contact(object1=grid, object2=blue_square, x2=x, y2=y): # only place new squares that won't touch old ones
-          blit(grid, blue_square, x, y)
+          blit_sprite(grid, blue_square, x, y)
     
     # make a random number of red square sprites and place them at random places on the grid but don't have them touch
     red_square = np.full((2,2), Color.RED, dtype=int)
     for _ in range(np.random.randint(2,6)):
-        x, y = random_free_location_for_object(grid, red_square)
+        x, y = random_free_location_for_sprite(grid, red_square)
         if not contact(object1=grid, object2=red_square, x2=x, y2=y): # only place new squares that won't touch old ones
-          blit(grid, red_square, x, y)
+          blit_sprite(grid, red_square, x, y)
         
     # make a random number of blue pixel sprites and place them at random places on the grid
     blue_pixel = np.full((1,1), Color.BLUE, dtype=int)
     for _ in range(np.random.randint(4)):
-        x, y = random_free_location_for_object(grid, blue_pixel)
-        blit(grid, blue_pixel, x, y)
+        x, y = random_free_location_for_sprite(grid, blue_pixel)
+        blit_sprite(grid, blue_pixel, x, y)
 
     # make a random number of red pixel sprites and place them at random places on the grid
     red_pixel = np.full((1,1), Color.RED, dtype=int)
     for _ in range(np.random.randint(4)):
-        x, y = random_free_location_for_object(grid, red_pixel)
-        blit(grid, red_pixel, x, y)
+        x, y = random_free_location_for_sprite(grid, red_pixel)
+        blit_sprite(grid, red_pixel, x, y)
 
     return grid
 

@@ -16,17 +16,19 @@ def main(input_grid):
     # creates an empty 9x9 output grid 
     output_grid = np.zeros((input_grid.shape[0]**2,input_grid.shape[1]**2),dtype=int)
 
+    input_sprite = input_grid
+
     # Go through the input grid. If an input grid pixel is not black, 
     # then copy the input grid to the corresponding location on the output grid
     for n in range(input_grid.shape[0]):
       for m in range(input_grid.shape[1]):
         if input_grid[n,m] != Color.BLACK:
-            blit(output_grid, input_grid, n*input_grid.shape[0], m*input_grid.shape[1])
+            blit_sprite(output_grid, input_sprite, n*input_grid.shape[0], m*input_grid.shape[1])
     
     return output_grid
 
 def generate_input():
-  n,m = random.randint(5,20), random.randint(5,20)
+  n,m = random.randint(3, 6), random.randint(3, 6)
   random_color = random.choice(list(Color.NOT_BLACK))
   return random_sprite(n, m, color_palette=[random_color])
 

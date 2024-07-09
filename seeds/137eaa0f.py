@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# <list of concepts, separated by commas>
+# objects, alignment by color
 
 # description:
 # In the input you will see some objects scattered around on a black grid. Each object has a single grey pixel, but everything else is a single other color.
@@ -23,7 +23,7 @@ def main(input_grid):
     objects = find_connected_components(input_grid, monochromatic=False, connectivity=8)
 
     # Convert the objects into sprites by cropping them
-    sprites = [crop(obj) for obj in objects]
+    sprites = [crop(obj, background=Color.BLACK) for obj in objects]
 
     # Make a big output grid
     output_grid = np.full(input_grid.shape, Color.BLACK)
@@ -40,7 +40,7 @@ def main(input_grid):
         x, y = center_x - grey_pixel_x, center_y - grey_pixel_y
         
         # Place the sprite into the output grid
-        blit(output_grid, sprite, x, y, background=Color.BLACK)
+        blit_sprite(output_grid, sprite, x, y, background=Color.BLACK)
 
     # Make the output as small as you can to contain all the objects
     output_grid = crop(output_grid)
@@ -79,8 +79,8 @@ def generate_input():
     n, m = np.random.randint(10, 20), np.random.randint(10, 20)
     grid = np.full((n, m), Color.BLACK)
     for sprite in sprites:
-        x, y = random_free_location_for_object(grid, sprite, padding=2, padding_connectivity=8)
-        blit(grid, sprite, x, y)
+        x, y = random_free_location_for_sprite(grid, sprite, padding=2, padding_connectivity=8)
+        blit_sprite(grid, sprite, x, y)
 
     return grid
 

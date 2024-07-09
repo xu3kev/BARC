@@ -58,8 +58,8 @@ def generate_input():
                 sprite[i, j] = Color.BLACK
 
     # Place sprite randomly onto the grid
-    x, y = random_free_location_for_object(grid, sprite)
-    blit(grid, sprite, x, y)
+    x, y = random_free_location_for_sprite(grid, sprite)
+    blit_sprite(grid, sprite, x, y)
 
     return grid
 

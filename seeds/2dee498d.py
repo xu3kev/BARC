@@ -37,7 +37,7 @@ def generate_input():
     # Duplicate the sprite 3 times horizontally
     grid = np.zeros((3*n, n),dtype=int)
     for i in range(3):
-        blit(grid, sprite, x=i*n, y=0)
+        blit_sprite(grid, sprite, x=i*n, y=0)
 
     return grid
 

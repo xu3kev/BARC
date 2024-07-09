@@ -16,7 +16,7 @@ def main(input_grid):
     for object in objects:
         if is_hollow(object):
             object[object != Color.BLACK] = Color.GREEN
-        blit(output_grid, object, background=Color.BLACK)
+        blit_object(output_grid, object, background=Color.BLACK)
 
     return output_grid
 
@@ -54,20 +54,20 @@ def generate_input():
     try:
         # add one hollow and one nonhollow object, then add random objects until somewhat full.
         obj = random_hollow_object()
-        x, y = random_free_location_for_object(input_grid, obj, padding=1)
-        blit(input_grid, obj, x, y)
+        x, y = random_free_location_for_sprite(input_grid, obj, padding=1)
+        blit_sprite(input_grid, obj, x=x, y=y)
 
         obj = random_nonhollow_object()
-        x, y = random_free_location_for_object(input_grid, obj, padding=1)
-        blit(input_grid, obj, x, y)
+        x, y = random_free_location_for_sprite(input_grid, obj, padding=1)
+        blit_sprite(input_grid, obj, x=x, y=y)
     except ValueError:
         return generate_input()
 
     while True:
         obj = random_hollow_object() if np.random.rand() < 0.5 else random_nonhollow_object()
         try:
-            x, y = random_free_location_for_object(input_grid, obj, padding=1)
-            blit(input_grid, obj, x, y)
+            x, y = random_free_location_for_sprite(input_grid, obj, padding=1)
+            blit_sprite(input_grid, obj, x=x, y=y)
         except ValueError:
             return input_grid
 

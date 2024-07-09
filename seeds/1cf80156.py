@@ -25,8 +25,8 @@ def generate_input():
     sprite = random_sprite(w, h, color_palette=[np.random.choice(Color.NOT_BLACK)])
 
     # blit the spite onto a random location on the grid
-    x, y = random_free_location_for_object(grid, sprite)
-    blit(grid, sprite, x, y)
+    x, y = random_free_location_for_sprite(grid, sprite)
+    blit_sprite(grid, sprite, x, y)
     return grid
 
 
