@@ -52,7 +52,7 @@ def prune_common_lib(common_lib, reference_code):
     return called_common_lib, called_common_lib_function_names
 
 def make_self_instruct_prompt(seeds_contents, rng_seed, common_lib, common_lib_function_names,
-                               brief_common=False, num_seeds=None, remix=0, library_function_hint=-1, uncreative=False, use_generator_prompt=True):
+                               brief_common=False, num_seeds=None, remix=0, library_function_hint=-1, uncreative=False, use_generator_prompt=True, hint_grid_size=0):
     """
     remix: how many example seeds the prompt tells the LLM to remix.
     0 means no remixing, just shows all the seeds. 1 tells it to remix one of the examples, 2 tells it to remix two of the examples, etc.
@@ -186,6 +186,9 @@ Your task is to look especially at the last example and make a new puzzle simila
     prompt += f"""
 Be sure to make the transformation `main` deterministic. Be sure to not assume or impose any ordering to the colors. Use physical, geometric, topological, and logical concepts.
 """
+    if hint_grid_size:
+        # hint at the grid size not too large but should not be a fixed number
+        prompt += f"""Also, the input and output grids should not be too large, but should be large enough to contain interesting patterns. Both the width and heights of the grids should be under {hint_grid_size}."""
     
     if library_function_hint_str:
         prompt += f"""\n{library_function_hint_str}"""
@@ -211,6 +214,7 @@ def main():
     parser.add_argument("--generator_prompt", "-gp", action="store_true", help="use this flag to generate a list of concepts and have it pick one", default=False)
     parser.add_argument("--rng_offset", default=0, type=int)
     parser.add_argument("--nohtml", action="store_true", help="use this flag to not generate html", default=False)
+    parser.add_argument("--hint_grid_size", default=0, type=int, help="use this flag to hint at the grid size")
     
     arguments = parser.parse_args()
 
@@ -258,7 +262,8 @@ def main():
                                                     num_seeds=arguments.num_seeds,
                                                     library_function_hint=library_function_hint, 
                                                     uncreative=arguments.uncreative, 
-                                                    use_generator_prompt=arguments.generator_prompt)
+                                                    use_generator_prompt=arguments.generator_prompt,
+                                                    hint_grid_size=arguments.hint_grid_size)
                for rng_seed in tqdm(range(batch_size)) ]
 
     client = LLMClient(provider=provider, cache_dir=f"{current_file_dir}/cache")
@@ -293,6 +298,8 @@ def main():
         file_name_base += "_briefcommon"
     if arguments.generator_prompt:
         file_name_base += "_generatorprompt"
+    if arguments.hint_grid_size:
+        file_name_base += f"_hintgridsize{arguments.hint_grid_size}"
     file_name_json = file_name_base + ".jsonl"
     print(f"Writing to jsonl {file_name_json}")
     with open(file_name_json, "w") as f:
