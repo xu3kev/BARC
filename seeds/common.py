@@ -1,5 +1,5 @@
 """Common library for ARC"""
-
+from typing import List, Tuple, Optional, Callable, Union, Any
 import numpy as np
 import random
 
@@ -36,11 +36,20 @@ class Color:
     NOT_BLACK = [BLUE, RED, GREEN, YELLOW, GREY, PINK, ORANGE, TEAL, MAROON]
 
 
-def flood_fill(grid, x, y, color, connectivity=4):
+def flood_fill(grid: np.ndarray, x: int, y: int, color: int, connectivity: int = 4) -> None:
     """
-    Fill the connected region that contains the point (x, y) with the specified color.
+    Fill the connected region containing the point (x, y) with the specified color in-place.
 
-    connectivity: 4 or 8, for 4-way or 8-way connectivity. 8-way counts diagonals as connected, 4-way only counts cardinal directions as connected.
+    Args:
+        grid (np.ndarray): The 2D grid to be filled.
+        x (int): The x-coordinate of the starting point.
+        y (int): The y-coordinate of the starting point.
+        color (int): The color to fill the region with.
+        connectivity (int, optional): The connectivity type, either 4 or 8. Defaults to 4.
+
+    Note:
+        4-way connectivity considers only cardinal directions,
+        while 8-way connectivity includes diagonal connections.
     """
 
     old_color = grid[x, y]
@@ -82,16 +91,26 @@ def _flood_fill(grid, x, y, color, old_color, connectivity):
         _flood_fill(grid, x + 1, y + 1, color, old_color, connectivity)
 
 
-def draw_line(grid, x, y, length, color, direction, stop_at_color=[]):
+def draw_line(grid: np.ndarray, x: int, y: int, length: Optional[int], color: int, 
+              direction: Tuple[int, int], stop_at_color: List[int] = []) -> np.ndarray:
     """
-    Draws a line of the specified length in the specified direction starting at (x, y).
-    Direction should be a vector with elements -1, 0, or 1.
-    If length is None, then the line will continue until it hits the edge of the grid.
+    Draw a line on the grid starting from (x, y) in the specified direction.
 
-    stop_at_color: optional list of colors that the line should stop at. If the line hits a pixel of one of these colors, it will stop.
+    Args:
+        grid (np.ndarray): The 2D grid to draw on.
+        x (int): Starting x-coordinate.
+        y (int): Starting y-coordinate.
+        length (Optional[int]): Length of the line. If None, continues until edge of grid.
+        color (int): Color of the line.
+        direction (Tuple[int, int]): Direction vector (dx, dy) with elements -1, 0, or 1.
+        stop_at_color (List[int], optional): Colors that stop the line if encountered. Defaults to [].
+
+    Returns:
+        np.ndarray: The modified grid with the drawn line.
 
     Example:
-    draw_line(grid, 0, 0, length=3, color=blue, direction=(1, 1)) will draw a diagonal line of blue pixels from (0, 0) to (2, 2).
+        draw_line(grid, 0, 0, length=3, color=Color.BLUE, direction=(1, 1))
+        # Draws a diagonal blue line from (0, 0) to (2, 2).
     """
 
     if length is None:
@@ -109,13 +128,22 @@ def draw_line(grid, x, y, length, color, direction, stop_at_color=[]):
 
 
 def find_connected_components(
-    grid, background=Color.BLACK, connectivity=4, monochromatic=True
-):
+    grid: np.ndarray, 
+    background: int = Color.BLACK, 
+    connectivity: int = 4, 
+    monochromatic: bool = True
+) -> List[np.ndarray]:
     """
-    Find the connected components in the grid. Returns a list of connected components, where each connected component is a numpy array.
+    Find connected components in the grid.
 
-    connectivity: 4 or 8, for 4-way or 8-way connectivity.
-    monochromatic: if True, each connected component is assumed to have only one color. If False, each connected component can include multiple colors.
+    Args:
+        grid (np.ndarray): The input 2D grid.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
+        connectivity (int, optional): 4 or 8, for 4-way or 8-way connectivity. Defaults to 4.
+        monochromatic (bool, optional): If True, each component has only one color. Defaults to True.
+
+    Returns:
+        List[np.ndarray]: List of connected components, each as a numpy array.
     """
 
     from scipy.ndimage import label
@@ -148,11 +176,22 @@ def find_connected_components(
         return connected_components
 
 
-def blit(grid, sprite, x=0, y=0, background=None):
+def blit(grid: np.ndarray, sprite: np.ndarray, x: int = 0, y: int = 0, background: Optional[int] = None) -> np.ndarray:
     """
-    Copies the sprite into the grid at the specified location. Modifies the grid in place.
+    Copy the sprite onto the grid at the specified location.
 
-    background: color treated as transparent. If specified, only copies the non-background pixels of the sprite.
+    Args:
+        grid (np.ndarray): The target 2D grid.
+        sprite (np.ndarray): The source 2D sprite to be copied.
+        x (int, optional): The x-coordinate to place the sprite. Defaults to 0.
+        y (int, optional): The y-coordinate to place the sprite. Defaults to 0.
+        background (Optional[int], optional): Color treated as transparent. If None, copy all pixels. Defaults to None.
+
+    Returns:
+        np.ndarray: The modified grid with the sprite blitted onto it.
+
+    Note:
+        Only copies non-background pixels of the sprite if background color is specified.
     """
 
     new_grid = grid
@@ -166,34 +205,61 @@ def blit(grid, sprite, x=0, y=0, background=None):
 
     return new_grid
 
-def blit_object(grid, obj, background=Color.BLACK):
-    """
-    Draws an object onto the grid using its current location.
 
-    Example usage:
-    blit_object(output_grid, an_object, background=background_color)
+def blit_object(grid: np.ndarray, obj: np.ndarray, background: int = Color.BLACK) -> np.ndarray:
+    """
+    Draw an object onto the grid using its current location.
+
+    Args:
+        grid (np.ndarray): The target 2D grid.
+        obj (np.ndarray): The object to be drawn.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
+
+    Returns:
+        np.ndarray: The modified grid with the object drawn onto it.
+
+    Example:
+        blit_object(output_grid, an_object, background=background_color)
     """
     return blit(grid, obj, x=0, y=0, background=background)
 
-def blit_sprite(grid, sprite, x, y, background=Color.BLACK):
-    """
-    Draws a sprite onto the grid at the specified location.
 
-    Example usage:
-    blit_sprite(output_grid, the_sprite, x=x, y=y, background=background_color)
+def blit_sprite(grid: np.ndarray, sprite: np.ndarray, x: int, y: int, background: int = Color.BLACK) -> np.ndarray:
+    """
+    Draw a sprite onto the grid at the specified location.
+
+    Args:
+        grid (np.ndarray): The target 2D grid.
+        sprite (np.ndarray): The sprite to be drawn.
+        x (int): The x-coordinate to place the sprite.
+        y (int): The y-coordinate to place the sprite.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
+
+    Returns:
+        np.ndarray: The modified grid with the sprite drawn onto it.
+
+    Example:
+        blit_sprite(output_grid, the_sprite, x=x, y=y, background=background_color)
     """
     return blit(grid, sprite, x=x, y=y, background=background)
 
 
-def bounding_box(grid, background=Color.BLACK):
-    """
-    Find the bounding box of the non-background pixels in the grid.
-    Returns a tuple (x, y, width, height) of the bounding box.
 
-    Example usage:
-    objects = find_connected_components(input_grid, monochromatic=True, background=Color.BLACK, connectivity=8)
-    teal_object = [ obj for obj in objects if np.any(obj == Color.TEAL) ][0]
-    teal_x, teal_y, teal_w, teal_h = bounding_box(teal_object)
+def bounding_box(grid: np.ndarray, background: int = Color.BLACK) -> Tuple[int, int, int, int]:
+    """
+    Find the bounding box of non-background pixels in the grid.
+
+    Args:
+        grid (np.ndarray): The input 2D grid.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
+
+    Returns:
+        Tuple[int, int, int, int]: A tuple (x, y, width, height) of the bounding box.
+
+    Example:
+        objects = find_connected_components(input_grid, monochromatic=True, background=Color.BLACK, connectivity=8)
+        teal_object = [obj for obj in objects if np.any(obj == Color.TEAL)][0]
+        teal_x, teal_y, teal_w, teal_h = bounding_box(teal_object)
     """
     n, m = grid.shape
     x_min, x_max = n, -1
@@ -210,25 +276,41 @@ def bounding_box(grid, background=Color.BLACK):
     return x_min, y_min, x_max - x_min + 1, y_max - y_min + 1
 
 
-def crop(grid, background=Color.BLACK):
+def crop(grid: np.ndarray, background: int = Color.BLACK) -> np.ndarray:
     """
-    Crop the grid to the smallest bounding box that contains all non-background pixels.
+    Crop the grid to the smallest bounding box containing all non-background pixels.
 
-    Example usage:
-    # Extract a sprite from an object
-    sprite = crop(an_object, background=background_color)
+    Args:
+        grid (np.ndarray): The input 2D grid.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
+
+    Returns:
+        np.ndarray: The cropped grid.
+
+    Example:
+        # Extract a sprite from an object
+        sprite = crop(an_object, background=background_color)
     """
     x, y, w, h = bounding_box(grid, background)
     return grid[x : x + w, y : y + h]
 
-def translate(obj, x, y, background=Color.BLACK):
+def translate(obj: np.ndarray, x: int, y: int, background: int = Color.BLACK) -> np.ndarray:
     """
-    Translate by the vector (x, y). Fills in the new pixels with the background color.
+    Translate an object by the vector (x, y).
 
-    Example usage:
-    red_object = ... # extract some object
-    shifted_red_object = translate(red_object, x=1, y=1)
-    blit_object(output_grid, shifted_red_object, background=background_color)
+    Args:
+        obj (np.ndarray): The input 2D object grid.
+        x (int): X-component of the translation vector.
+        y (int): Y-component of the translation vector.
+        background (int, optional): Color to fill new pixels. Defaults to Color.BLACK.
+
+    Returns:
+        np.ndarray: The translated object.
+
+    Example:
+        red_object = ...  # extract some object
+        shifted_red_object = translate(red_object, x=1, y=1)
+        blit_object(output_grid, shifted_red_object, background=background_color)
     """
     grid = obj
     n, m = grid.shape
@@ -243,18 +325,37 @@ def translate(obj, x, y, background=Color.BLACK):
 
 
 def collision(
-    _=None, object1=None, object2=None, x1=0, y1=0, x2=0, y2=0, background=Color.BLACK
-):
+    _: Optional[Any] = None,
+    object1: Optional[np.ndarray] = None,
+    object2: Optional[np.ndarray] = None,
+    x1: int = 0,
+    y1: int = 0,
+    x2: int = 0,
+    y2: int = 0,
+    background: int = Color.BLACK
+) -> bool:
     """
-    Check if object1 and object2 collide when object1 is at (x1, y1) and object2 is at (x2, y2).
+    Check if object1 and object2 collide when positioned at (x1, y1) and (x2, y2) respectively.
 
-    Example usage:
+    Args:
+        _ (Optional[Any], optional): Unused parameter. Defaults to None.
+        object1 (Optional[np.ndarray], optional): First object grid. Defaults to None.
+        object2 (Optional[np.ndarray], optional): Second object grid. Defaults to None.
+        x1 (int, optional): X-coordinate of object1. Defaults to 0.
+        y1 (int, optional): Y-coordinate of object1. Defaults to 0.
+        x2 (int, optional): X-coordinate of object2. Defaults to 0.
+        y2 (int, optional): Y-coordinate of object2. Defaults to 0.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
 
-    # Check if a sprite can be placed onto a grid at (X,Y)
-    collision(object1=output_grid, object2=a_sprite, x2=X, y2=Y)
+    Returns:
+        bool: True if objects collide, False otherwise.
 
-    # Check if two objects collide
-    collision(object1=object1, object2=object2, x1=X1, y1=Y1, x2=X2, y2=Y2)
+    Example:
+        # Check if a sprite can be placed onto a grid at (X,Y)
+        collision(object1=output_grid, object2=a_sprite, x2=X, y2=Y)
+
+        # Check if two objects collide
+        collision(object1=object1, object2=object2, x1=X1, y1=Y1, x2=X2, y2=Y2)
     """
     n1, m1 = object1.shape
     n2, m2 = object2.shape
@@ -278,29 +379,43 @@ def collision(
 
 
 def contact(
-    _=None,
-    object1=None,
-    object2=None,
-    x1=0,
-    y1=0,
-    x2=0,
-    y2=0,
-    background=Color.BLACK,
-    connectivity=4,
-):
+    _: Optional[Any] = None,
+    object1: Optional[np.ndarray] = None,
+    object2: Optional[np.ndarray] = None,
+    x1: int = 0,
+    y1: int = 0,
+    x2: int = 0,
+    y2: int = 0,
+    background: int = Color.BLACK,
+    connectivity: int = 4
+) -> bool:
     """
-    Check if object1 and object2 touch each other (have contact) when object1 is at (x1, y1) and object2 is at (x2, y2).
-    They are touching each other if they share a border, or if they overlap. Collision implies contact, but contact does not imply collision.
+    Check if object1 and object2 touch each other when positioned at (x1, y1) and (x2, y2) respectively.
 
-    connectivity: 4 or 8, for 4-way or 8-way connectivity. (8-way counts diagonals as touching, 4-way only counts cardinal directions as touching)
+    Args:
+        _ (Optional[Any], optional): Unused parameter. Defaults to None.
+        object1 (Optional[np.ndarray], optional): First object grid. Defaults to None.
+        object2 (Optional[np.ndarray], optional): Second object grid. Defaults to None.
+        x1 (int, optional): X-coordinate of object1. Defaults to 0.
+        y1 (int, optional): Y-coordinate of object1. Defaults to 0.
+        x2 (int, optional): X-coordinate of object2. Defaults to 0.
+        y2 (int, optional): Y-coordinate of object2. Defaults to 0.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
+        connectivity (int, optional): 4 or 8, for 4-way or 8-way connectivity. Defaults to 4.
 
-    Example usage:
+    Returns:
+        bool: True if objects touch, False otherwise.
 
-    # Check if a sprite touches anything if it were to be placed at (X,Y)
-    contact(object1=output_grid, object2=a_sprite, x2=X, y2=Y)
+    Note:
+        Objects are considered touching if they share a border or overlap.
+        Collision implies contact, but contact does not imply collision.
 
-    # Check if two objects touch each other
-    contact(object1=object1, object2=object2)
+    Example:
+        # Check if a sprite touches anything if placed at (X,Y)
+        contact(object1=output_grid, object2=a_sprite, x2=X, y2=Y)
+
+        # Check if two objects touch each other
+        contact(object1=object1, object2=object2)
     """
     n1, m1 = object1.shape
     n2, m2 = object2.shape
@@ -342,26 +457,34 @@ def contact(
 
 
 def random_free_location_for_sprite(
-    grid,
-    sprite,
-    background=Color.BLACK,
-    border_size=0,
-    padding=0,
-    padding_connectivity=8,
-):
+    grid: np.ndarray,
+    sprite: np.ndarray,
+    background: int = Color.BLACK,
+    border_size: int = 0,
+    padding: int = 0,
+    padding_connectivity: int = 8
+) -> Tuple[int, int]:
     """
-    Find a random free location for the sprite in the grid
-    Returns a tuple (x, y) of the top-left corner of the sprite in the grid, which can be passed to `blit_sprite`
+    Find a random free location for the sprite in the grid.
 
-    border_size: minimum distance from the edge of the grid
-    background: color treated as transparent
-    padding: if non-zero, the sprite will be padded with a non-background color before checking for collision
-    padding_connectivity: 4 or 8, for 4-way or 8-way connectivity when padding the sprite
+    Args:
+        grid (np.ndarray): The target 2D grid.
+        sprite (np.ndarray): The sprite to be placed.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
+        border_size (int, optional): Minimum distance from the edge of the grid. Defaults to 0.
+        padding (int, optional): If non-zero, the sprite will be padded before checking for collision. Defaults to 0.
+        padding_connectivity (int, optional): 4 or 8, for 4-way or 8-way connectivity when padding. Defaults to 8.
 
-    Example usage:
-    x, y = random_free_location_for_sprite(grid, sprite, padding=1, padding_connectivity=8, border_size=1, background=Color.BLACK) # find the location, using generous padding
-    assert not collision(object1=grid, object2=sprite, x2=x, y2=y)
-    blit_sprite(grid, sprite, x, y)
+    Returns:
+        Tuple[int, int]: The (x, y) coordinates of the top-left corner for placing the sprite.
+
+    Raises:
+        ValueError: If no free location for the sprite is found.
+
+    Example:
+        x, y = random_free_location_for_sprite(grid, sprite, padding=1, padding_connectivity=8, border_size=1, background=Color.BLACK)
+        assert not collision(object1=grid, object2=sprite, x2=x, y2=y)
+        blit_sprite(grid, sprite, x, y)
     """
     n, m = grid.shape
 
@@ -413,6 +536,7 @@ def random_free_location_for_sprite(
 
     return random.choice(pruned_locations)
 
+
 def random_free_location_for_object(*args, **kwargs):
     """
     internal function not used by LLM
@@ -421,18 +545,23 @@ def random_free_location_for_object(*args, **kwargs):
     """
     return random_free_location_for_sprite(*args, **kwargs)
 
-def object_interior(grid, background=Color.BLACK):
+
+def object_interior(grid: np.ndarray, background: int = Color.BLACK) -> np.ndarray:
     """
-    Computes the interior of the object (including edges)
+    Compute the interior of the object (including edges).
 
-    returns a new grid of `bool` where True indicates that the pixel is part of the object's interior.
+    Args:
+        grid (np.ndarray): The input 2D grid.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
 
-    Example usage:
-    interior = object_interior(obj, background=Color.BLACK)
-    for x, y in np.argwhere(interior):
-        # x,y is either inside the object or at least on its edge
+    Returns:
+        np.ndarray: A boolean array where True indicates pixels part of the object's interior.
+
+    Example:
+        interior = object_interior(obj, background=Color.BLACK)
+        for x, y in np.argwhere(interior):
+            # x,y is either inside the object or at least on its edge
     """
-
     mask = 1*(grid != background)
 
     # March around the border and flood fill (with 42) wherever we find zeros
@@ -447,17 +576,22 @@ def object_interior(grid, background=Color.BLACK):
     
     return mask != 42
 
-def object_boundary(grid, background=Color.BLACK):
+
+def object_boundary(grid: np.ndarray, background: int = Color.BLACK) -> np.ndarray:
     """
-    Computes the boundary of the object (excluding interior)
+    Compute the boundary of the object (excluding interior).
 
-    returns a new grid of `bool` where True indicates that the pixel is part of the object's boundary.
+    Args:
+        grid (np.ndarray): The input 2D grid.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
 
-    Example usage:
-    boundary = object_boundary(obj, background=Color.BLACK)
-    assert np.all(obj[boundary] != Color.BLACK)
+    Returns:
+        np.ndarray: A boolean array where True indicates pixels part of the object's boundary.
+
+    Example:
+        boundary = object_boundary(obj, background=Color.BLACK)
+        assert np.all(obj[boundary] != Color.BLACK)
     """
-
     # similar idea: first get the exterior, but then we search for all the pixels that are part of the object and either adjacent to 42, or are part of the boundary
 
     exterior = ~object_interior(grid, background)
@@ -479,30 +613,45 @@ def object_boundary(grid, background=Color.BLACK):
 
 class Symmetry:
     """
-    Symmetry transformations, which transformed the 2D grid in ways that preserve visual structure.
-    Returned by `detect_rotational_symmetry`, `detect_translational_symmetry`, `detect_mirror_symmetry`.
-    """
+    Base class for symmetry transformations that preserve visual structure in 2D grids.
 
-    def apply(self, x, y, iters=1):
-        """
-        Apply the symmetry transformation to the point (x, y) `iters` times.
-        Returns the transformed point (x',y')        
-        """
-
-def orbit(grid, x, y, symmetries):
+    This class is returned by symmetry detection functions like
+    detect_rotational_symmetry, detect_translational_symmetry, and detect_mirror_symmetry.
     """
-    Compute the orbit of the point (x, y) under the symmetry transformations `symmetries`.
-    The orbit is the set of points that the point (x, y) maps to after applying the symmetry transformations different numbers of times.
-    Returns a list of points in the orbit.
+    def apply(self, x: int, y: int, iters: int = 1) -> Tuple[int, int]:
+        """
+        Apply the symmetry transformation to the point (x, y) a specified number of times.
+
+        Args:
+            x (int): X-coordinate of the point.
+            y (int): Y-coordinate of the point.
+            iters (int, optional): Number of times to apply the transformation. Defaults to 1.
+
+        Returns:
+            Tuple[int, int]: The transformed point (x', y').
+        """
+        raise NotImplementedError("Subclasses must implement this method")
+
+
+def orbit(grid: np.ndarray, x: int, y: int, symmetries: List[Symmetry]) -> List[Tuple[int, int]]:
+    """
+    Compute the orbit of the point (x, y) under the given symmetry transformations.
+
+    Args:
+        grid (np.ndarray): The 2D grid.
+        x (int): X-coordinate of the starting point.
+        y (int): Y-coordinate of the starting point.
+        symmetries (List[Symmetry]): List of symmetry transformations to apply.
+
+    Returns:
+        List[Tuple[int, int]]: List of points in the orbit.
 
     Example:
-    symmetries = detect_rotational_symmetry(input_grid)
-    for x, y in np.argwhere(input_grid != Color.BLACK):
-        # Compute orbit on to the target grid, which is typically the output
-        symmetric_points = orbit(output_grid, x, y, symmetries)
-        # ... now we do something with them like copy colors or infer missing colors
+        symmetries = detect_rotational_symmetry(input_grid)
+        for x, y in np.argwhere(input_grid != Color.BLACK):
+            symmetric_points = orbit(output_grid, x, y, symmetries)
+            # ... now we do something with them like copy colors or infer missing colors
     """
-
     max_iteration = max(grid.shape)
 
     # Compute all possible numbers of iterations for each symmetry
@@ -521,23 +670,28 @@ def orbit(grid, x, y, symmetries):
     return list(set(all_possible))
 
 
-def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
+def detect_translational_symmetry(grid: np.ndarray, ignore_colors: List[int] = [Color.BLACK]) -> List[Symmetry]:
     """
-    Finds translational symmetries in a grid.
-    Satisfies: grid[x, y] == grid[x + translate_x, y + translate_y] for all x, y, as long as neither pixel is in `ignore_colors`.
+    Find translational symmetries in a grid.
 
-    Returns a list of Symmetry objects, each representing a different translational symmetry.
+    Args:
+        grid (np.ndarray): The input 2D grid.
+        ignore_colors (List[int], optional): Colors to ignore when detecting symmetry. Defaults to [Color.BLACK].
+
+    Returns:
+        List[Symmetry]: List of detected translational symmetries.
+
+    Note:
+        Satisfies: grid[x, y] == grid[x + translate_x, y + translate_y] for all x, y,
+        as long as neither pixel is in `ignore_colors`.
 
     Example:
-    symmetries = detect_translational_symmetry(grid, ignore_colors=[occluder_color])
-    for x, y in np.argwhere(grid != occluder_color):
-        # Compute orbit on to the target grid
-        # When copying to an output, this is usually the output grid
-        symmetric_points = orbit(grid, x, y, symmetries)
-        for x, y in symmetric_points:
-            assert grid[x, y] == grid[x, y] or grid[x, y] == occluder_color
+        symmetries = detect_translational_symmetry(grid, ignore_colors=[occluder_color])
+        for x, y in np.argwhere(grid != occluder_color):
+            symmetric_points = orbit(grid, x, y, symmetries)
+            for sx, sy in symmetric_points:
+                assert grid[sx, sy] == grid[x, y] or grid[sx, sy] == occluder_color
     """
-
     class TranslationalSymmetry(Symmetry):
         def __init__(self, translate_x, translate_y):
             self.translate_x, self.translate_y = translate_x, translate_y
@@ -594,21 +748,28 @@ def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
     return detections
     
 
-def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]):
+def detect_mirror_symmetry(grid: np.ndarray, ignore_colors: List[int] = [Color.BLACK]) -> List[Symmetry]:
     """
-    Returns list of mirror symmetries.
-    Satisfies: grid[x, y] == grid[2*mirror_x - x, 2*mirror_y - y] for all x, y, as long as neither pixel is in `ignore_colors`
+    Find mirror symmetries in a grid.
+
+    Args:
+        grid (np.ndarray): The input 2D grid.
+        ignore_colors (List[int], optional): Colors to ignore when detecting symmetry. Defaults to [Color.BLACK].
+
+    Returns:
+        List[Symmetry]: List of detected mirror symmetries.
+
+    Note:
+        Satisfies: grid[x, y] == grid[2*mirror_x - x, 2*mirror_y - y] for all x, y,
+        as long as neither pixel is in `ignore_colors`.
 
     Example:
-    symmetries = detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]) # ignore_color: In case parts of the object have been removed and occluded by black
-    for x, y in np.argwhere(grid != Color.BLACK):
-        for sym in symmetries:
-            symmetric_x, symmetric_y = sym.apply(x, y)
-            assert grid[symmetric_x, symmetric_y] == grid[x, y] or grid[symmetric_x, symmetric_y] == Color.BLACK
-    
-    If the grid has both horizontal and vertical mirror symmetries, the returned list will contain two elements.
+        symmetries = detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK])
+        for x, y in np.argwhere(grid != Color.BLACK):
+            for sym in symmetries:
+                symmetric_x, symmetric_y = sym.apply(x, y)
+                assert grid[symmetric_x, symmetric_y] == grid[x, y] or grid[symmetric_x, symmetric_y] == Color.BLACK
     """
-
     class MirrorSymmetry():
         def __init__(self, mirror_x, mirror_y):
             self.mirror_x, self.mirror_y = mirror_x, mirror_y
@@ -668,19 +829,30 @@ def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]):
     return best_symmetries
             
 
-def detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK]):
+def detect_rotational_symmetry(grid: np.ndarray, ignore_colors: List[int] = [Color.BLACK]) -> Optional[Symmetry]:
     """
-    Finds rotational symmetry in a grid, or returns None if no symmetry is possible.
-    Satisfies: grid[x, y] == grid[y - rotate_center_y + rotate_center_x, -x + rotate_center_y + rotate_center_x] # clockwise
-               grid[x, y] == grid[-y + rotate_center_y + rotate_center_x, x - rotate_center_y + rotate_center_x] # counterclockwise
-               for all x, y, as long as neither pixel is in `ignore_colors`.
+    Find rotational symmetry in a grid.
+
+    Args:
+        grid (np.ndarray): The input 2D grid.
+        ignore_colors (List[int], optional): Colors to ignore when detecting symmetry. Defaults to [Color.BLACK].
+
+    Returns:
+        Optional[Symmetry]: Detected rotational symmetry, or None if no symmetry is found.
+
+    Note:
+        Satisfies:
+        grid[x, y] == grid[y - rotate_center_y + rotate_center_x, -x + rotate_center_y + rotate_center_x] # clockwise
+        grid[x, y] == grid[-y + rotate_center_y + rotate_center_x, x - rotate_center_y + rotate_center_x] # counterclockwise
+        for all x, y, as long as neither pixel is in `ignore_colors`.
 
     Example:
-    sym = detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK]) # ignore_color: In case parts of the object have been removed and occluded by black
-    for x, y in np.argwhere(grid != Color.BLACK):
-        rotated_x, rotated_y = sym.apply(x, y, iters=1) # +1 clockwise, -1 counterclockwise
-        assert grid[rotated_x, rotated_y] == grid[x, y] or grid[rotated_x, rotated_y] == Color.BLACK
-    print(sym.center_x, sym.center_y) # In case these are needed, they are floats
+        sym = detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK])
+        if sym:
+            for x, y in np.argwhere(grid != Color.BLACK):
+                rotated_x, rotated_y = sym.apply(x, y, iters=1)  # +1 clockwise, -1 counterclockwise
+                assert grid[rotated_x, rotated_y] == grid[x, y] or grid[rotated_x, rotated_y] == Color.BLACK
+            print(sym.center_x, sym.center_y)  # Center of rotation
     """
 
     class RotationalSymmetry(Symmetry):
@@ -931,14 +1103,17 @@ def apply_diagonal_symmetry(sprite, background=Color.BLACK):
     return sprite
 
 
-def is_contiguous(bitmask, background=Color.BLACK, connectivity=4):
+def is_contiguous(bitmask: np.ndarray, background: int = Color.BLACK, connectivity: int = 4) -> bool:
     """
     Check if an array is contiguous.
 
-    background: Color that counts as transparent (default: Color.BLACK)
-    connectivity: 4 or 8, for 4-way (only cardinal directions) or 8-way connectivity (also diagonals) (default: 4)
+    Args:
+        bitmask (np.ndarray): The input 2D array to check for contiguity.
+        background (int, optional): Color that counts as transparent. Defaults to Color.BLACK.
+        connectivity (int, optional): 4 or 8, for 4-way or 8-way connectivity. Defaults to 4.
 
-    Returns True/False
+    Returns:
+        bool: True if the array is contiguous, False otherwise.
     """
     from scipy.ndimage import label
 
@@ -1039,17 +1214,33 @@ def generate_sprite(
     return grid
 
 
-def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connectivity=4, background=Color.BLACK):
+def random_sprite(
+    n: Union[int, List[int]],
+    m: Union[int, List[int]],
+    density: float = 0.5,
+    symmetry: Optional[str] = None,
+    color_palette: Optional[List[int]] = None,
+    connectivity: int = 4,
+    background: int = Color.BLACK
+) -> np.ndarray:
     """
-    Generate a sprite (an object), represented as a numpy array.
+    Generate a random sprite with specified properties.
 
-    n, m: dimensions of the sprite. If these are lists, then a random value will be chosen from the list.
-    symmetry: optional type of symmetry to apply to the sprite. Can be 'horizontal', 'vertical', 'diagonal', 'radial', 'not_symmetric'. If None, a random symmetry type will be chosen.
-    color_palette: optional list of colors to use in the sprite. If None, a random color palette will be chosen.
+    Args:
+        n (Union[int, List[int]]): Height or list of possible heights for the sprite.
+        m (Union[int, List[int]]): Width or list of possible widths for the sprite.
+        density (float, optional): Desired density of non-background pixels. Defaults to 0.5.
+        symmetry (Optional[str], optional): Type of symmetry to apply. If None, a random type is chosen. Defaults to None.
+        color_palette (Optional[List[int]], optional): List of colors to use. If None, colors are randomly chosen. Defaults to None.
+        connectivity (int, optional): 4 or 8, for 4-way or 8-way connectivity. Defaults to 4.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
 
-    Returns an (n,m) NumPy array representing the sprite.
+    Returns:
+        np.ndarray: The generated random sprite.
+
+    Raises:
+        ValueError: If no valid sprite can be generated with the given parameters.
     """
-
     # canonical form: force dimensions to be lists
     if not isinstance(n, list):
         n = [n]
@@ -1110,21 +1301,37 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
         ):
             return sprite
 
-def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochromatic=False, connectivity=None, allowed_dimensions=None, colors=None, can_overlap=False):
+
+def detect_objects(
+    grid: np.ndarray,
+    _: Optional[Any] = None,
+    predicate: Optional[Callable[[np.ndarray], bool]] = None,
+    background: int = Color.BLACK,
+    monochromatic: bool = False,
+    connectivity: Optional[int] = None,
+    allowed_dimensions: Optional[List[Tuple[int, int]]] = None,
+    colors: Optional[List[int]] = None,
+    can_overlap: bool = False
+) -> List[np.ndarray]:
     """
-    Detects and extracts objects from the grid that satisfy custom specification.
+    Detect and extract objects from the grid that satisfy custom specifications.
 
-    predicate: a function that takes a candidate object as input and returns True if it counts as an object
-    background: color treated as transparent
-    monochromatic: if True, each object is assumed to have only one color. If False, each object can include multiple colors.
-    connectivity: 4 or 8, for 4-way or 8-way connectivity. If None, the connectivity is determined automatically.
-    allowed_dimensions: a list of tuples (n, m) specifying the allowed dimensions of the objects. If None, objects of any size are allowed.
-    colors: a list of colors that the objects are allowed to have. If None, objects of any color are allowed.
-    can_overlap: if True, objects can overlap. If False, objects cannot overlap.
+    Args:
+        grid (np.ndarray): The input grid to detect objects from.
+        _ (Optional[Any], optional): Unused parameter. Defaults to None.
+        predicate (Optional[Callable[[np.ndarray], bool]], optional): Function that takes a candidate object
+            and returns True if it counts as an object. Defaults to None.
+        background (int, optional): Color treated as transparent. Defaults to Color.BLACK.
+        monochromatic (bool, optional): If True, each object is assumed to have only one color. Defaults to False.
+        connectivity (Optional[int], optional): 4 or 8, for 4-way or 8-way connectivity. If None,
+            connectivity is determined automatically. Defaults to None.
+        allowed_dimensions (Optional[List[Tuple[int, int]]], optional): List of allowed object dimensions. Defaults to None.
+        colors (Optional[List[int]], optional): List of allowed object colors. Defaults to None.
+        can_overlap (bool, optional): If True, objects can overlap. Defaults to False.
 
-    Returns a list of objects, where each object is a numpy array.
+    Returns:
+        List[np.ndarray]: A list of detected objects, where each object is a numpy array.
     """
-
     objects = []
 
     if connectivity:
