@@ -68,6 +68,7 @@ def generate_input_grids(problem_source, num_returns=3, timeout=1, function_name
     return_input_grids = []
     tries = 0
     BATCH_SIZE = num_returns
+    stats = { "non_well_formed_input": 0, "duplicate_input": 0 }
     while len(return_input_grids) < num_returns and tries < retries:
         random_seeds = [random.randint(0, 1<<30) for _ in range(BATCH_SIZE)]
         input_grids = multi_execute_input_generator([problem_source] * BATCH_SIZE, random_seeds, timeout, function_name)
@@ -75,14 +76,16 @@ def generate_input_grids(problem_source, num_returns=3, timeout=1, function_name
             if not check_grid(input_grid):
                 tries += 1
                 print('Non well-formed input grid')
+                stats["non_well_formed_input"] += 1
                 continue
             if deduplicate and any(np.array_equal(input_grid, existing_grid) for existing_grid in return_input_grids):
                 tries += 1
                 print('Duplicate input grid')
+                stats["duplicate_input"] += 1
                 continue
             return_input_grids.append(input_grid)
 
-    return return_input_grids
+    return return_input_grids, stats
 
 def get_random_color_mapping(only_non_black=True, permute_colors=None):
     """
@@ -169,27 +172,38 @@ def generate_problem(problem_source, num_input_grids=30, num_deterministic_check
     start = time.time()
     problem = Problem(problem_source)
 
-    input_grids = generate_input_grids(problem_source, num_returns=num_input_grids, timeout=timeout, deduplicate=True)
+    
+    stats = { "non_deterministic": 0, "non_color_invariant": {"transformation_fail": 0, "non_well_formed": 0, "non_color_invariant": 0}, "identity": 0, "non_well_formed_output": 0, "black_output": 0, "timeout": 0, "non_well_formed_input": 0, "duplicate_input": 0, "total": 0 }
+    input_grids, input_stats = generate_input_grids(problem_source, num_returns=num_input_grids, timeout=timeout, deduplicate=True)
+    stats.update(input_stats)
     random.seed(0)
 
     # Check for non-deterministic transformations
     for input_grid in input_grids:
         if time.time() - start > total_timeout:
             print(f"Total timeout reached after {total_timeout} seconds")
-            return None
+            if stats["total"] == 0:
+                stats["timeout"] += 1
+            return None, stats
         output_grids = run_transformation(problem_source, input_grid, timeout=timeout, num_returns=num_deterministic_check)
         if len(output_grids) == 0:
             print("No output grids")
             continue
         if not check_grids_all_equal(output_grids):
             print("Non-deterministic transformation")
-            return None
+            stats["non_deterministic"] += 1
+            stats["total"] += 1
+            return None, stats
         if not all(check_grid(output_grid) for output_grid in output_grids):
             # if any of the output grids are not well-formed, skip this particular input grid
             print('Non well-formed output grid, skipping this input grid')
+            stats["non_well_formed_output"] += 1
+            stats["total"] += 1
             continue
         if np.all(output_grids[0] == 0):
             print("Output grid is entirely black, skipping this example")
+            stats["black_output"] += 1
+            stats["total"] += 1
             continue
 
         expected_output_grids = output_grids[0]
@@ -212,22 +226,30 @@ def generate_problem(problem_source, num_input_grids=30, num_deterministic_check
 
         if len(permuted_output_grids) != num_color_permute_check:
             print("some transformations failed during permute check")
-            return None
+            stats["non_color_invariant"]["transformation_fail"] += 1
+            stats["total"] += 1
+            return None, stats
         for permuted_output_grid, color_mapping in zip(permuted_output_grids, color_mappings):
             if not check_grid(permuted_output_grid) or not check_grid(input_grid):
                 print("Permute check failed due to non-well-formed grids")
-                return None
+                stats["non_color_invariant"]["non_well_formed"] += 1
+                stats["total"] += 1
+                return None, stats
             if not check_identity(apply_color_mapping(expected_output_grids, color_mapping), permuted_output_grid):
                 print("Permute check failed")
-                return None
+                stats["non_color_invariant"]["non_color_invariant"] += 1
+                stats["total"] += 1
+                return None, stats
 
         output_grid = execute_transformation(problem_source, input_grid, timeout, function_name="main")
         if check_identity(input_grid, output_grid):
-            print("Identity transformation, skipping this example")
+            # print("Identity transformation, skipping this example")
+            stats["identity"] += 1
+            stats["total"] += 1
             continue
         problem.add_example(input_grid, output_grid)
 
-    return problem
+    return problem, stats
 
 def main():
     parser = argparse.ArgumentParser()
@@ -276,9 +298,16 @@ def main():
             problems_source.append(source)
 
 
+    overall_stats = { "non_deterministic": 0, "non_color_invariant": {"transformation_fail": 0, "non_well_formed": 0, "non_color_invariant": 0}, "identity": 0, "non_well_formed_output": 0, "black_output": 0, "timeout": 0, "non_well_formed_input": 0, "duplicate_input": 0, "total": 0}
     problems = []
     for i, problem_source in enumerate(tqdm.tqdm(problems_source)):
-        problem = generate_problem(problem_source, total_timeout=30)
+        problem, problem_stats = generate_problem(problem_source, total_timeout=30)
+        for key, stat in problem_stats.items():
+            if key == "non_color_invariant":
+                for sub_key, sub_stat in stat.items():
+                    overall_stats[key][sub_key] += sub_stat
+            else:
+                overall_stats[key] += stat
         if problem and len(problem.examples) >= 4:
             print(f"+1 problem with {len(problem.examples)} examples")
             if args.jsonl:
@@ -291,6 +320,7 @@ def main():
 
     # write list of Problem to jsonl file
     print(f'Generated {len(problems)} problems')
+    print(f"Overall stats: {overall_stats}")
     if args.jsonl:
         with open(result_saving_file, "w") as f:
             for problem in problems:
