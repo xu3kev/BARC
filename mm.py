@@ -1,18 +1,14 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM, EncoderDecoderModel
-import transformers
+from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import torch.nn as nn
 
-from transformers.models.llama.modeling_llama import LlamaForCausalLM, LlamaPreTrainedModel, LlamaModel
+from transformers.models.llama.modeling_llama import LlamaForCausalLM, LlamaModel
 
 from typing import Optional, Tuple, Union, List
-from transformers.cache_utils import Cache, DynamicCache, StaticCache
+from transformers.cache_utils import Cache, DynamicCache
 from transformers.modeling_outputs import (
     BaseModelOutputWithPast,
-    CausalLMOutputWithPast,
-    QuestionAnsweringModelOutput,
-    SequenceClassifierOutputWithPast,
-    TokenClassifierOutput,
+    CausalLMOutputWithPast
 )
 
 
