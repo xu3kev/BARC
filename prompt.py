@@ -56,7 +56,7 @@ def prune_common_lib(common_lib, reference_code):
     return called_common_lib, called_common_lib_function_names
 
 def make_self_instruct_prompt(seeds_contents, rng_seed, common_lib, common_lib_function_names,
-                               brief_common=False, num_seeds=None, remix=0, library_function_hint=-1, uncreative=False, use_generator_prompt=True):
+                               brief_common=False, num_seeds=None, remix=0, library_function_hint=-1, uncreative=False, use_generator_prompt=True, hint_grid_size=0):
     """
     remix: how many example seeds the prompt tells the LLM to remix.
     0 means no remixing, just shows all the seeds. 1 tells it to remix one of the examples, 2 tells it to remix two of the examples, etc.
@@ -150,7 +150,7 @@ def make_self_instruct_prompt(seeds_contents, rng_seed, common_lib, common_lib_f
         library_functions = rng.sample(list(common_lib_function_names), n)
         library_function_hint_str = f"Make use of the common library functions. In particular, use the function{'s' if library_function_hint > 1 else ''}: {', '.join(library_functions)}."
 
-    if not uncreative:
+    if not uncreative: # creative
         # first part of the prompt just defines the problem, and introduces the common library, but without giving clear instructions on what examples should be considered
         prompt = f"""You are a puzzle maker designing geometric, physical, and topological puzzles for curious middle-schoolers.
 
@@ -194,7 +194,7 @@ Your task is to create a new puzzle that is similar to the examples provided, {r
 Be sure to make the transformation `main` deterministic. Be sure to not assume or impose any ordering to the colors. Use physical, geometric, topological, and logical concepts.
 """
         
-    else:
+    else: # uncreative
         prompt = f"""You design knock-off puzzles by modifying the work of other puzzle designers just enough to avoid copyright infringement, because you aren't good at designing puzzles by yourself but need to make puzzles to make money.
 
 Each puzzle consists of uncovering a single deterministic rule, pattern, procedure, algorithm, or general transformation that maps inputs to output. Both the inputs and outputs are 2D grids of colored pixels. There are 10 colors. The order of the colors is never relevant to the puzzle.
@@ -221,7 +221,12 @@ Your task is to create a knock-off puzzle that is based on the examples provided
 
 Be sure to make the transformation `main` deterministic. Be especially sure to not assume or impose any ordering to the colors. Use physical, geometric, topological, and logical concepts as much as possible. Remember that the puzzle should be similar to the examples provided. Don't be creative. Try to emulate the puzzle makers you are ripping off. Remember you, yourself, are not good at making new puzzles but are very good at making knock-offs."""
 
-        
+    # Hint applies when either creative or uncreative
+    if hint_grid_size:
+        # hint at the grid size not too large but should not be a fixed number
+        if not prompt[-1] == "\n":
+            prompt += "\n"
+        prompt += f"""Also, the input and output grids should not be too large, but should be large enough to contain interesting patterns. Both the width and heights of the grids should be under {hint_grid_size}."""
     
     if library_function_hint_str:
         prompt += f"""\n{library_function_hint_str}"""
@@ -247,6 +252,7 @@ def main():
     parser.add_argument("--generator_prompt", "-gp", action="store_true", help="use this flag to generate a list of concepts and have it pick one", default=False)
     parser.add_argument("--rng_offset", default=0, type=int)
     parser.add_argument("--nohtml", action="store_true", help="use this flag to not generate html", default=False)
+    parser.add_argument("--hint_grid_size", default=0, type=int, help="use this flag to hint at the grid size")
     
     arguments = parser.parse_args()
 
@@ -294,7 +300,8 @@ def main():
                                                     num_seeds=arguments.num_seeds,
                                                     library_function_hint=library_function_hint, 
                                                     uncreative=arguments.uncreative, 
-                                                    use_generator_prompt=arguments.generator_prompt)
+                                                    use_generator_prompt=arguments.generator_prompt,
+                                                    hint_grid_size=arguments.hint_grid_size)
                for rng_seed in tqdm(range(batch_size)) ]
 
     client = LLMClient(provider=provider, cache_dir=f"{current_file_dir}/cache")
@@ -332,6 +339,8 @@ def main():
         file_name_base += "_briefcommon"
     if arguments.generator_prompt:
         file_name_base += "_generatorprompt"
+    if arguments.hint_grid_size:
+        file_name_base += f"_hintgridsize{arguments.hint_grid_size}"
     file_name_json = file_name_base + ".jsonl"
     print(f"Writing to jsonl {file_name_json}")
     with open(file_name_json, "w") as f:
