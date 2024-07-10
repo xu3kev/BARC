@@ -10,6 +10,12 @@ from transformers.modeling_outputs import (
     BaseModelOutputWithPast,
     CausalLMOutputWithPast
 )
+from transformers.utils import (
+    logging
+)
+#from .configuration_llama import LlamaConfig
+
+logger = logging.get_logger(__name__)
 
 import psutil
 
@@ -318,7 +324,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_id)
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
     torch_dtype=torch.float16,
-    torch_device="cuda"
+    device="cuda"
 )
 if True:
     print("about to create cross attention model, memory usage:", psutil.Process().memory_info().rss / 1024 ** 2 / 1024 ** 2, "GB")
