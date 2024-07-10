@@ -11,6 +11,8 @@ from transformers.modeling_outputs import (
     CausalLMOutputWithPast
 )
 
+import psutil
+
 
 class LlamaForCrossAttention(LlamaForCausalLM):
     def __init__(self, causal_llama):
@@ -308,14 +310,15 @@ class XLlamaModel(LlamaModel):
             attentions=all_self_attns,
         )
 
-import psutil
+
 
 
 model_id = "codellama/CodeLlama-7b-hf"
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
-    torch_dtype=torch.float16
+    torch_dtype=torch.float16,
+    torch_device="cuda"
 )
 if True:
     print("about to create cross attention model, memory usage:", psutil.Process().memory_info().rss / 1024 ** 2 / 1024 ** 2, "GB")
