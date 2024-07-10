@@ -209,6 +209,45 @@ def bounding_box(grid, background=Color.BLACK):
 
     return x_min, y_min, x_max - x_min + 1, y_max - y_min + 1
 
+def object_position(obj, background=Color.BLACK, anchor="upper left"):
+    """
+    (x,y) position of the provided object. By default, the upper left corner.
+
+    anchor: "upper left", "upper right", "lower left", "lower right", "center", "upper center", "lower center", "left center", "right center"
+
+    Example usage:
+    x, y = object_position(obj, background=background_color, anchor="upper left")
+    middle_x, middle_y = object_position(obj, background=background_color, anchor="center")
+    """
+
+    anchor = anchor.lower().replace(" ", "") # robustness to mistakes by llm
+
+    x, y, w, h = bounding_box(obj, background)
+    if anchor == "upperleft":
+        return x, y
+    elif anchor == "upperright":
+        return x + w - 1, y
+    elif anchor == "lowerleft":
+        return x, y + h - 1
+    elif anchor == "lowerright":
+        return x + w - 1, y + h - 1
+    elif anchor == "center":
+        assert w % 2 == 1 and h % 2 == 1, "Width and height must be odd for center anchor"
+        return x + w // 2, y + h // 2
+    elif anchor == "uppercenter":
+        assert w % 2 == 1, "Height must be odd for upper center anchor"
+        return x + w // 2, y
+    elif anchor == "lowercenter":
+        assert w % 2 == 1, "Height must be odd for lower center anchor"
+        return x + w // 2, y + h - 1
+    elif anchor == "leftcenter":
+        assert h % 2 == 1, "Width must be odd for left center anchor"
+        return x, y + h // 2
+    elif anchor == "rightcenter":
+        assert h % 2 == 1, "Width must be odd for right center anchor"
+        return x + w - 1, y + h // 2
+    assert False, "Invalid anchor"
+
 
 def crop(grid, background=Color.BLACK):
     """
