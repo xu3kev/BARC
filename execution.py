@@ -72,7 +72,7 @@ def multi_process_execute(codes, return_var_name, timeout=1, num_workers=8):
             except StopIteration:
                 break
             except TimeoutError as error:
-                print("function took longer than %d seconds" % error.args[1])
+                print("function took longer than %d seconds" % timeout)
             except ProcessExpired as error:
                 print("%s. Exit code: %d" % (error, error.exitcode))
             except Exception as error:
@@ -159,7 +159,7 @@ output_grid = {function_name}(input_grid)
 
     return output
 
-def multi_execute_transformation(sources, input_grids, random_seeds, timeout=1, function_name="main", num_workers=32):
+def multi_execute_transformation(sources, input_grids, random_seeds, timeout=1, function_name="main", num_workers=8):
 
     input_grids = [np.array(input_grid) for input_grid in input_grids]
             

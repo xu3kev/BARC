@@ -139,6 +139,9 @@ class LLMClient:
                     actually_got_samples = True
                 except Exception as e:
                     if "Rate limit reached for model" in str(e):
+                        if backoff_timer > 120:
+                            print("Request too big, skipping")
+                            break
                         print("Rate limit reached, backoff for", backoff_timer, "seconds")
                         time.sleep(backoff_timer)
                         backoff_timer *= 2
