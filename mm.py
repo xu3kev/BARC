@@ -343,7 +343,7 @@ if True:
 print("about to do rollout, memory usage:", psutil.Process().memory_info().rss / 1024 ** 2 / 1024 ** 2, "GB")
 # Generate from the model, using the prefix "def fibonacci("
 prompt = "def fibonacci("
-input_ids = tokenizer(prompt, return_tensors="pt", device=model.device).input_ids
+input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(model.device)
 # cross attention data
 cross_key_values = torch.randn(1, 10, 1024*4, device=model.device, dtype=model.dtype)
 print(model.generate)
