@@ -248,7 +248,7 @@ def main():
     parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
     parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
     parser.add_argument("--uncreative", "-u", action="store_true", help="use this flag to generate a prompt encourages less creativity, helpful for dumber LLMs", default=False)
-    parser.add_argument("--brief_common", "-bc", action="store_true", help="use this flag to only include common library functions that are called in the examples", default=False)
+    parser.add_argument("--brief_common", "-bc", action="store_true", help="use this flag to only include common library functions that are called in the examples", default=True)
     parser.add_argument("--generator_prompt", "-gp", action="store_true", help="use this flag to generate a list of concepts and have it pick one", default=False)
     parser.add_argument("--rng_offset", default=0, type=int)
     parser.add_argument("--nohtml", action="store_true", help="use this flag to not generate html", default=False)
