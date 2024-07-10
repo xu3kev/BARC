@@ -18,6 +18,7 @@ from transformers.utils import (
 logger = logging.get_logger(__name__)
 
 import psutil
+import time
 
 
 class LlamaForCrossAttention(LlamaForCausalLM):
@@ -317,20 +318,27 @@ class XLlamaModel(LlamaModel):
         )
 
 
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description = "")
+    parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
+    parser.add_argument("--temperature", "-t", type=float, default=0.5)
+    parser.add_argument("--xa", type=int, default=0, help="how many cross attention tokens to try")
+    arguments = parser.parse_args()
 
-
-model_id = "codellama/CodeLlama-7b-hf"
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-    torch_dtype=torch.float16
-)
-try:
-    model.to("cuda")
-except Exception as e:
-    print("could not move model to gpu", e)
+    model_id = "codellama/CodeLlama-7b-hf"
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        torch_dtype=torch.float16
+    )
+    try:
+        model.to("cuda")
+        print("moved model to gpu")
+    except Exception as e:
+        print("could not move model to gpu", e)
     
-if True:
+        
     print("about to create cross attention model, memory usage:", psutil.Process().memory_info().rss / 1024 ** 2 / 1024 ** 2, "GB")
     print("model parameters:", len(list(model.parameters())))
     xmodel = LlamaForCrossAttention(model)    
@@ -340,13 +348,20 @@ if True:
     
     print("created cross attention model, memory usage:", psutil.Process().memory_info().rss / 1024 ** 2 / 1024 ** 2, "GB")
 
-print("about to do rollout, memory usage:", psutil.Process().memory_info().rss / 1024 ** 2 / 1024 ** 2, "GB")
-# Generate from the model, using the prefix "def fibonacci("
-prompt = "def fibonacci("
-input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(model.device)
-# cross attention data
-cross_key_values = torch.randn(1, 30*30*2*3+30*30, 1024*4, device=model.device, dtype=model.dtype)
-print(model.generate)
-output = model.generate(input_ids, max_length=2048, num_return_sequences=1, temperature=0.5, cross_key_values=cross_key_values)
-                        
-print(tokenizer.decode(output[0], skip_special_tokens=True))
+    print("about to do rollout, memory usage:", psutil.Process().memory_info().rss / 1024 ** 2 / 1024 ** 2, "GB")
+    # Generate from the model, using the prefix "def fibonacci("
+    prompt = "def fibonacci("
+    input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(model.device)
+    # cross attention data
+    if arguments.xa > 0:
+        cross_key_values = torch.randn(1, arguments.xa, 1024*4, device=model.device, dtype=model.dtype)
+    else:
+        cross_key_values = None
+    
+    start_time = time.time()
+    output = model.generate(input_ids, max_length=arguments.max_tokens, num_return_sequences=1, temperature=arguments.temperature, cross_key_values=cross_key_values)
+    end_time = time.time()
+                            
+    print(tokenizer.decode(output[0], skip_special_tokens=True))
+    print("total time(s):", end_time - start_time)
+    print("tokens/sec:", arguments.max_tokens / (end_time - start_time))
