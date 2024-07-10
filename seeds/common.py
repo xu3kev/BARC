@@ -909,7 +909,7 @@ def visualize(input_generator, transform, n_examples=5, n_attempts=100):
             break
         try:
             input_grid = input_generator()
-            output_grid = transform(input_grid)
+            output_grid = transform(input_grid.copy())
             successes.append((input_grid, output_grid))
         except Exception as e:
             # also save the line number where the failure happened
