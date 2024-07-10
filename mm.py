@@ -166,15 +166,9 @@ class CrossAttentionLayer(nn.Module):
         self.xattention = nn.MultiheadAttention(dim, n_heads, device=parent_model.device, dtype=parent_model.dtype, batch_first=True)
     
     def forward(self, x, context):
+        if context is None: return x
         output, _ = self.xattention(x, context, context)
         return x + output
-        q = self.q_proj(x)
-        # context: (batch, input_token, key_or_value, dim)
-        k = context[:,:,0,:]
-        v = context[:,:,1,:]
-        # divide by heads
-
-        return x
 
 class XLlamaModel(LlamaModel):
     """
