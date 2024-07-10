@@ -323,9 +323,13 @@ model_id = "codellama/CodeLlama-7b-hf"
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
-    torch_dtype=torch.float16,
-    device="cuda"
+    torch_dtype=torch.float16
 )
+try:
+    model.to("cuda")
+except:
+    print("could not move model to gpu")
+    r
 if True:
     print("about to create cross attention model, memory usage:", psutil.Process().memory_info().rss / 1024 ** 2 / 1024 ** 2, "GB")
     print("model parameters:", len(list(model.parameters())))
