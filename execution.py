@@ -189,9 +189,12 @@ output_grid = {function_name}(input_grid)
 
     # make sure that it is a 2d nump array of integers between 0-9
     for idx, output in enumerate(outputs):
-        if isinstance(output, np.ndarray) and len(output.shape) == 2 and np.all((0 <= output) & (output <= 9)):
-            outputs[idx] = output
-        else:
+        try:
+            if isinstance(output, np.ndarray) and len(output.shape) == 2 and np.all((0 <= output) & (output <= 9)):
+                outputs[idx] = output
+            else:
+                outputs[idx] = "error"
+        except:
             outputs[idx] = "error"
 
     return outputs
