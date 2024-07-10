@@ -22,13 +22,13 @@ import time
 
 
 class LlamaForCrossAttention(LlamaForCausalLM):
-    def __init__(self, causal_llama, cross_frequency=1):
+    def __init__(self, causal_llama, cross_attention_frequency=1):
         
         # Copy every attr from the original model, except that the model gets converted to a cross attention model
         for key, value in causal_llama.__dict__.items():
             setattr(self, key, value)
         
-        self.model = XLlamaModel(causal_llama.model, cross_frequency)
+        self.model = XLlamaModel(causal_llama.model, cross_attention_frequency)
     
     #@add_start_docstrings_to_model_forward(LLAMA_INPUTS_DOCSTRING)
     #@replace_return_docstrings(output_type=CausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
@@ -292,7 +292,7 @@ class XLlamaModel(LlamaModel):
             
             # cross attention
             if layer_index % self.cross_attention_frequency == 0:
-                hidden_states = self.x_layers[layer_index//self.cross_attention_for4frequency](hidden_states, cross_key_values)
+                hidden_states = self.x_layers[layer_index//self.cross_attention_frequency](hidden_states, cross_key_values)
 
         hidden_states = self.norm(hidden_states)
 
@@ -338,7 +338,7 @@ if __name__ == '__main__':
         
     print("about to create cross attention model, memory usage:", psutil.Process().memory_info().rss / 1024 ** 2 / 1024 ** 2, "GB")
     print("model parameters:", len(list(model.parameters())))
-    xmodel = LlamaForCrossAttention(model, frequency=arguments.xa_frequency)    
+    xmodel = LlamaForCrossAttention(model, cross_attention_frequency=arguments.xa_frequency)    
     print("cross attention model parameters:", len(list(xmodel.parameters())))
     #import pdb; pdb.set_trace()
     model = xmodel
