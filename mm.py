@@ -357,7 +357,8 @@ if __name__ == '__main__':
         cross_key_values = None
     
     start_time = time.time()
-    output = model.generate(input_ids, max_length=arguments.max_tokens, num_return_sequences=arguments.batch_size, temperature=arguments.temperature, cross_key_values=cross_key_values)
+    output = model.generate(input_ids, do_sample=True,
+                            max_length=arguments.max_tokens, num_return_sequences=arguments.batch_size, temperature=arguments.temperature, cross_key_values=cross_key_values)
     end_time = time.time()
                             
     print(tokenizer.decode(output[0], skip_special_tokens=True))
