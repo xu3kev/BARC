@@ -321,6 +321,7 @@ if __name__ == '__main__':
     parser.add_argument("--temperature", "-t", type=float, default=0.5)
     parser.add_argument("--xa", type=int, default=0, help="how many cross attention tokens to try")
     parser.add_argument("--xa_frequency", type=int, default=1, help="how often to do cross attention")
+    parser.add_argument("--batch_size", "-b", type=int, default=1, help="how many samples to draw")
     arguments = parser.parse_args()
 
     model_id = "codellama/CodeLlama-7b-hf"
@@ -356,9 +357,9 @@ if __name__ == '__main__':
         cross_key_values = None
     
     start_time = time.time()
-    output = model.generate(input_ids, max_length=arguments.max_tokens, num_return_sequences=1, temperature=arguments.temperature, cross_key_values=cross_key_values)
+    output = model.generate(input_ids, max_length=arguments.max_tokens, num_return_sequences=arguments.batch_size, temperature=arguments.temperature, cross_key_values=cross_key_values)
     end_time = time.time()
                             
     print(tokenizer.decode(output[0], skip_special_tokens=True))
     print("total time(s):", end_time - start_time)
-    print("tokens/sec:", arguments.max_tokens / (end_time - start_time))
+    print("tokens/sec:", arguments.max_tokens * arguments.batch_size / (end_time - start_time))
