@@ -327,9 +327,9 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 try:
     model.to("cuda")
-except:
-    print("could not move model to gpu")
-    r
+except Exception as e:
+    print("could not move model to gpu", e)
+    
 if True:
     print("about to create cross attention model, memory usage:", psutil.Process().memory_info().rss / 1024 ** 2 / 1024 ** 2, "GB")
     print("model parameters:", len(list(model.parameters())))
