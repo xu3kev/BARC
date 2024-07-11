@@ -1235,9 +1235,10 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
             for j, obj2 in enumerate(object_masks):
                 if i < j:
                     # check if the bounding boxes overlap
+                    # FIXME: this doesn't work
                     x1, y1, n1, m1 = object_bounding_boxes[i]
                     x2, y2, n2, m2 = object_bounding_boxes[j]
-                    if x1 + n1 <= x2 or x2 + n2 <= x1 or y1 + m1 <= y2 or y2 + m2 <= y1:
+                    if True or x1 + n1 <= x2 or x2 + n2 <= x1 or y1 + m1 <= y2 or y2 + m2 <= y1:
                         overlap_matrix[i, j] = np.any(obj1 & obj2)
                         overlap_matrix[j, i] = overlap_matrix[i, j]
         print("time to compute overlaps", time.time() - start)
