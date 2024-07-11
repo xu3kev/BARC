@@ -515,6 +515,35 @@ def object_boundary(grid, background=Color.BLACK):
 
     return boundary
 
+def object_neighbors(grid, background=Color.BLACK, connectivity=4):
+    """
+    Computes a mask of the points that neighbor or border the object, but are not part of the object.
+
+    returns a new grid of `bool` where True indicates that the pixel is part of the object's border neighbors5.
+
+    Example usage:
+    neighbors = object_neighbors(obj, background=Color.BLACK)
+    assert np.all(obj[neighbors] == Color.BLACK)
+    """
+
+    boundary = object_boundary(grid, background)
+    # Find the neighbors of the boundary
+    if connectivity == 4:
+        structuring_element = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+    elif connectivity == 8:
+        structuring_element = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
+    else:
+        raise ValueError("Connectivity must be 4 or 8.")
+
+    from scipy import ndimage
+    neighbors = ndimage.binary_dilation(boundary, structure=structuring_element)
+
+    # Exclude the object itself
+    neighbors = neighbors & (grid == background)
+
+    return neighbors
+
+
 
 class Symmetry:
     """
@@ -602,7 +631,9 @@ def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
 
     n, m = grid.shape
     x_possibilities = [ TranslationalSymmetry(translate_x, 0) for translate_x in range(1, n) ]
+    x_possibilities.extend([ TranslationalSymmetry(-translate_x, 0) for translate_x in range(1, n) ])
     y_possibilities = [ TranslationalSymmetry(0, translate_y) for translate_y in range(1, m) ]
+    y_possibilities.extend([ TranslationalSymmetry(0, -translate_y) for translate_y in range(1, m) ])
     xy_possibilities = [ TranslationalSymmetry(translate_x, translate_y) for translate_x in range(1,n) for translate_y in range(1,m) ]
 
     def score(sym):
@@ -631,7 +662,6 @@ def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
         detections.append(best_xy)
     
     return detections
-    
 
 def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]):
     """
@@ -1190,16 +1220,28 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                         candidate_object[i:i+n, j:j+m] = candidate_sprite
                         if not any( np.all(candidate_object == obj) for obj in objects):
                             scan_objects.append(candidate_object)
+        print("scanning produced", len(scan_objects), "objects")
         objects.extend(scan_objects)
     
     if not can_overlap:
+        import time
+        start = time.time()
         # sort objects by size, breaking ties by mass
         objects.sort(key=lambda obj: (crop(obj, background).shape[0] * crop(obj, background).shape[1], np.sum(obj!=background)), reverse=True)
         overlap_matrix = np.full((len(objects), len(objects)), False)
-        for i, obj1 in enumerate(objects):
-            for j, obj2 in enumerate(objects):
-                if i != j:
-                    overlap_matrix[i, j] = np.any((obj1 != background) & (obj2 != background))
+        object_masks = [obj != background for obj in objects]
+        object_bounding_boxes = [bounding_box(obj, background=background) for obj in object_masks]
+        for i, obj1 in enumerate(object_masks):
+            for j, obj2 in enumerate(object_masks):
+                if i < j:
+                    # check if the bounding boxes overlap
+                    x1, y1, n1, m1 = object_bounding_boxes[i]
+                    x2, y2, n2, m2 = object_bounding_boxes[j]
+                    if x1 + n1 <= x2 or x2 + n2 <= x1 or y1 + m1 <= y2 or y2 + m2 <= y1:
+                        overlap_matrix[i, j] = np.any(obj1 & obj2)
+                        overlap_matrix[j, i] = overlap_matrix[i, j]
+        print("time to compute overlaps", time.time() - start)
+        start= time.time()
                 
         # Pick a subset of objects that don't overlap and which cover as many pixels as possible
         # First, we definitely pick everything that doesn't have any overlaps
@@ -1244,6 +1286,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                 return without_index, without_goodness
         
         solution, _ = pick_objects(remaining_indices, [], np.zeros_like(grid, dtype=bool))
+        print("time to pick objects", time.time() - start)
 
         objects = keep_objects + solution
 
