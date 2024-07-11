@@ -3,11 +3,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
+import pytorch_lightning as pl
 
-from arc import train_problems, validation_problems
-import math
-import torch
-from torch.utils.data import DataLoader, Dataset
 from arc import train_problems, validation_problems
 
 def positional_encoding_2d(xs, ys, hidden_dim):
@@ -21,7 +18,7 @@ def positional_encoding_2d(xs, ys, hidden_dim):
     # first wave has a period of 2
     # second wave has 3
     # ...
-    periods = torch.arange(1, hidden_dim//4 + 1)
+    periods = torch.arange(2, hidden_dim//4 + 2)
 
     xs, ys = xs+1, ys+1
     position_encodings[:, :, 0::4] = torch.sin(2*math.pi* xs.unsqueeze(-1) / periods.unsqueeze(0).unsqueeze(0))
@@ -42,7 +39,7 @@ class ARCEncoder(nn.Module):
             nn.TransformerEncoderLayer(hidden_dim, num_heads, batch_first=False)
             for _ in range(num_layers)
         ])
-        self.fc = nn.Linear(hidden_dim, 10)
+        
         self.hidden_dim = hidden_dim
         self.mask_index = 10 # this color counts as mask
         self.num_heads = num_heads
@@ -73,9 +70,7 @@ class ARCEncoder(nn.Module):
         embedded = embedded.permute(1, 0, 2)
         for layer in self.transformer_layers:
             embedded = layer(embedded, src_key_padding_mask=src_key_padding_mask)#, src_mask=src_mask)
-        embedded = embedded.permute(1, 0, 2)
-        out = self.fc(embedded)
-        return out
+        return embedded.permute(1, 0, 2)
 
 def test_encoder():
     # Create a sample input and test that masking works correctly
@@ -139,8 +134,7 @@ def tokenize_problem(problem):
                 colors.append(output_grid[x, y])
     return torch.tensor(xs), torch.tensor(ys), torch.tensor(ios), torch.tensor(es), torch.tensor(colors)
 
-# we are going to use pytorch lightning to train the model, so import that and define the dataset
-import pytorch_lightning as pl
+
 class ARCDataset(Dataset):
     def __init__(self, problems):
         self.problems = problems
@@ -181,10 +175,11 @@ class ARCEncoder_Lightning(pl.LightningModule):
     def __init__(self, hidden_dim, num_layers, num_heads, max_examples):
         super(ARCEncoder_Lightning, self).__init__()
         self.model = ARCEncoder(hidden_dim, num_layers, num_heads, max_examples)
+        self.head = nn.Linear(hidden_dim, 10)
         self.loss = nn.CrossEntropyLoss()
 
     def forward(self, xs, ys, ios, es, colors, sequence_lengths):
-        return self.model(colors, xs, ys, es, ios, sequence_lengths)
+        return self.head(self.model(colors, xs, ys, es, ios, sequence_lengths))
     
     def random_masking_of_colors(self, batch):
         # randomly pick an input or an output from each problem and mask it
@@ -221,6 +216,7 @@ class ARCEncoder_Lightning(pl.LightningModule):
         loss = self.loss(prediction, target)
         
         return loss
+    
     def configure_optimizers(self):
         return optim.Adam(self.parameters(), lr=1e-4)
 
