@@ -8,7 +8,7 @@ from typing import *
 
 # description:
 # In the input you will see multiple 2x2 blue squares, multiple 2x2 red squares, and some red or blue dots sprinkled about.
-# To make the output, fill a 5x1 grid with blue pixels from left to right for each 2x2 blue square in the input (counting the number of blue 2x2 squares).
+# To make the output, fill a 1x5 grid with blue pixels from left to right for each 2x2 blue square in the input (counting the number of blue 2x2 squares).
 
 def main(input_grid):
     # make a counter to count the number of blue squares
@@ -20,11 +20,11 @@ def main(input_grid):
             if input_grid[x,y] == input_grid[x+1,y] == input_grid[x,y+1] == input_grid[x+1,y+1] == Color.BLUE:
                 blue_square_count += 1
     
-    # make a 5x1 output grid
+    # make a 1x5 output grid
     output_grid = np.zeros((5,1), dtype=int)
 
     # add the number of blue squares to the array from left to right with each pixel representing one blue block
-    output_grid[:blue_square_count, 0] = Color.BLUE
+    output_grid[:blue_square_count, :] = Color.BLUE
 
     return output_grid
 
@@ -48,13 +48,13 @@ def generate_input():
           blit_sprite(grid, red_square, x, y)
         
     # make a random number of blue pixel sprites and place them at random places on the grid
-    blue_pixel = np.full((1,1), Color.BLUE, dtype=int)
+    blue_pixel = random_sprite(1, 1, density=1, color_palette=[Color.BLUE])
     for _ in range(np.random.randint(4)):
         x, y = random_free_location_for_sprite(grid, blue_pixel)
         blit_sprite(grid, blue_pixel, x, y)
 
     # make a random number of red pixel sprites and place them at random places on the grid
-    red_pixel = np.full((1,1), Color.RED, dtype=int)
+    red_pixel = random_sprite(1, 1, density=1, color_palette=[Color.RED])
     for _ in range(np.random.randint(4)):
         x, y = random_free_location_for_sprite(grid, red_pixel)
         blit_sprite(grid, red_pixel, x, y)
