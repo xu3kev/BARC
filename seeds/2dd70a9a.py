@@ -36,7 +36,7 @@ def calc_neighbors(grid, start_x, start_y):
 
 # Finds a path from the green starting point to the red ending point,
 # turning at teal pixels. Returns the grid with the path colored in blue.
-def find_path(start_x, start_y, grid, dptable, initial_green_loc, path_list):
+def find_path(start_x, start_y, grid, dptable, initial_green_loc):
     # Initialize starting point to dptable
     if (start_x, start_y) not in dptable.keys():
         dptable[(start_x, start_y)] = {
@@ -83,9 +83,7 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc, path_list):
                         dir,
                     )
                     start_x, start_y = start
-        temp_path = find_path(
-            start_x, start_y, grid.copy(), dptable, initial_green_loc, path_list
-        )
+        temp_path = find_path(start_x, start_y, grid.copy(), dptable, initial_green_loc)
         if temp_path is not None:
             return temp_path
     else:
@@ -141,7 +139,7 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc, path_list):
                 # Return if a path is found
                 dptable[(start_x, start_y)][k] = (new_x, new_y)
                 temp_path = find_path(
-                    new_x, new_y, grid.copy(), dptable, initial_green_loc, path_list
+                    new_x, new_y, grid.copy(), dptable, initial_green_loc
                 )
                 if temp_path is not None:
                     return temp_path
@@ -151,9 +149,8 @@ def main(input_grid):
     # Finds the start point of grid
     green_loc = np.argwhere(input_grid == Color.GREEN)
     start_x, start_y = green_loc[0]
-    # neighbors = calc_neighbors(input_grid, start_x, start_y)
     dptable = {}
-    grid = find_path(start_x, start_y, input_grid.copy(), dptable, green_loc, [])
+    grid = find_path(start_x, start_y, input_grid.copy(), dptable, green_loc)
 
     # Put back start point
     for x, y in green_loc:
