@@ -16,6 +16,8 @@ import time
 # Your goal is to go from the start point to the end point.
 
 
+# Look at the 4 neighboring pixels and returns a dictionary
+# with the direction as key and the color of the pixel in that direction as value
 def calc_neighbors(grid, start_x, start_y):
     directions = {(1, 0): None, (-1, 0): None, (0, 1): None, (0, -1): None}
     for i in directions:
@@ -32,14 +34,10 @@ def calc_neighbors(grid, start_x, start_y):
     return directions
 
 
-def find_path(start_x, start_y, grid, dptable, initial_green_loc):
-    if Color.GREEN not in grid and Color.BLUE not in grid:
-        for i in initial_green_loc:
-            grid[i[0], i[1]] = Color.GREEN
-        start_again = random.choice(initial_green_loc)
-        return find_path(
-            start_again[0], start_again[1], grid, dptable, initial_green_loc
-        )
+# Finds a path from the green starting point to the red ending point,
+# turning at teal pixels. Returns the grid with the path colored in blue.
+def find_path(start_x, start_y, grid, dptable, initial_green_loc, path_list):
+    # Initialize starting point to dptable
     if (start_x, start_y) not in dptable.keys():
         dptable[(start_x, start_y)] = {
             (1, 0): None,
@@ -48,11 +46,7 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc):
             (0, -1): None,
         }
 
-    # Look at neighboring pixels
-    # print(start_x, start_y)
-    # show_colored_grid(grid)
-    # time.sleep(1)
-    # print(dptable)
+    # Calculate neighboring colors of current point
     directions = calc_neighbors(grid, start_x, start_y)
 
     # Handle exit case
@@ -61,7 +55,6 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc):
 
     # Compute if current point is a dead end
     deadend = True
-
     for i in dptable[(start_x, start_y)]:
         if dptable[(start_x, start_y)][i] != -1 and (
             directions[i] == Color.BLACK or directions[i] == Color.GREEN
@@ -69,17 +62,10 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc):
             deadend = False
             break
 
-    # If you get stuck, backtrack to the previous turning point, mark the backtracked path as yellow
+    # If you get stuck, backtrack to the previous turning point
     if (
-        (
-            Color.BLACK not in directions.values()
-            and Color.GREEN not in directions.values()
-        )
-        or (None in directions.values() and grid[start_x, start_y] == Color.BLUE)
-        or deadend
-    ):
-        print("backtrack")
-        print(grid[start_x, start_y])
+        None in directions.values() and grid[start_x, start_y] == Color.BLUE
+    ) or deadend:
         for i in dptable[(start_x, start_y)]:
             dptable[(start_x, start_y)][i] = -1
 
@@ -96,9 +82,10 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc):
                         Color.BLACK,
                         dir,
                     )
-                    # print("inside_loop")
                     start_x, start_y = start
-        temp_path = find_path(start_x, start_y, grid.copy(), dptable, initial_green_loc)
+        temp_path = find_path(
+            start_x, start_y, grid.copy(), dptable, initial_green_loc, path_list
+        )
         if temp_path is not None:
             return temp_path
     else:
@@ -116,7 +103,6 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc):
                 if i[0] != k[0] or i[1] != k[1]:
                     greedy_directions.append((i, directions[i]))
         for k, v in greedy_directions:
-            print(k)
             # If black / green, we want to try that direction.
             # We will color back the green start point in main function later.
             if v == Color.RED:
@@ -140,6 +126,7 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc):
                     new_x += k[0]
                     new_y += k[1]
 
+                # Draw the path to calculated endpoint
                 draw_line(
                     grid,
                     start_x,
@@ -150,12 +137,11 @@ def find_path(start_x, start_y, grid, dptable, initial_green_loc):
                 )
                 if grid[new_x, new_y] == Color.RED:
                     return grid
-                print("new")
-                print(new_x, new_y)
 
+                # Return if a path is found
                 dptable[(start_x, start_y)][k] = (new_x, new_y)
                 temp_path = find_path(
-                    new_x, new_y, grid.copy(), dptable, initial_green_loc
+                    new_x, new_y, grid.copy(), dptable, initial_green_loc, path_list
                 )
                 if temp_path is not None:
                     return temp_path
@@ -165,18 +151,16 @@ def main(input_grid):
     # Finds the start point of grid
     green_loc = np.argwhere(input_grid == Color.GREEN)
     start_x, start_y = green_loc[0]
-    neighbors = calc_neighbors(input_grid, start_x, start_y)
+    # neighbors = calc_neighbors(input_grid, start_x, start_y)
     dptable = {}
-    grid = find_path(start_x, start_y, input_grid.copy(), dptable, green_loc)
+    grid = find_path(start_x, start_y, input_grid.copy(), dptable, green_loc, [])
+
     # Put back start point
     for x, y in green_loc:
         grid[x, y] = Color.GREEN
 
     # Color path to green
     grid[grid == Color.BLUE] = Color.GREEN
-
-    # Color visited dead ends to black
-    # grid[grid == Color.YELLOW] = Color.BLACK
 
     return grid
 
@@ -223,6 +207,7 @@ def generate_input():
     current_point = (start_x, start_y)
     directions = calc_neighbors(grid, start_x, start_y)
     current_direction = random.choice(list(directions.keys()))
+
     # Draw a path from start to end, adding teal pixels for turning
     while True:
         dist_to_end = (end_x - current_point[0], end_y - current_point[1])
@@ -237,9 +222,11 @@ def generate_input():
             except:
                 directions[k] = None
         states = directions.values()
+
         # If we are at a black pixel, color it as visited (blue)
         if grid[current_point[0], current_point[1]] == Color.BLACK:
             grid[current_point[0], current_point[1]] = Color.BLUE
+
         # If we are adjacent to end point, we are almost there!
         if Color.RED in states:
             temp = add(current_point, current_direction)
@@ -248,6 +235,7 @@ def generate_input():
                 grid[temp[0], temp[1]] != Color.RED
                 or grid[temp2[0], temp2[1]] != Color.RED
             ):
+
                 # Color the next two pixels of current direction red
                 grid[grid == Color.RED] = Color.BLACK
                 grid[temp[0], temp[1]] = Color.RED
@@ -299,6 +287,7 @@ def generate_input():
 
                 # Update current direction
                 current_direction = turn_direction
+
         # If at start point, we must go in the direction of the start point
         if grid[current_point[0], current_point[1]] == Color.GREEN:
             # Move past the adjacent green pixel to a black pixel
@@ -315,7 +304,7 @@ def generate_input():
             if grid[i, j] == Color.BLACK:
                 if random.random() < 0.3:
                     grid[i, j] = Color.TEAL
-    show_colored_grid(grid)
+
     # Make intermediate pixels black to remove the path
     grid[grid == Color.BLUE] = Color.BLACK
 
