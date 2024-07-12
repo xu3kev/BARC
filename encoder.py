@@ -224,3 +224,4 @@ if __name__ == '__main__':
     model = ARCEncoder_Lightning(64, 4, 4, 12)
     trainer = pl.Trainer(max_epochs=10)
     trainer.fit(model, train_loader, validation_loader)
+    #good idea: incorporate augmentations from https://github.com/arc-community/arcmentations/tree/main
