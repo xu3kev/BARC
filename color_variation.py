@@ -127,10 +127,19 @@ def test():
             total_timeout=30,
         )
         print(code)
+
+        # See if code execution leads to correct grids.
         for i in problem.examples:
             input_grid, output_grid = i
             common.show_colored_grid(input_grid)
             common.show_colored_grid(output_grid)
+
+        # See if grids are transformed correctly
+        # for i in input_grids:
+        #    common.show_colored_grid(i)
+
+        # for i in output_grids:
+        #    common.show_colored_grid(i)
 
 
 if __name__ == "__main__":
