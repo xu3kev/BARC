@@ -41,7 +41,8 @@ def main():
         problem_answers = [json.loads(line) for line in f]
 
     accepted = 0
-    for p in problem_answers:
+    correct_codes = []
+    for problem_idx, p in enumerate(problem_answers):
         uid = p["uid"]
         responses = p["responses"]
         print(f"Problem: {uid}")
@@ -57,14 +58,23 @@ def main():
         arc_problem = get_arc_problem(uid)
         pass_or_not = False
         for i, code in enumerate(codes):
-            print(f"Code {i}: {code}")
-            if validate(arc_problem, code):
+            # print(f"Code {i}: {code}")
+            try:
+                validate_result = validate(arc_problem, code)
+            except:
+                validate_result = False
+            if validate_result:
                 pass_or_not = True
+                correct_codes.append((uid, code))
 
         if pass_or_not:
             accepted += 1
 
+        print(f"Accepted: {accepted}/{problem_idx+1}")
+
     print(f"Accepted: {accepted}/{len(problem_answers)}")
+    with open("correct_codes.json", "w") as f:
+        f.write(json.dumps(correct_codes))
 
 
 
