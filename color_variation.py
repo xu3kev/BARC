@@ -21,6 +21,7 @@ def process_line(line, color_dict):
                 break
             if i.find(color.lower()) != -1:
                 i = i.replace(color.lower(), color_dict[color].lower())
+                break
         processed_words.append(i)
 
     # Reassemble the line with original leading whitespace
@@ -133,4 +134,4 @@ def test():
 
 
 if __name__ == "__main__":
-    main()
+    test()
