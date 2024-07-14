@@ -4,31 +4,6 @@ import re
 import time
 
 
-# Function to process each line, preserving indentation
-def process_line(line, color_dict):
-    # Find leading whitespace (indentation)
-    leading_whitespace = re.match(r"\s*", line).group()
-
-    # Split the line into words, preserving the rest of the structure
-    words = line.strip().split()
-
-    # Process each word in the line
-    processed_words = []
-    for i in words:
-        for color in color_dict.keys():
-            if i.find(color) != -1:
-                i = i.replace(color, color_dict[color])
-                break
-            if i.find(color.lower()) != -1:
-                i = i.replace(color.lower(), color_dict[color].lower())
-                break
-        processed_words.append(i)
-
-    # Reassemble the line with original leading whitespace
-    processed_line = leading_whitespace + " ".join(processed_words)
-    return processed_line
-
-
 # Map every hard coded color except black to some other random colors
 def color_variation(problem_source_code, input_grids, output_grids):
     random.seed(time.time())
@@ -51,15 +26,40 @@ def color_variation(problem_source_code, input_grids, output_grids):
         color_dict[color_list[i]] = new_color_map[i]
     color_dict["GRAY"] = color_dict["GREY"]
 
-    # Replace all colors in the problem source code
-    # Assuming problem_source_code contains the Python code to process
-    lines = problem_source_code.splitlines()
+    # Write a regex that matches only colors
+    upper_template = ""
+    capitalized_template = ""
+    lower_template = ""
+    for color in color_list:
+        upper_template += f"(((?<=[^a-zA-Z])|^)({color})(?=[^a-zA-Z]))|"
+        capitalized_template += (
+            f"(((?<=[^a-zA-Z])|^)({color.lower().capitalize()})(?=[^a-zA-Z]))|"
+        )
+        lower_template += f"(((?<=[^a-zA-Z])|^)({color.lower()})(?=[^a-zA-Z]))|"
+    upper_template = upper_template[:-1]
+    capitalized_template = capitalized_template[:-1]
+    lower_template = lower_template[:-1]
 
-    # Process each line
-    processed_lines = [process_line(line, color_dict) for line in lines]
+    # Do findall operation with this regex
+    upper_regex = re.compile(upper_template)
+    capitalized_regex = re.compile(capitalized_template)
+    lower_regex = re.compile(lower_template)
 
-    # Join the processed lines back into the full text
-    problem_source_code = "\n".join(processed_lines)
+    replace_upper = re.sub(
+        upper_regex, lambda x: color_dict[x.group()], problem_source_code
+    )
+
+    replace_capitalized = re.sub(
+        capitalized_regex,
+        lambda x: color_dict[x.group().upper()].lower().capitalize(),
+        replace_upper,
+    )
+
+    replace_lower = re.sub(
+        lower_regex,
+        lambda x: color_dict[x.group().upper()].lower(),
+        replace_capitalized,
+    )
 
     # Replace all colors in the input grids
     for i in range(len(input_grids)):
@@ -79,7 +79,7 @@ def color_variation(problem_source_code, input_grids, output_grids):
                         color_list.index(new_color_map[output_grids[i][x][y] - 1]) + 1
                     )
 
-    return problem_source_code, input_grids, output_grids
+    return replace_lower, input_grids, output_grids
 
 
 # Test with python color_variation.py <seed>.py
