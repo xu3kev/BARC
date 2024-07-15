@@ -232,20 +232,15 @@ def object_position(obj, background=Color.BLACK, anchor="upper left"):
     elif anchor == "lowerright":
         return x + w - 1, y + h - 1
     elif anchor == "center":
-        assert w % 2 == 1 and h % 2 == 1, "Width and height must be odd for center anchor"
-        return x + w // 2, y + h // 2
+        return x + (w-1) / 2, y + (h-1) / 2
     elif anchor == "uppercenter":
-        assert w % 2 == 1, "Height must be odd for upper center anchor"
-        return x + w // 2, y
+        return x + (w-1) / 2, y
     elif anchor == "lowercenter":
-        assert w % 2 == 1, "Height must be odd for lower center anchor"
-        return x + w // 2, y + h - 1
+        return x + (w-1) / 2, y + h - 1
     elif anchor == "leftcenter":
-        assert h % 2 == 1, "Width must be odd for left center anchor"
-        return x, y + h // 2
+        return x, y + (h-1) / 2
     elif anchor == "rightcenter":
-        assert h % 2 == 1, "Width must be odd for right center anchor"
-        return x + w - 1, y + h // 2
+        return x + w - 1, y + (h-1) / 2
     assert False, "Invalid anchor"
 
 
