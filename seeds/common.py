@@ -82,24 +82,36 @@ def _flood_fill(grid, x, y, color, old_color, connectivity):
         _flood_fill(grid, x + 1, y + 1, color, old_color, connectivity)
 
 
-def draw_line(grid, x, y, length, color, direction, stop_at_color=[]):
+def draw_line(grid, x, y, end_x=None, end_y=None, length=None, direction=None, color=None, stop_at_color=[]):
     """
-    Draws a line of the specified length in the specified direction starting at (x, y).
+    Draws a line starting at (x, y) extending to (end_x, end_y) or of the specified length in the specified direction 
     Direction should be a vector with elements -1, 0, or 1.
     If length is None, then the line will continue until it hits the edge of the grid.
 
     stop_at_color: optional list of colors that the line should stop at. If the line hits a pixel of one of these colors, it will stop.
 
     Example:
-    draw_line(grid, 0, 0, length=3, color=blue, direction=(1, 1)) will draw a diagonal line of blue pixels from (0, 0) to (2, 2).
+    # blue diagonal line from (0, 0) to (2, 2)
+    draw_line(grid, 0, 0, length=3, color=blue, direction=(1, 1))
+    draw_line(grid, 0, 0, end_x=2, end_y=2, color=blue)
     """
+
+    assert (end_x is None) == (end_y is None), "draw_line: Either both or neither of end_x and end_y must be specified."
+
+    if end_x is not None and end_y is not None:
+        length = max(abs(end_x - x), abs(end_y - y)) + 1
+        direction = (end_x - x, end_y - y)
 
     if length is None:
         length = max(grid.shape) * 2
+    
+    dx, dy = direction
+    if abs(dx) > 0: dx = dx // abs(dx)
+    if abs(dy) > 0: dy = dy // abs(dy)
 
     for i in range(length):
-        new_x = x + i * direction[0]
-        new_y = y + i * direction[1]
+        new_x = x + i * dx
+        new_y = y + i * dy
         if 0 <= new_x < grid.shape[0] and 0 <= new_y < grid.shape[1]:
             if grid[new_x, new_y] in stop_at_color:
                 break
