@@ -234,26 +234,34 @@ def object_position(obj, background=Color.BLACK, anchor="upper left"):
 
     anchor = anchor.lower().replace(" ", "") # robustness to mistakes by llm
 
-    x, y, w, h = bounding_box(obj, background)
+    x, y, w, h = bounding_box(obj, background=background)
+    
     if anchor == "upperleft":
-        return x, y
+        answer_x, answer_y = x, y
     elif anchor == "upperright":
-        return x + w - 1, y
+        answer_x, answer_y = x + w - 1, y
     elif anchor == "lowerleft":
-        return x, y + h - 1
+        answer_x, answer_y = x, y + h - 1
     elif anchor == "lowerright":
-        return x + w - 1, y + h - 1
+        answer_x, answer_y = x + w - 1, y + h - 1
     elif anchor == "center":
-        return x + (w-1) / 2, y + (h-1) / 2
+        answer_x, answer_y = x + (w-1) / 2, y + (h-1) / 2
     elif anchor == "uppercenter":
-        return x + (w-1) / 2, y
+        answer_x, answer_y = x + (w-1) / 2, y
     elif anchor == "lowercenter":
-        return x + (w-1) / 2, y + h - 1
+        answer_x, answer_y = x + (w-1) / 2, y + h - 1
     elif anchor == "leftcenter":
-        return x, y + (h-1) / 2
+        answer_x, answer_y = x, y + (h-1) / 2
     elif anchor == "rightcenter":
-        return x + w - 1, y + (h-1) / 2
-    assert False, "Invalid anchor"
+        answer_x, answer_y = x + w - 1, y + (h-1) / 2
+    else:
+        assert False, "Invalid anchor"
+    
+    if abs(answer_x - int(answer_x)) < 1e-6:
+        answer_x = int(answer_x)
+    if abs(answer_y - int(answer_y)) < 1e-6:
+        answer_y = int(answer_y)
+    return answer_x, answer_y
 
 
 def crop(grid, background=Color.BLACK):
