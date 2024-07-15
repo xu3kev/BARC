@@ -142,6 +142,31 @@ def remove_trailing_code(code_str):
 
     return '\n'.join(lines).strip()
 
+def get_description_from_lines(lines):
+    description = []
+    for i, line in enumerate(lines):
+        if "# description:" in line:
+            while i+1 < len(lines) and lines[i+1].startswith("# "):
+                description.append(lines[i+1][2:])
+                i += 1
+            description = " ".join(description)
+            break
+    return description
+
+def get_concepts_from_lines(lines):
+    concepts = []
+    for i, line in enumerate(lines):
+        if "# concepts:" in line:
+            in_line_concepts = lines[i][12:]
+            if in_line_concepts.strip() != "":
+                concepts.extend(lines[i][12:].split(","))
+            while i+1 < len(lines) and lines[i+1].startswith("# ") and not lines[i+1].startswith("# description:"):
+                concepts.extend(lines[i+1][2:].split(","))
+                i += 1
+            concepts = [c.strip() for c in concepts]
+            break
+    return concepts
+
 def parse_code(paragraph):
     """
     This function extracts all Markdown code blocks from a given paragraph.
