@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# counting, resizing, color
+# counting, resizing
 
 # description:
 # In the input, you will see a grid with a row of colored blocks on the bottom and the right. 
@@ -67,16 +67,13 @@ def generate_input():
     square_color = np.random.choice(list(Color.NOT_BLACK))
     
     # make the square
-    square = random_sprite(2, 2, density=1, color_palette=[square_color])
+    square_sprite = random_sprite(2, 2, density=1, color_palette=[square_color])
 
     # put the square on the grid so it doesn't touch the bottom or right
-    x, y = random_free_location_for_object(grid, square, padding=1)
-    blit(grid, square, x, y)
-
-
+    x, y = random_free_location_for_sprite(grid, square_sprite, padding=1)
+    blit_sprite(grid, square_sprite, x, y)
+    
     return grid
-
-
 
 
 
