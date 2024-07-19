@@ -1,16 +1,13 @@
-Here are some specifications:
+You've generated these on previous requests:
 
 {examples}
 
-Brainstorm 5 new specifications, and pick a random one.
-
-Use this template for the specification you pick (put it at the end):
+Brainstorm the next one, using similar thinking:
 
 ```python
-# SOLUTION PICK
 # concepts:
-# <comment listing the concepts in the specification>
+# <concepts in your new generation>
 
 # description:
-# <comment containing a description of the specification>
+# <description of your new generation>
 ```

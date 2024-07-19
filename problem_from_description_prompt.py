@@ -6,51 +6,12 @@ import numpy as np
 
 from utils import extract_functions, extract_function_calls, extract_class_definitions, parse_code, remove_trailing_code, generate_html_grid, get_description_from_lines, get_concepts_from_lines
 from execution import execute_transformation, execute_input_generator
+from prompt import get_common_lib_from_file, prune_common_lib
 
 from llm import *
 
 # add seeds/ to the python path
 from seeds.common import *
-
-def get_common_lib_from_file(file_path):
-    """
-    reference_code: a string containing the code that we are trying to use the common library to understand
-    if it is provided then the only functions from the common_lib that are returned are the ones that are called in the reference_code
-    """
-    with open(file_path) as f:
-        common_lib = f.read()
-    
-    common_lib_functions = extract_functions(common_lib)
-    common_lib_functions = [f for f in common_lib_functions if "internal function not used by LLM" not in f["docstring"]]
-    common_lib_function_names = set([f["name"] for f in common_lib_functions])
-
-    common_lib_classes = extract_class_definitions(common_lib)
-    # Clean the common lib by removing any classes whose docstring begins/contains "internal class not used by LLM"
-    common_lib_classes = [c for c in common_lib_classes if "internal class not used by LLM" not in c["docstring"]]
-
-    common_lib = (common_lib_classes, common_lib_functions)
-
-    return common_lib, common_lib_function_names
-
-def prune_common_lib(common_lib, reference_code):
-    exceptions = ["Color"]
-    called_functions = extract_function_calls(reference_code)
-    called_functions = set(called_functions)
-    common_lib_functions = common_lib[1]
-    common_lib_function_names = set([f["name"] for f in common_lib_functions])
-    called_common_lib_function_names = called_functions.intersection(common_lib_function_names)
-    called_common_lib_functions = [f for f in common_lib_functions 
-                                   if f["name"] in called_common_lib_function_names]
-    called_common_lib_functions = [f for f in called_common_lib_functions]
-
-    common_lib_classes = common_lib[0]
-    symmtry_related_functions = ["detect_rotational_symmetry", "detect_translational_symmetry", "detect_mirror_symmetry"]
-    included_classes_names = exceptions + ["Symmetry"] if any([f in called_functions for f in symmtry_related_functions]) else exceptions
-    called_common_lib_classes = [c for c in common_lib_classes if c["name"] in included_classes_names]
-    
-    called_common_lib = (called_common_lib_classes, called_common_lib_functions)
-
-    return called_common_lib, called_common_lib_function_names
 
 def extract_concepts_and_descriptions(content):
     lines = content.split("\n")
@@ -60,22 +21,21 @@ def extract_concepts_and_descriptions(content):
     
     # Extract the descriptions, which come as a comment after the line containing "# description:"
     description = get_description_from_lines(lines)
-    
+
     return concepts, description
 
-def make_self_instruct_prompt(seeds_content_and_embedding, problem_concept, problem_description, problem_embedding, num_seeds=1, common_lib=None, common_lib_function_names=None, brief_common=True):
-    seed_embeddings = [embedding for _, _, embedding in seeds_content_and_embedding]
+def make_self_instruct_prompt(seed_embeddings, seed_contents, problem_concept, problem_description, problem_embedding, num_seeds=1, common_lib=None, common_lib_function_names=None, brief_common=True):
     A = np.array(seed_embeddings)
     B = np.array(problem_embedding)
 
     cosine = np.dot(A,B)/(np.linalg.norm(A, axis=1)*np.linalg.norm(B))
     most_similar_order = np.argsort(cosine)[::-1]
 
-    ordered_seeds_content_and_embedding = [seeds_content_and_embedding[i] for i in most_similar_order]
+    ordered_seeds_contents = [seed_contents[i] for i in most_similar_order]
 
-    best_seeds_content_and_embedding = ordered_seeds_content_and_embedding[:num_seeds]
-
-    seed_content = [content for _, content, _ in best_seeds_content_and_embedding]
+    best_seeds_contents = ordered_seeds_contents[:num_seeds]
+    
+    seed_content = [content for _, content in best_seeds_contents]
 
     examples = "\n\n".join([f"Example puzzle code:\n```python\n{content}\n```" for content in seed_content])
 
@@ -93,8 +53,8 @@ def make_self_instruct_prompt(seeds_content_and_embedding, problem_concept, prob
         prompt_template = f.read()
     
     prompt = prompt_template.format(description=description, common_lib=common_lib, examples=examples)
-    print(prompt)
-    seeds = [seed for seed, _, _ in best_seeds_content_and_embedding]
+    # print(prompt)
+    seeds = [seed for seed, _ in best_seeds_contents]
     return prompt, seeds
 
 def main():
@@ -110,8 +70,9 @@ def main():
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
     parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
     parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
-    parser.add_argument("--brief_common", "-bc", action="store_true", help="only include common functions that are called in the seed code", default=True)
+    parser.add_argument("--brief_common", "-bc", action="store_false", help="only include common functions that are called in the seed code", default=True)
     parser.add_argument("--nohtml", action="store_true", help="don't generate html", default=False)
+    parser.add_argument("--use_concept_embeddings", "-uc", action="store_true", help="use concept embeddings in addition to description embeddings", default=False)
     
     arguments = parser.parse_args()
 
@@ -133,8 +94,6 @@ def main():
     problem_seeds = []
     # read the jsonl file
     print(f"Reading from {arguments.jsonl}")
-    result_saving_file = arguments.jsonl.replace(".jsonl", "_generated_problems.jsonl")
-    print(f"Saving to {result_saving_file}")
     with open(arguments.jsonl) as f:
         data = f.readlines()
     for line in data:
@@ -145,14 +104,18 @@ def main():
     
     # get current directory path
     current_file_dir = os.path.dirname(os.path.realpath(__file__))
-    seeds = os.listdir(os.path.join(current_file_dir, "seeds"))
     
     # generate embedding for the problem descriptions
     client = LLMClient(provider=embedding_provider, cache_dir=f"{current_file_dir}/cache")
-    problem_embeddings = [client.generate_embedding(description, model=embedding_model) for description in problem_descriptions]
-        
-
+    problem_description_embeddings = [client.generate_embedding(description, model=embedding_model) for description in tqdm(problem_descriptions)]
+    if not arguments.use_concept_embeddings:
+        problem_embeddings = problem_description_embeddings
+    else:
+        problem_concepts_embeddings = [client.generate_embedding(concepts, model=embedding_model) for concepts in problem_concepts]
+        problem_embeddings = [concept_embedding + description_embedding for concept_embedding, description_embedding in tqdm(zip(problem_concepts_embeddings, problem_description_embeddings))]
+    
     # get all files in seeds directory
+    seeds = os.listdir(os.path.join(current_file_dir, "seeds"))
     # filter files with .py extension and 8 hex value characters in the file name
     pattern = r"[0-9a-f]{8}(_[a-zA-Z]+)?\.py"
     # get all files and its content
@@ -162,26 +125,32 @@ def main():
         with open(os.path.join(current_file_dir, "seeds", seed)) as f:
             seeds_contents.append((seed, f.read()))
 
-    seed_content = []
-    for seed , content in seeds_contents:
+    seed_contents = []
+    for seed, content in seeds_contents:
         assert "# ============= remove below this point for prompting =============" in content
         content = content.split("# ============= remove below this point for prompting =============")[0].strip()
-        seed_content.append((seed, content))
+        seed_contents.append((seed, content))
 
-    seeds_content_and_embedding = []
-    for seed, content in seed_content:
-        _, description = extract_concepts_and_descriptions(content)
+    seed_embeddings = []
+    for seed, content in seed_contents:
+        concepts, description = extract_concepts_and_descriptions(content)
 
         # generate embedding for this seed
-        embedding = client.generate_embedding(description, model=embedding_model)
-        seeds_content_and_embedding.append((seed, content, embedding))
+        description_embedding = client.generate_embedding(description, model=embedding_model)
+        if not arguments.use_concept_embeddings:
+            embedding = description_embedding
+        else: 
+            concept_embedding = client.generate_embedding(" ,".join(concepts), model=embedding_model)
+            embedding = concept_embedding + description_embedding
+        seed_embeddings.append(embedding)
     
     # Load the common library
     common_lib, common_lib_function_names = get_common_lib_from_file(f"{current_file_dir}/seeds/common.py")
 
     # print all files
     print(f"Using the following {len(seeds)} seeds:", ", ".join(seeds).replace(".py", ""))
-    prompts_and_seeds = [ make_self_instruct_prompt(seeds_content_and_embedding=seeds_content_and_embedding, 
+    prompts_and_seeds = [ make_self_instruct_prompt(seed_embeddings=seed_embeddings, 
+                                                    seed_contents=seed_contents,
                                                     problem_concept=problem_concept, 
                                                     problem_description=problem_description, 
                                                     problem_embedding=problem_embedding, 
@@ -218,10 +187,11 @@ def main():
 
     prompt_model_name = arguments.prompt_model.replace("/", "_")
     # write the codes to jsonl file
+    arguments.jsonl
     file_name_base = f"self_instruct_code_fewshot_{arguments.num_seeds}_{prompt_model_name}_temp{arguments.temperature:.2f}_maxtokens{arguments.max_tokens}"
     if arguments.brief_common:
         file_name_base += "_briefcommon"
-    file_name_json = file_name_base + ".jsonl"
+    file_name_json = file_name_base + f"_description_file_{arguments.jsonl.replace('.jsonl', '')}" + ".jsonl"
     print(f"Writing to jsonl {file_name_json}")
     with open(file_name_json, "w") as f:
         # jsonl, one json per line
@@ -236,7 +206,7 @@ def main():
         exit()
     htmls = []
 
-    common_functions_calls_counter = {}
+    # common_functions_calls_counter = {}
     for code, seeds in codes_and_seeds:
         code = remove_trailing_code(code)
         print(f"Code:\n{code}")

@@ -12,14 +12,13 @@ from seeds.common import *
 def extract_concepts_and_descriptions(content):
     lines = content.split("\n")
 
-    best_solution_line = None
+    last_concept_line = None
     # find the line containing "BEST SOLUTION"
     for i, line in enumerate(lines):
-        if "SOLUTION PICK" in line:
-            best_solution_line = i
-            break
+        if "# concepts" in line:
+            last_concept_line = i
     
-    lines = lines[best_solution_line:]
+    lines = lines[last_concept_line:]
 
     # Extract the concepts, which come as a comment after the line containing "# concepts:"
     concepts = get_concepts_from_lines(lines)
@@ -39,12 +38,14 @@ def make_self_instruct_prompt(seeds_contents, rng_seed, num_descriptions=None, u
     if num_descriptions is not None:
         seeds_contents = seeds_contents[:num_descriptions]
 
+    # get the content of the seeds
     seed_content = []
     for _ , content in seeds_contents:
         assert "# ============= remove below this point for prompting =============" in content
         content = content.split("# ============= remove below this point for prompting =============")[0].strip()
         seed_content.append(content)
 
+    # extract the concepts and descriptions from the seeds
     concepts_and_descriptions_in_seeds = []
     for content in seed_content:
         concepts, description = extract_concepts_and_descriptions(content)
@@ -59,7 +60,7 @@ def make_self_instruct_prompt(seeds_contents, rng_seed, num_descriptions=None, u
         concepts_and_descriptions_in_seeds.append((concept_list, description))
 
     if use_concepts:
-        examples = "\n\n".join([f"Example puzzle concepts and description:\n```python\n# concepts:\n# {concept_list}\n# description:\n# {description}\n```" for concept_list, description in concepts_and_descriptions_in_seeds])
+        examples = "\n\n".join([f"Example puzzle concepts and description:\n```python\n# concepts:\n# {concept_list}\n\n# description:\n# {description}\n```" for concept_list, description in concepts_and_descriptions_in_seeds])
     else:
         examples = "\n\n".join([f"Example puzzle description:\n```python\n# description:\n# {description}\n```" for concept_list, description in concepts_and_descriptions_in_seeds])
 
@@ -68,7 +69,7 @@ def make_self_instruct_prompt(seeds_contents, rng_seed, num_descriptions=None, u
         prompt_template = f.read()
     
     prompt = prompt_template.format(examples=examples)
-    print(prompt)
+    # print(prompt)
     seeds = [seed for seed, _ in seeds_contents]
     return prompt, seeds
 
@@ -77,7 +78,6 @@ def main():
     parser = argparse.ArgumentParser(description = "problem generator")
 
     parser.add_argument("--num_descriptions", "-d", type=int, default=None, help="how many descriptions to show in the prompt, if not all of them")
-    parser.add_argument("--num_samples", "-ns", type=int, default=1, help="how many description to sample from a single prompt")
     parser.add_argument("--batch_size", "-b", type=int, default=64, help="how many batches of descriptions to generate")
     parser.add_argument("--temperature", "-t", type=float, default=0.7)
     parser.add_argument("--model", "-m", type=str, default="gpt-4-turbo", help="which model to use", 
@@ -118,6 +118,7 @@ def main():
         rng_offset = int(rng_offset_str, 16)
     else:
         rng_offset = 0
+
     batch_size = arguments.batch_size
     prompts_and_seeds = [ make_self_instruct_prompt(seeds_contents=seeds_contents, 
                                                     rng_seed=rng_seed + rng_offset, 
@@ -131,13 +132,13 @@ def main():
     if arguments.sample_parallel == 1:
         for prompt, seed in tqdm(prompts_and_seeds):
             try:
-                sample = client.generate(prompt, num_samples=arguments.num_samples, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model)[0]
+                sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model)[0]
                 samples_and_seeds.append((sample, seed))        
             except:
                 print("no samples, prompt was too big")
     else:
         just_the_prompts = [prompt for prompt, seed in prompts_and_seeds]
-        list_of_lists_of_samples = client.generate_parallel(just_the_prompts, num_samples=arguments.num_samples, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
+        list_of_lists_of_samples = client.generate_parallel(just_the_prompts, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
         # flatten the list
         samples = [sample for sublist in list_of_lists_of_samples for sample in sublist]
         samples_and_seeds = list(zip(samples, [seed for prompt, seed in prompts_and_seeds]))
@@ -153,7 +154,7 @@ def main():
     # write the codes to jsonl file
     file_name_base = f"self_instruct_descriptions_fewshot_{arguments.num_descriptions}_{model_name}_temp{arguments.temperature:.2f}_maxtokens{arguments.max_tokens}_rng{arguments.rng_offset}"
     if arguments.use_concepts:
-        file_name_base += "_concepts"
+        file_name_base += "_used_concepts"
     file_name_json = file_name_base + ".jsonl"
     print(f"Writing to jsonl {file_name_json}")
     with open(file_name_json, "w") as f:
