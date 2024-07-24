@@ -21,6 +21,7 @@ class OpenAIModels(Enum):
     GPT_4_TURBO = 'gpt-4-turbo'
     GPT_4O = 'gpt-4o'
     GPT_35_TURBO = 'gpt-3.5-turbo'
+    GPT_4O_MINI = 'gpt-4o-mini'
     TEXT_EMBEDDING_ADA_002 = "text-embedding-ada-002"
 
 class GroqModels(Enum):
