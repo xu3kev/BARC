@@ -151,6 +151,12 @@ def get_description_from_lines(lines):
                 i += 1
             description = " ".join(description)
             break
+    if description == []:
+        for i, line in enumerate(lines):
+            if "description:" in line.lower():
+                description.append(lines[i+1][2:])
+                i += 1
+                description = " ".join(description)
     return description
 
 def get_concepts_from_lines(lines):
@@ -165,6 +171,17 @@ def get_concepts_from_lines(lines):
                 i += 1
             concepts = [c.strip() for c in concepts]
             break
+    if concepts == []:
+        for i, line in enumerate(lines):
+            if "concepts:" in line.lower():
+                in_line_concepts = lines[i][12:]
+                if in_line_concepts.strip() != "":
+                    concepts.extend(lines[i][12:].split(","))
+                while i+1 < len(lines) and lines[i+1].startswith("# ") and not lines[i+1].lower().startswith("description:"):
+                    concepts.extend(lines[i+1][2:].split(","))
+                    i += 1
+                concepts = [c.strip() for c in concepts]
+                break
     return concepts
 
 def parse_code(paragraph):

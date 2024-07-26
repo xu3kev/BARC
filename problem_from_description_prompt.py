@@ -91,7 +91,6 @@ def main():
     import json
     problem_concepts = []
     problem_descriptions = []
-    problem_seeds = []
     # read the jsonl file
     print(f"Reading from {arguments.jsonl}")
     with open(arguments.jsonl) as f:
@@ -100,7 +99,6 @@ def main():
         problem = json.loads(line)
         problem_concepts.append(problem["concepts"])
         problem_descriptions.append(problem["description"])
-        problem_seeds.append(problem["seeds"])
     
     # get current directory path
     current_file_dir = os.path.dirname(os.path.realpath(__file__))

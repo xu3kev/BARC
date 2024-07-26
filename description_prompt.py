@@ -18,6 +18,11 @@ def extract_concepts_and_descriptions(content):
         if "# concepts" in line:
             last_concept_line = i
     
+    if last_concept_line is None:
+        for i, line in enumerate(lines):
+            if "concepts" in line.lower():
+                last_concept_line = i
+
     lines = lines[last_concept_line:]
 
     # Extract the concepts, which come as a comment after the line containing "# concepts:"
@@ -70,8 +75,7 @@ def make_self_instruct_prompt(seeds_contents, rng_seed, num_descriptions=None, u
     
     prompt = prompt_template.format(examples=examples)
     # print(prompt)
-    seeds = [seed for seed, _ in seeds_contents]
-    return prompt, seeds
+    return prompt
 
 def main():
     import argparse
@@ -120,35 +124,33 @@ def main():
         rng_offset = 0
 
     batch_size = arguments.batch_size
-    prompts_and_seeds = [ make_self_instruct_prompt(seeds_contents=seeds_contents, 
+    prompts = [ make_self_instruct_prompt(seeds_contents=seeds_contents, 
                                                     rng_seed=rng_seed + rng_offset, 
                                                     num_descriptions=arguments.num_descriptions,
                                                     use_concepts=arguments.use_concepts)
                for rng_seed in tqdm(range(batch_size)) ]
 
     client = LLMClient(provider=provider, cache_dir=f"{current_file_dir}/cache")
-    samples_and_seeds = []
-
+    
+    samples = []
     if arguments.sample_parallel == 1:
-        for prompt, seed in tqdm(prompts_and_seeds):
+        for prompt in tqdm(prompts):
             try:
                 sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model)[0]
-                samples_and_seeds.append((sample, seed))        
+                samples.append(sample)        
             except:
                 print("no samples, prompt was too big")
     else:
-        just_the_prompts = [prompt for prompt, seed in prompts_and_seeds]
-        list_of_lists_of_samples = client.generate_parallel(just_the_prompts, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
+        list_of_lists_of_samples = client.generate_parallel(prompts, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
         # flatten the list
         samples = [sample for sublist in list_of_lists_of_samples for sample in sublist]
-        samples_and_seeds = list(zip(samples, [seed for prompt, seed in prompts_and_seeds]))
 
-    concepts_description_and_seeds = []
-    for sample, seeds in samples_and_seeds:
+    concepts_descriptions = []
+    for sample in samples:
         print(f"sample: {sample}")
         parsed_concepts, parsed_description = extract_concepts_and_descriptions(sample)
         parsed_concepts = ", ".join(parsed_concepts)
-        concepts_description_and_seeds.append((parsed_concepts, parsed_description, seeds))
+        concepts_descriptions.append((parsed_concepts, parsed_description))
 
     model_name = arguments.model.replace("/", "_")
     # write the codes to jsonl file
@@ -160,12 +162,11 @@ def main():
     with open(file_name_json, "w") as f:
         # jsonl, one json per line
         import json
-        for concepts, description, seeds in concepts_description_and_seeds:
+        for concepts, description in concepts_descriptions:
             f.write(json.dumps({"concepts": concepts,
                                 "description": description,
-                                "seeds": seeds
                                 }) + "\n")
-    print(f"{len(concepts_description_and_seeds)} codes written to {file_name_json}")
+    print(f"{len(concepts_descriptions)} codes written to {file_name_json}")
 
 if __name__ == "__main__":
     main()
