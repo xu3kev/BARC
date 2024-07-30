@@ -157,6 +157,8 @@ def main():
                                                     common_lib_function_names=common_lib_function_names,
                                                     brief_common=arguments.brief_common)
                for problem_concept, problem_description, problem_embedding in tqdm(zip(problem_concepts, problem_descriptions, problem_embeddings)) ]
+    client.show_token_usage()
+    client.show_global_token_usage()
 
     client = LLMClient(provider=prompt_provider, cache_dir=f"{current_file_dir}/cache")
     samples_and_seeds = []
@@ -182,6 +184,9 @@ def main():
         else:
             parsed_code = ""
         codes_and_seeds.append((parsed_code, seeds))
+
+    client.show_token_usage()
+    client.show_global_token_usage()
 
     prompt_model_name = arguments.prompt_model.replace("/", "_")
     # write the codes to jsonl file

@@ -10,30 +10,28 @@ from llm import *
 from seeds.common import *
 
 def extract_concepts_and_descriptions(content):
-    lines = content.split("\n")
+    all_lines = content.split("\n")
+
+    all_concepts = []
+    all_descriptions = []
 
     last_concept_line = None
     # find the line containing "BEST SOLUTION"
-    for i, line in enumerate(lines):
+    for i, line in enumerate(all_lines):
         if "# concepts" in line:
             last_concept_line = i
-    
-    if last_concept_line is None:
-        for i, line in enumerate(lines):
-            if "concepts" in line.lower():
-                last_concept_line = i
+            lines = all_lines[last_concept_line:]
+            # Extract the concepts, which come as a comment after the line containing "# concepts:"
+            concepts = get_concepts_from_lines(lines)
+            all_concepts.append(concepts)
+            # Extract the descriptions, which come as a comment after the line containing "# description:"
+            description = get_description_from_lines(lines)
+            all_descriptions.append(description)
 
-    lines = lines[last_concept_line:]
-
-    # Extract the concepts, which come as a comment after the line containing "# concepts:"
-    concepts = get_concepts_from_lines(lines)
-    
-    # Extract the descriptions, which come as a comment after the line containing "# description:"
-    description = get_description_from_lines(lines)
-    return concepts, description
+    return all_concepts, all_descriptions
 
 
-def make_self_instruct_prompt(seeds_contents, rng_seed, num_descriptions=None, use_concepts=True):
+def make_self_instruct_prompt(seeds_contents, rng_seed, num_descriptions=None, use_concepts=True, num_generations=5):
     # make a random generator
     rng = random.Random(rng_seed)
 
@@ -55,6 +53,10 @@ def make_self_instruct_prompt(seeds_contents, rng_seed, num_descriptions=None, u
     for content in seed_content:
         concepts, description = extract_concepts_and_descriptions(content)
 
+        # only one concept and description per seed, so we take the first element
+        concepts = concepts[0]
+        description = description[0]
+
         # remove "color change" from the concepts, because it is problematic and easily misinterpreted
         concepts = [c for c in concepts if c != "color change"]
         # deduplicate and randomly permute
@@ -73,7 +75,7 @@ def make_self_instruct_prompt(seeds_contents, rng_seed, num_descriptions=None, u
     with open("prompts/description_prompt.md") as f:
         prompt_template = f.read()
     
-    prompt = prompt_template.format(examples=examples)
+    prompt = prompt_template.format(examples=examples, num_generations=num_generations)
     # print(prompt)
     return prompt
 
@@ -83,13 +85,14 @@ def main():
 
     parser.add_argument("--num_descriptions", "-d", type=int, default=None, help="how many descriptions to show in the prompt, if not all of them")
     parser.add_argument("--batch_size", "-b", type=int, default=64, help="how many batches of descriptions to generate")
+    parser.add_argument("--num_generations", "-n", type=int, default=5, help="how many generations to generate in the prompt")
     parser.add_argument("--temperature", "-t", type=float, default=0.7)
     parser.add_argument("--model", "-m", type=str, default="gpt-4-turbo", help="which model to use", 
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
     parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
     parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
     parser.add_argument("--rng_offset", type=int, default=0, help="offset to rng_seed_offset")
-    parser.add_argument("--use_concepts", "-uc", action="store_false", help="use concepts in the prompt", default=True)
+    parser.add_argument("--use_concepts", "-uc", action="store_false", help="make the prompts not use concepts", default=True)
     
     arguments = parser.parse_args()
 
@@ -127,7 +130,8 @@ def main():
     prompts = [ make_self_instruct_prompt(seeds_contents=seeds_contents, 
                                                     rng_seed=rng_seed + rng_offset, 
                                                     num_descriptions=arguments.num_descriptions,
-                                                    use_concepts=arguments.use_concepts)
+                                                    use_concepts=arguments.use_concepts,
+                                                    num_generations=arguments.num_generations)
                for rng_seed in tqdm(range(batch_size)) ]
 
     client = LLMClient(provider=provider, cache_dir=f"{current_file_dir}/cache")
@@ -148,9 +152,11 @@ def main():
     concepts_descriptions = []
     for sample in samples:
         print(f"sample: {sample}")
-        parsed_concepts, parsed_description = extract_concepts_and_descriptions(sample)
-        parsed_concepts = ", ".join(parsed_concepts)
-        concepts_descriptions.append((parsed_concepts, parsed_description))
+        parsed_concepts_lst, parsed_description_lst = extract_concepts_and_descriptions(sample)
+        for parsed_concepts, parsed_description in zip(parsed_concepts_lst, parsed_description_lst):
+            if parsed_concepts != "" and parsed_description != "":
+                parsed_concepts = ", ".join(parsed_concepts)
+                concepts_descriptions.append((parsed_concepts, parsed_description))
 
     model_name = arguments.model.replace("/", "_")
     # write the codes to jsonl file
@@ -167,6 +173,9 @@ def main():
                                 "description": description,
                                 }) + "\n")
     print(f"{len(concepts_descriptions)} codes written to {file_name_json}")
+    client.show_token_usage()
+    client.show_global_token_usage()
+    
 
 if __name__ == "__main__":
     main()

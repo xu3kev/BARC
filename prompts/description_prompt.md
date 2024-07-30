@@ -2,7 +2,7 @@ You've generated these on previous requests:
 
 {examples}
 
-Brainstorm the next one, using similar thinking:
+Brainstorm {num_generations} more, using similar thinking:
 
 ```python
 # concepts:

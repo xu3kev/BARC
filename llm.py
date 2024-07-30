@@ -7,6 +7,7 @@ import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 import time
+import tiktoken
 
 
 class Provider(Enum):
@@ -48,6 +49,17 @@ class LLMClient:
         Provider.OPENROUTER: OpenRouterModels
     }
 
+    model_cost = {
+        "gpt-4": (30, 60),
+        "gpt-4-turbo-preview": (10, 30),
+        "gpt-4-turbo-2024-04-09": (10, 30),
+        "gpt-4o": (5, 15),
+        "gpt-4o-mini": (0.15, 0.60),
+        "gpt-4o-2024-05-13": (5, 15),
+        "gpt-3.5-turbo-0123": (0.50, 1.50),
+        "gpt-3.5-turbo": (0.50, 1.50),
+    }
+
     def __init__(self, system_content=None, provider=Provider.OPENAI, cache_dir='cache', key=None):
         self.provider = provider
         self.api_key = key or self._get_api_key()
@@ -55,6 +67,9 @@ class LLMClient:
         self.system_content = system_content if system_content is not None else "You will be provided a few code examples on color grid input generator and transformation. You will be creative and come up with similar and interesting problems."
         self.client = self._initialize_client()
         self.cache = dc.Cache(cache_dir)
+        self.usage_cache = dc.Cache(cache_dir + "_usage")
+        self.total_input_tokens = {}
+        self.total_output_tokens = {}
 
     def _get_api_key(self):
         if self.provider == Provider.GROQ:
@@ -88,6 +103,60 @@ class LLMClient:
         # Create a unique hash for the given parameters
         hash_input = f"{input}-{model}-{self.system_content}".encode()
         return hashlib.md5(hash_input).hexdigest()
+    
+    def update_usage(self, engine: str, usage: dict[str, int]):
+        self.total_input_tokens[engine] = self.total_input_tokens.get(engine, 0) + usage.prompt_tokens
+        self.total_output_tokens[engine] = self.total_output_tokens.get(engine, 0) + usage.total_tokens - usage.prompt_tokens
+        self.add_usage_to_cache(engine, usage)
+
+    def show_global_token_usage(self):
+        for engine in self.model_cost.keys():
+            usage = self.get_usage_from_cache(engine)
+            i = usage["input_tokens"]
+            o = usage["output_tokens"]
+            # dollars per million tokens
+            i_cost, o_cost = self.model_cost.get(engine, (0.0, 0.0))
+            total_cost = i_cost*i/1e6 + o_cost*o/1e6
+
+            print(f"{engine}: {i} input tokens (${i_cost:.02f}/1m tokens), {o} output tokens (${o_cost:.02f}/1m tokens)")
+            print(" "*len(engine), f" total cost: ${total_cost:.02f}")
+
+    def show_token_usage(self):
+        for engine in self.total_input_tokens:
+            i = self.total_input_tokens[engine]
+            o = self.total_output_tokens[engine]
+            # dollars per million tokens
+            i_cost, o_cost = self.model_cost.get(engine, (0.0, 0.0))
+            total_cost = i_cost*i/1e6 + o_cost*o/1e6
+
+            print(f"{engine}: {i} input tokens (${i_cost:.02f}/1m tokens), {o} output tokens (${o_cost:.02f}/1m tokens)")
+            print(" "*len(engine), f" total cost: ${total_cost:.02f}")
+
+    def total_cost(self):
+        total_cost = 0
+        for engine in self.total_input_tokens:
+            i = self.total_input_tokens[engine]
+            o = self.total_output_tokens[engine]
+            i_cost, o_cost = self.model_cost.get(engine, (0.0, 0.0))
+            total_cost += i_cost*i/1000 + o_cost*o/1000
+        return total_cost
+
+    def n_tokens_in_prompt(self, prompt, engine):
+        encoding = tiktoken.encoding_for_model(engine)
+        if isinstance(prompt, str): prompt = [prompt]
+        return sum( len(encoding.encode(p)) for p in prompt )
+
+    def get_token_usage(self, engine):
+        i = self.total_input_tokens.get(engine, 0)
+        o = self.total_output_tokens.get(engine, 0)
+        return i, o
+    
+    def add_usage_to_cache(self, engine, usage):
+        cur = self.usage_cache.get(engine, {"input_tokens": 0, "output_tokens": 0})
+        self.usage_cache[engine] = {"input_tokens": cur["input_tokens"] + usage.prompt_tokens, "output_tokens": cur["output_tokens"] + usage.total_tokens - usage.prompt_tokens}
+
+    def get_usage_from_cache(self, model):
+        return self.usage_cache.get(model, {"input_tokens": 0, "output_tokens": 0})
 
     def send_request(self, prompt, model, temperature, max_tokens, top_p, num_samples):
         response = self.client.chat.completions.create(
@@ -160,6 +229,7 @@ class LLMClient:
                     response = self.send_request(prompt, model, temperature, max_tokens, top_p, remaining_samples)
                     new_samples = [c.message.content for c in response.choices]
                     self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
+                    self.update_usage(model.value, response.usage)
                     actually_got_samples = True
                 except Exception as e:
                     if "Rate limit reached for model" in str(e):
@@ -199,6 +269,7 @@ class LLMClient:
                     response = self.send_embedding_request(input, model)
                     embedding = response.data[0].embedding
                     self.add_embedding_to_cache(input, model, embedding)
+                    self.update_usage(model.value, response.usage)
                     actually_got_embedding = True
                 except Exception as e:
                     if "Rate limit reached for model" in str(e):
