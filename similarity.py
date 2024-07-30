@@ -111,9 +111,12 @@ def main():
         if add_description:
             n = int(len(embeddings) * 0.5)
             m = int(len(embeddings) * 0.4)
+        # elif add_seed:
+        #     n = int(len(embeddings) * 0.2)
+        #     m = int(len(embeddings) * 0.1)
         else:
-            n = int(len(embeddings) * 0.3)
-            m = int(len(embeddings) * 0.2)
+            n = 16
+            m = 12
 
         # Plotting the t-SNE results
         plt.figure(figsize=(n, m))
@@ -156,13 +159,17 @@ def main():
         if use_concepts:
             png_file_base += '_with_concepts'
         plt.savefig(f'{png_file_base}.png', dpi=150, bbox_inches='tight')
+        plt.savefig(f'{png_file_base}.svg', format='svg', bbox_inches='tight')
         plt.close()
         # plt.show()
     else:
         # Function to load image
-        def get_image(path, zoom=0.02):
-            return OffsetImage(plt.imread(path), zoom=zoom)
-        
+        def get_image(path, zoom=0.02, alpha=0.5):
+            image = plt.imread(path)
+            im = OffsetImage(image, zoom=zoom)
+            im.set_alpha(alpha)
+            return im       
+         
         # Function to adjust positions to avoid overlap
         def adjust_positions(data, annotations, zoom=0.02, threshold=0.05):
             from scipy.spatial import distance
