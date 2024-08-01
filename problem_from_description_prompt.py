@@ -1,3 +1,4 @@
+from ast import arg
 import os
 import re
 import random
@@ -57,6 +58,54 @@ def make_self_instruct_prompt(seed_embeddings, seed_contents, problem_concept, p
     seeds = [seed for seed, _ in best_seeds_contents]
     return prompt, seeds
 
+def ensure_colors_exist(code):
+    verified_color_usage = [
+        "BLACK",
+        "BLUE",
+        "RED",
+        "GREEN",
+        "YELLOW",
+        "GREY",
+        "GRAY",
+        "PINK",
+        "ORANGE",
+        "TEAL",
+        "MAROON",
+        "TRANSPARENT",
+        "BACKGROUND",
+        "ALL_COLORS",
+        "NOT_BLACK",
+    ]
+    replacement_colors = [
+        "BLUE",
+        "RED",
+        "GREEN",
+        "YELLOW",
+        "GREY",
+        "GRAY",
+        "PINK",
+        "ORANGE",
+        "TEAL",
+        "MAROON",
+    ]
+
+    def extract_colors(text):
+        # Use regex to find all patterns 'Color.' followed by capitalized letters
+        matches = re.findall(r'Color\.([A-Z_]+)', text)
+        return matches
+
+    colors_in_code = extract_colors(code)
+
+    # If any of the colors in the code are not in the color list, replace them with a random color from the list
+    for color in colors_in_code:
+        if color not in verified_color_usage:
+            new_color = random.choice(replacement_colors)
+            code = code.replace(f"Color.{color}", f"Color.{new_color}")
+            code = code.replace(f"{color.lower()}", f"{new_color.lower()}")
+            code = code.replace(f"{color.capitalize()}", f"{new_color.capitalize()}")
+
+    return code
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description = "problem generator")
@@ -70,10 +119,11 @@ def main():
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
     parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
     parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
-    parser.add_argument("--brief_common", "-bc", action="store_false", help="only include common functions that are called in the seed code", default=True)
+    parser.add_argument("--brief_common", "-bc", action="store_false", help="whether to not include common functions that are called in the seed code", default=True)
     parser.add_argument("--nohtml", action="store_true", help="don't generate html", default=False)
     parser.add_argument("--use_concept_embeddings", "-uc", action="store_true", help="use concept embeddings in addition to description embeddings", default=False)
-    
+    parser.add_argument("--ignore_cache_samples", "-ics", action="store_true", help="ignore cache for samples", default=False)
+
     arguments = parser.parse_args()
 
     # convert prompt model into enum
@@ -165,7 +215,7 @@ def main():
     if arguments.sample_parallel == 1:
         for prompt, seed in tqdm(prompts_and_seeds):
             try:
-                sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=prompt_model)[0]
+                sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=prompt_model, ignore_cache_samples=arguments.ignore_cache_samples)[0]
                 samples_and_seeds.append((sample, seed))        
             except Exception as e:
                 print(f"error occurred: {e}")
@@ -200,7 +250,7 @@ def main():
         # jsonl, one json per line
         import json
         for code, seeds in codes_and_seeds:
-            f.write(json.dumps({"code": code,
+            f.write(json.dumps({"code": ensure_colors_exist(code),
                                 "seeds": seeds
                                 }) + "\n")
     print(f"{len(codes_and_seeds)} codes written to {file_name_json}")

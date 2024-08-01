@@ -58,6 +58,7 @@ class LLMClient:
         "gpt-4o-2024-05-13": (5, 15),
         "gpt-3.5-turbo-0123": (0.50, 1.50),
         "gpt-3.5-turbo": (0.50, 1.50),
+        "text-embedding-ada-002": (0.10, 0.10),
     }
 
     def __init__(self, system_content=None, provider=Provider.OPENAI, cache_dir='cache', key=None):
@@ -215,10 +216,12 @@ class LLMClient:
         cache_key = self._hash_embedding(input, model.value)
         self.cache[cache_key] = embedding
 
-    def generate(self, prompt, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1):
+    def generate(self, prompt, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1, ignore_cache_samples=False):
         model = self.check_model_name(model)
-        cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
-
+        if not ignore_cache_samples:
+            cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
+        else:
+            cached_samples = []
         # If the number of cached samples is less than requested, generate more samples
         if len(cached_samples) < num_samples:
             remaining_samples = num_samples - len(cached_samples)

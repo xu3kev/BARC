@@ -1,12 +1,14 @@
 import argparse
 import random
+import sys
 from execution import multi_execute_transformation, multi_execute_input_generator, execute_transformation
 import numpy as np
 import os
 import re
 import tqdm
-import json
 import time
+from utils import get_concepts_from_lines, get_description_from_lines
+import subprocess
 
 class Problem:
     def __init__(self, source_code):
@@ -243,7 +245,7 @@ def generate_problem(problem_source, num_input_grids=30, num_deterministic_check
 
         output_grid = execute_transformation(problem_source, input_grid, timeout, function_name="main")
         if check_identity(input_grid, output_grid):
-            # print("Identity transformation, skipping this example")
+            print("Identity transformation, skipping this example")
             stats["identity"] += 1
             stats["total"] += 1
             continue
@@ -258,6 +260,7 @@ def main():
     parser.add_argument("--run_all_seed", action="store_true", help="Run all seed problems")
     parser.add_argument("--py_file", type=str, help="Path to the python file containing the problem")
     parser.add_argument("--total_timeout", type=int, default=30, help="The total timeout value for a problem generation run")
+    parser.add_argument("--reprompt", action="store_true", help="Reprompt for failed problems")
     args = parser.parse_args()
 
     total_timeout = args.total_timeout 
@@ -282,11 +285,12 @@ def main():
         result_saving_file = args.jsonl.replace(".jsonl", "_generated_problems.jsonl")
         print(f"Saving to {result_saving_file}")
         with open(args.jsonl) as f:
+            import json
             data = f.readlines()
-        for line in data:
-            problem = json.loads(line)
-            problems_source.append(problem["code"])
-            problems_seeds.append(problem["seeds"])
+            for line in data:
+                problem = json.loads(line)
+                problems_source.append(problem["code"])
+                problems_seeds.append(problem["seeds"])
     elif args.py_file:
         with open(args.py_file) as f:
             source = f.read()
@@ -303,6 +307,7 @@ def main():
 
     overall_stats = { "non_deterministic": 0, "non_color_invariant": {"transformation_fail": 0, "non_well_formed": 0, "non_color_invariant": 0}, "identity": 0, "non_well_formed_output": 0, "black_output": 0, "timeout": 0, "non_well_formed_input": 0, "duplicate_input": 0, "total": 0}
     problems = []
+    failed_problems = []
     for i, problem_source in enumerate(tqdm.tqdm(problems_source)):
         problem, problem_stats = generate_problem(problem_source, total_timeout=total_timeout)
         for key, stat in problem_stats.items():
@@ -315,11 +320,55 @@ def main():
             print(f"+1 problem with {len(problem.examples)} examples")
             if args.jsonl:
                 problem.seeds = problems_seeds[i]
-            problems.append(problem)
+            problems.append(problem.to_dict())
         else:
             if problem_source_uids:
                 print(f"Problem {problem_source_uids[i]} is not valid")
+            failed_problems.append(problem_source)
+
         print(f"so far, generated {len(problems)} problems")
+
+    if args.reprompt and failed_problems:
+        with open("tmp_descriptions_file.jsonl", "w") as f:
+            import json
+            # jsonl, one json per line
+            for failed_problem_source in failed_problems:
+                lines = failed_problem_source.split("\n")
+                concepts = get_concepts_from_lines(lines)
+                description = get_description_from_lines(lines)
+                f.write(json.dumps({"concepts": concepts,
+                                    "description": description,
+                                    }) + "\n")
+        
+        print("Running problem_from_description_prompt.py")
+        pfd_args = ["python", "problem_from_description_prompt.py", "--jsonl", "tmp_descriptions_file.jsonl", "--prompt_model", "llama3-70b-8192", "-s", "4", "--nohtml", "--ignore_cache_samples"]
+        subprocess.run(pfd_args)
+        print("Done problem_from_description_prompt.py")
+        # delete the tmp_descriptions_file.jsonl
+        os.remove("tmp_descriptions_file.jsonl")
+
+        file = "self_instruct_code_fewshot_4_llama3-70b-8192_temp0.70_maxtokens2048_briefcommon_description_file_tmp_descriptions_file.jsonl"
+        
+        print("Running problem_generation.py")
+        pg_args = ["python", "problem_generation.py", "--jsonl", file, "--total_timeout", "60"]
+        subprocess.run(pg_args)
+        print("Done problem_generation.py")
+
+        # delete the file
+        os.remove(file)
+
+        with open(file.replace(".jsonl", "_generated_problems.jsonl")) as f:
+            data = f.readlines()
+            if data:
+                print(f"Reading from {file.replace('.jsonl', '_generated_problems.jsonl')}")
+                for line in data:
+                    problems.append(json.loads(line))
+                result_saving_file = args.jsonl.replace(".jsonl", "_some_revised_generated_problems.jsonl")
+            else:
+                print(f"No revised problems generated from {file.replace('.jsonl', '_generated_problems.jsonl')}")
+
+        # delete the generated_problems file
+        os.remove(file.replace(".jsonl", "_generated_problems.jsonl"))
 
     # write list of Problem to jsonl file
     print(f'Generated {len(problems)} problems')
@@ -327,7 +376,7 @@ def main():
     if args.jsonl:
         with open(result_saving_file, "w") as f:
             for problem in problems:
-                f.write(json.dumps(problem.to_dict()) + "\n")
+                f.write(json.dumps(problem) + "\n")
 
 
 if __name__ == "__main__":
