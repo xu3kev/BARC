@@ -142,7 +142,7 @@ def main():
             try:
                 sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model)[0]
                 samples.append(sample)        
-            except:
+            except Exception as e:
                 print("no samples, prompt was too big")
     else:
         list_of_lists_of_samples = client.generate_parallel(prompts, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)
@@ -154,7 +154,7 @@ def main():
         print(f"sample: {sample}")
         parsed_concepts_lst, parsed_description_lst = extract_concepts_and_descriptions(sample)
         for parsed_concepts, parsed_description in zip(parsed_concepts_lst, parsed_description_lst):
-            if parsed_concepts != "" and parsed_description != "":
+            if parsed_concepts != [] and parsed_description != []:
                 parsed_concepts = ", ".join(parsed_concepts)
                 concepts_descriptions.append((parsed_concepts, parsed_description))
 

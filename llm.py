@@ -51,6 +51,7 @@ class LLMClient:
 
     model_cost = {
         "gpt-4": (30, 60),
+        "gpt-4-turbo": (10, 30),
         "gpt-4-turbo-preview": (10, 30),
         "gpt-4-turbo-2024-04-09": (10, 30),
         "gpt-4o": (5, 15),
