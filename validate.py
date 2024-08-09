@@ -1,4 +1,4 @@
-from arc import train_problems
+from arc import train_problems, validation_problems
 import os
 
 from execution import execute_transformation
@@ -55,7 +55,7 @@ def validate(problem):
 
 
 no_seed_provided, validation_passed, validation_failed = 0, [], []
-for problem in train_problems:
+for problem in train_problems + validation_problems:
     if len(sys.argv) > 1 and not any( problem.uid.startswith(prefix) for prefix in sys.argv[1:]):
         continue
 
