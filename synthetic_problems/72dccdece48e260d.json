@@ -1,0 +1,165 @@
+{
+  "uid": "72dccdece48e260d",
+  "annotations": {
+    "example": "ok",
+    "code": "bad"
+  },
+  "metadata": {
+    "source_file": "self_instruct_remix0_fewshot_4_gpt-4o_temp1.00_maxtokens2048_rng15_generated_problems.jsonl"
+  },
+  "examples": [
+    {
+      "input": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          7
+        ]
+      ],
+      "output": [
+        [
+          6,
+          6,
+          0,
+          0
+        ],
+        [
+          7,
+          7,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "input": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "output": [
+        [
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "input": [
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "output": [
+        [
+          2,
+          1,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "input": [
+        [
+          5,
+          9
+        ],
+        [
+          5,
+          5
+        ]
+      ],
+      "output": [
+        [
+          5,
+          9,
+          0,
+          0
+        ],
+        [
+          5,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  ],
+  "code": "from common import *\n\nimport numpy as np\nfrom typing import *\n\n# concepts:\n# pattern copying, translation\n\n# description:\n# In the input, you will see a small grid with a pattern of random colors except black.\n# To make the output, paste the pattern multiple times to create a tiling effect based on specified intervals.\n\ndef main(input_grid):\n    # take the input pattern\n    pattern = input_grid\n\n    pattern_height, pattern_width = pattern.shape\n    pattern_interval = 2  # specify interval for tiling\n\n    # make the output grid to fit multiples of the pattern\n    output_height = pattern_interval * pattern_height\n    output_width = pattern_interval * pattern_width\n    output_grid = np.zeros((output_height, output_width), dtype=int)\n\n    # paste the pattern in the output grid with specified intervals\n    for i in range(output_height // pattern_height):\n        for j in range(output_width // pattern_width):\n            start_x = i * pattern_height * pattern_interval\n            start_y = j * pattern_width * pattern_interval\n            blit(output_grid, pattern, start_x, start_y)\n\n    return output_grid\n\ndef generate_input():\n    # make a random square pattern of random size and colors\n    n = m = np.random.randint(2, 4)\n    pattern = random_sprite(n, m, density=1, symmetry=\"not_symmetric\", color_palette=Color.NOT_BLACK)\n\n    return pattern"
+}

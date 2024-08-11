@@ -312,6 +312,8 @@ def main():
             try:
                 sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model)[0]
                 samples_and_seeds.append((sample, seed))        
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
             except:
                 print("no samples, prompt was too big")
     else:
