@@ -114,8 +114,8 @@ def color_variation(problem_source_code, input_grids, output_grids):
     return replace_lower, input_grids, output_grids
 
 
-# Test with python color_variation.py <seed>.py for randomized color change
-# Test with python color_variation.py <seed>.py <old_color> <new_color> for deterministic color change
+# Usage: python color_variation.py <seed>.py for randomized color change
+# Usage: python color_variation.py <seed>.py <old_color> <new_color> for deterministic color change
 def test():
     import sys, os
     from problem_generation import generate_problem
