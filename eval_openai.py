@@ -1,7 +1,7 @@
 import json
 # extract markdown code blocks
 from utils import parse_code
-from execution import execute_transformation
+from execution import multi_execute_transformation
 from seeds.common import *
 from arc import train_problems, validation_problems
 
@@ -15,8 +15,11 @@ def validate(arc_problem, code):
         expected_output_grid = train_pair.y.T
 
         try:
-            output_grid = execute_transformation(code, input_grid, timeout=2, function_name="transform")
-        except:
+            output_grids = multi_execute_transformation([code], [input_grid], timeout=2, function_name="transform")
+            output_grid = output_grids[0]
+        except KeyboardInterrupt:
+            exit()
+        except Exception as e:
             output_grid = "error"
 
         if isinstance(output_grid, str):
@@ -37,7 +40,10 @@ def get_arc_problem(uid):
     return None
 
 def main():
-    with open("answers.jsonl") as f:
+    # answer_file = "answers_ft_gpt-4o-mini-2024-07-18_ellislab_llama2000-seeds_9qjZpfTA_train.jsonl"
+    # answer_file = "answers_ft_gpt-4o-mini-2024-07-18_ellislab_llama3000-seeds_9qs7cbH2_validation.jsonl"
+    answer_file = "answers_ft_gpt-4o-mini-2024-07-18_ellislab_llama3000-seeds_9qs7cbH2_train.jsonl"
+    with open(answer_file) as f:
         problem_answers = [json.loads(line) for line in f]
 
     accepted = 0
@@ -61,7 +67,9 @@ def main():
             # print(f"Code {i}: {code}")
             try:
                 validate_result = validate(arc_problem, code)
-            except:
+            except KeyboardInterrupt:
+                exit()
+            except Exception as e:
                 validate_result = False
             if validate_result:
                 pass_or_not = True
