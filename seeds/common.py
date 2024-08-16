@@ -82,24 +82,36 @@ def _flood_fill(grid, x, y, color, old_color, connectivity):
         _flood_fill(grid, x + 1, y + 1, color, old_color, connectivity)
 
 
-def draw_line(grid, x, y, length, color, direction, stop_at_color=[]):
+def draw_line(grid, x, y, end_x=None, end_y=None, length=None, direction=None, color=None, stop_at_color=[]):
     """
-    Draws a line of the specified length in the specified direction starting at (x, y).
+    Draws a line starting at (x, y) extending to (end_x, end_y) or of the specified length in the specified direction 
     Direction should be a vector with elements -1, 0, or 1.
     If length is None, then the line will continue until it hits the edge of the grid.
 
     stop_at_color: optional list of colors that the line should stop at. If the line hits a pixel of one of these colors, it will stop.
 
     Example:
-    draw_line(grid, 0, 0, length=3, color=blue, direction=(1, 1)) will draw a diagonal line of blue pixels from (0, 0) to (2, 2).
+    # blue diagonal line from (0, 0) to (2, 2)
+    draw_line(grid, 0, 0, length=3, color=blue, direction=(1, 1))
+    draw_line(grid, 0, 0, end_x=2, end_y=2, color=blue)
     """
+
+    assert (end_x is None) == (end_y is None), "draw_line: Either both or neither of end_x and end_y must be specified."
+
+    if end_x is not None and end_y is not None:
+        length = max(abs(end_x - x), abs(end_y - y)) + 1
+        direction = (end_x - x, end_y - y)
 
     if length is None:
         length = max(grid.shape) * 2
+    
+    dx, dy = direction
+    if abs(dx) > 0: dx = dx // abs(dx)
+    if abs(dy) > 0: dy = dy // abs(dy)
 
     for i in range(length):
-        new_x = x + i * direction[0]
-        new_y = y + i * direction[1]
+        new_x = x + i * dx
+        new_y = y + i * dy
         if 0 <= new_x < grid.shape[0] and 0 <= new_y < grid.shape[1]:
             if grid[new_x, new_y] in stop_at_color:
                 break
@@ -208,6 +220,48 @@ def bounding_box(grid, background=Color.BLACK):
                 y_max = max(y_max, y)
 
     return x_min, y_min, x_max - x_min + 1, y_max - y_min + 1
+
+def object_position(obj, background=Color.BLACK, anchor="upper left"):
+    """
+    (x,y) position of the provided object. By default, the upper left corner.
+
+    anchor: "upper left", "upper right", "lower left", "lower right", "center", "upper center", "lower center", "left center", "right center"
+
+    Example usage:
+    x, y = object_position(obj, background=background_color, anchor="upper left")
+    middle_x, middle_y = object_position(obj, background=background_color, anchor="center")
+    """
+
+    anchor = anchor.lower().replace(" ", "") # robustness to mistakes by llm
+
+    x, y, w, h = bounding_box(obj, background=background)
+    
+    if anchor == "upperleft":
+        answer_x, answer_y = x, y
+    elif anchor == "upperright":
+        answer_x, answer_y = x + w - 1, y
+    elif anchor == "lowerleft":
+        answer_x, answer_y = x, y + h - 1
+    elif anchor == "lowerright":
+        answer_x, answer_y = x + w - 1, y + h - 1
+    elif anchor == "center":
+        answer_x, answer_y = x + (w-1) / 2, y + (h-1) / 2
+    elif anchor == "uppercenter":
+        answer_x, answer_y = x + (w-1) / 2, y
+    elif anchor == "lowercenter":
+        answer_x, answer_y = x + (w-1) / 2, y + h - 1
+    elif anchor == "leftcenter":
+        answer_x, answer_y = x, y + (h-1) / 2
+    elif anchor == "rightcenter":
+        answer_x, answer_y = x + w - 1, y + (h-1) / 2
+    else:
+        assert False, "Invalid anchor"
+    
+    if abs(answer_x - int(answer_x)) < 1e-6:
+        answer_x = int(answer_x)
+    if abs(answer_y - int(answer_y)) < 1e-6:
+        answer_y = int(answer_y)
+    return answer_x, answer_y
 
 
 def crop(grid, background=Color.BLACK):
@@ -476,6 +530,35 @@ def object_boundary(grid, background=Color.BLACK):
 
     return boundary
 
+def object_neighbors(grid, background=Color.BLACK, connectivity=4):
+    """
+    Computes a mask of the points that neighbor or border the object, but are not part of the object.
+
+    returns a new grid of `bool` where True indicates that the pixel is part of the object's border neighbors5.
+
+    Example usage:
+    neighbors = object_neighbors(obj, background=Color.BLACK)
+    assert np.all(obj[neighbors] == Color.BLACK)
+    """
+
+    boundary = object_boundary(grid, background)
+    # Find the neighbors of the boundary
+    if connectivity == 4:
+        structuring_element = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+    elif connectivity == 8:
+        structuring_element = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
+    else:
+        raise ValueError("Connectivity must be 4 or 8.")
+
+    from scipy import ndimage
+    neighbors = ndimage.binary_dilation(boundary, structure=structuring_element)
+
+    # Exclude the object itself
+    neighbors = neighbors & (grid == background)
+
+    return neighbors
+
+
 
 class Symmetry:
     """
@@ -563,7 +646,9 @@ def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
 
     n, m = grid.shape
     x_possibilities = [ TranslationalSymmetry(translate_x, 0) for translate_x in range(1, n) ]
+    x_possibilities.extend([ TranslationalSymmetry(-translate_x, 0) for translate_x in range(1, n) ])
     y_possibilities = [ TranslationalSymmetry(0, translate_y) for translate_y in range(1, m) ]
+    y_possibilities.extend([ TranslationalSymmetry(0, -translate_y) for translate_y in range(1, m) ])
     xy_possibilities = [ TranslationalSymmetry(translate_x, translate_y) for translate_x in range(1,n) for translate_y in range(1,m) ]
 
     def score(sym):
@@ -592,7 +677,6 @@ def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
         detections.append(best_xy)
     
     return detections
-    
 
 def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]):
     """
@@ -870,7 +954,7 @@ def visualize(input_generator, transform, n_examples=5, n_attempts=100):
             break
         try:
             input_grid = input_generator()
-            output_grid = transform(input_grid)
+            output_grid = transform(input_grid.copy())
             successes.append((input_grid, output_grid))
         except Exception as e:
             # also save the line number where the failure happened
@@ -1151,16 +1235,29 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                         candidate_object[i:i+n, j:j+m] = candidate_sprite
                         if not any( np.all(candidate_object == obj) for obj in objects):
                             scan_objects.append(candidate_object)
+        print("scanning produced", len(scan_objects), "objects")
         objects.extend(scan_objects)
     
     if not can_overlap:
+        import time
+        start = time.time()
         # sort objects by size, breaking ties by mass
         objects.sort(key=lambda obj: (crop(obj, background).shape[0] * crop(obj, background).shape[1], np.sum(obj!=background)), reverse=True)
         overlap_matrix = np.full((len(objects), len(objects)), False)
-        for i, obj1 in enumerate(objects):
-            for j, obj2 in enumerate(objects):
-                if i != j:
-                    overlap_matrix[i, j] = np.any((obj1 != background) & (obj2 != background))
+        object_masks = [obj != background for obj in objects]
+        object_bounding_boxes = [bounding_box(obj, background=background) for obj in object_masks]
+        for i, obj1 in enumerate(object_masks):
+            for j, obj2 in enumerate(object_masks):
+                if i < j:
+                    # check if the bounding boxes overlap
+                    # FIXME: this doesn't work
+                    x1, y1, n1, m1 = object_bounding_boxes[i]
+                    x2, y2, n2, m2 = object_bounding_boxes[j]
+                    if True or x1 + n1 <= x2 or x2 + n2 <= x1 or y1 + m1 <= y2 or y2 + m2 <= y1:
+                        overlap_matrix[i, j] = np.any(obj1 & obj2)
+                        overlap_matrix[j, i] = overlap_matrix[i, j]
+        print("time to compute overlaps", time.time() - start)
+        start= time.time()
                 
         # Pick a subset of objects that don't overlap and which cover as many pixels as possible
         # First, we definitely pick everything that doesn't have any overlaps
@@ -1205,6 +1302,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                 return without_index, without_goodness
         
         solution, _ = pick_objects(remaining_indices, [], np.zeros_like(grid, dtype=bool))
+        print("time to pick objects", time.time() - start)
 
         objects = keep_objects + solution
 

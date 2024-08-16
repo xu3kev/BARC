@@ -28,26 +28,30 @@ def get_common_lib_from_file(file_path):
     # Clean the common lib by removing any classes whose docstring begins/contains "internal class not used by LLM"
     common_lib_classes = [c for c in common_lib_classes if "internal class not used by LLM" not in c["docstring"]]
 
-    common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
-    
+    # common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
+    common_lib = (common_lib_classes, common_lib_functions)
+
     return common_lib, common_lib_function_names
 
 def prune_common_lib(common_lib, reference_code):
     exceptions = ["Color"]
     called_functions = extract_function_calls(reference_code)
     called_functions = set(called_functions)
-    common_lib_functions = extract_functions(common_lib)
+    common_lib_functions = common_lib[1]
     common_lib_function_names = set([f["name"] for f in common_lib_functions])
     called_common_lib_function_names = called_functions.intersection(common_lib_function_names)
     called_common_lib_functions = [f for f in common_lib_functions 
                                    if f["name"] in called_common_lib_function_names]
-    called_common_lib = "\n\n".join([f["api_definition"] for f in called_common_lib_functions]) 
-    common_lib_classes = extract_class_definitions(common_lib)
+    called_common_lib_functions = [f for f in called_common_lib_functions]
+
+    common_lib_classes = common_lib[0]
     # TODO: what's the best way to handle classes?
     # if `detect_rotational_symmetry`, `detect_translational_symmetry`, `detect_mirror_symmetry` is called, then we should include the Symmetry class
     symmtry_related_functions = ["detect_rotational_symmetry", "detect_translational_symmetry", "detect_mirror_symmetry"]
     included_classes_names = exceptions + ["Symmetry"] if any([f in called_functions for f in symmtry_related_functions]) else exceptions
-    called_common_lib += "\n\n" + "\n\n".join([c["api_definition"] for c in common_lib_classes if c["name"] in included_classes_names])
+    called_common_lib_classes = [c for c in common_lib_classes if c["name"] in included_classes_names]
+    
+    called_common_lib = (called_common_lib_classes, called_common_lib_functions)
 
     return called_common_lib, called_common_lib_function_names
 
@@ -71,8 +75,16 @@ def make_self_instruct_prompt(seeds_contents, rng_seed, common_lib, common_lib_f
         assert "# ============= remove below this point for prompting =============" in content
         content = content.split("# ============= remove below this point for prompting =============")[0].strip()
         seed_content.append(content)
+
     if brief_common:
         common_lib, common_lib_function_names = prune_common_lib(common_lib, "\n".join(seed_content))
+
+    # common_lib_functions = [f["api_definition"] for f in common_lib[1]]
+    # common_lib_classes = [c["api_definition"] for c in common_lib[0]]
+    # common_lib = list(set(common_lib_functions + common_lib_classes))
+    common_lib_functions = common_lib[1]
+    common_lib_classes = common_lib[0]
+    common_lib = "\n\n".join([f["api_definition"] for f in common_lib_functions] + [c["api_definition"] for c in common_lib_classes])
 
     #common_functions_calls_counter = {}
     concepts_in_seeds = []
@@ -114,11 +126,19 @@ def make_self_instruct_prompt(seeds_contents, rng_seed, common_lib, common_lib_f
         remix1 = ""
         remix2 = ""
     elif remix == 1:
-        remix1 = "in particular, making a new variation of the last example, by "
-        remix2 = ", but remembering it should be a variation of the last example"
+        if uncreative:
+            remix1 = "in particular, making a knock-off of the last example, by "
+            remix2 = ", but remembering it should be a knock-off of the last example"
+        else:
+            remix1 = "in particular, making a new variation of the last example, by "
+            remix2 = ", but remembering it should be a variation of the last example"
     else:
-        remix1 = f"in particular, making a new variation of the last {remix} examples, by "
-        remix2 = f", but remembering it should be a variation of the last {remix} examples"
+        if uncreative:
+            remix1 = f"in particular, making a knock-off of the last {remix} examples, by "
+            remix2 = f", but remembering it should be a knock-off of the last {remix} examples"
+        else:
+            remix1 = f"in particular, making a new variation of the last {remix} examples, by "
+            remix2 = f", but remembering it should be a variation of the last {remix} examples"
     
     if library_function_hint == -1:
         library_function_hint_str = ""
@@ -130,9 +150,9 @@ def make_self_instruct_prompt(seeds_contents, rng_seed, common_lib, common_lib_f
         library_functions = rng.sample(list(common_lib_function_names), n)
         library_function_hint_str = f"Make use of the common library functions. In particular, use the function{'s' if library_function_hint > 1 else ''}: {', '.join(library_functions)}."
 
-
-    # first part of the prompt just defines the problem, and introduces the common library, but without giving clear instructions on what examples should be considered
-    prompt = f"""You are a puzzle maker designing geometric, physical, and topological puzzles for curious middle-schoolers.
+    if not uncreative: # creative
+        # first part of the prompt just defines the problem, and introduces the common library, but without giving clear instructions on what examples should be considered
+        prompt = f"""You are a puzzle maker designing geometric, physical, and topological puzzles for curious middle-schoolers.
 
 Each puzzle consists of discovery a deterministic rule, pattern, procedure, algorithm, or transformation law that maps inputs to outputs.
 Both the inputs and outputs are 2D grids of colored pixels. There are 10 colors, but the order of the colors is never relevant to the puzzle.
@@ -145,10 +165,9 @@ Please design a single puzzle by writing code containing the `generate_input` an
 ```python
 {common_lib}
 ```
-"""
-    
+"""  
     # later parts of the prompt show examples and suggest how to combine them to make a new problem
-    if not uncreative:
+    
         prompt += f"""
 To give you ideas, here are some examples of other puzzles that middle schoolers enjoyed:
 
@@ -163,31 +182,50 @@ Your task is to create a new puzzle that is similar to the examples provided, {r
 3. Pick one of the concepts from the brainstorming list, and create a new puzzle using that concept. To create a new puzzle:
 4. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
 """
-            # this seemed to work okay:
-            #3(a). Brainstorm what the input should look like. What are the objects, patterns, or structures that the middle schoolers should be looking at?
-            #3(b). Brainstorm what the transformation should look like. How do the objects, patterns, or structures change in the output? What moves, changes, grows, shrinks, changes color, gets added, or gets removed?
+        # this seemed to work okay:
+        #3(a). Brainstorm what the input should look like. What are the objects, patterns, or structures that the middle schoolers should be looking at?
+        #3(b). Brainstorm what the transformation should look like. How do the objects, patterns, or structures change in the output? What moves, changes, grows, shrinks, changes color, gets added, or gets removed?
         else:
             prompt+="""2. Brainstorm a possible puzzle using those concepts, thinking of the physical/geometric/topological/logical details
 3. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
 """
-    else:
+        # Gives some final instructions to try and ensure that things are done correctly
         prompt += f"""
-Here are some puzzles the middle schoolers enjoyed. Pay special attention to the last one: Your job is going to be to make a new variation of it.
-
-{examples}
-
-Your task is to look especially at the last example and make a new puzzle similar to it by following these steps:
-1. Summarize the key ideas in the last puzzle
-2. Brainstorm a variation that is pretty similar but a little different, thinking of the physical/geometric/topological/logical details
-3. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you are using and `# description:` describing the inputs and transformation.
-"""
-    
-    # Gives some final instructions to try and ensure that things are done correctly
-    prompt += f"""
 Be sure to make the transformation `main` deterministic. Be sure to not assume or impose any ordering to the colors. Use physical, geometric, topological, and logical concepts.
 """
+        
+    else: # uncreative
+        prompt = f"""You design knock-off puzzles by modifying the work of other puzzle designers just enough to avoid copyright infringement, because you aren't good at designing puzzles by yourself but need to make puzzles to make money.
+
+Each puzzle consists of uncovering a single deterministic rule, pattern, procedure, algorithm, or general transformation that maps inputs to output. Both the inputs and outputs are 2D grids of colored pixels. There are 10 colors. The order of the colors is never relevant to the puzzle.
+
+Your job is to create a knock-off puzzle that has similar concepts and challenges to puzzles created by honest puzzle makers. Be careful not to copy the work of another puzzler designer too closely, but make sure to follow the puzzle designers' techniques to make sure your knock-off puzzles are good.
+
+Puzzle-solvers will try to figure out the deterministic transformation in the knock-off puzzle you create, which can be implemented as a Python function called `main`. Designing a knock-off puzzle involves creating example inputs, which can be implemented as a Python function called `generate_input`. Unlike `main`, the `generate_input` function should be stochastic, so that every time you run it, you get another good example grid that the transformation can be applied to.
+
+Please create a single knock-off puzzle by writing code containing the `generate_input` and `main` functions. Please use the following standard library (`common.py`) as much as possible:
+
+```python
+{common_lib}
+```
+
+Here are some examples of good puzzles. These puzzles designed by good puzzle makers and your knock-off should rip them off:
+{examples}
+
+Your task is to create a knock-off puzzle that is based on the examples provided, {remix1}following these steps:
+
+1. First pick some `# concepts` from the example puzzles{remix2}. You can combine concepts from different examples. The concepts in the examples are:
+  {concept_list}
+2. Brainstorm a knock-off using those concepts, paying special attention to the physical, geometric, topological, and logical details.
+3. Generate a code block formatted like the earlier examples with a comment starting `# concepts:` listing the concepts you chose and `# description:` describing the inputs and transformation.
+
+Be sure to make the transformation `main` deterministic. Be especially sure to not assume or impose any ordering to the colors. Use physical, geometric, topological, and logical concepts as much as possible. Remember that the puzzle should be similar to the examples provided. Don't be creative. Try to emulate the puzzle makers you are ripping off. Remember you, yourself, are not good at making new puzzles but are very good at making knock-offs."""
+
+    # Hint applies when either creative or uncreative
     if hint_grid_size:
         # hint at the grid size not too large but should not be a fixed number
+        if not prompt[-1] == "\n":
+            prompt += "\n"
         prompt += f"""Also, the input and output grids should not be too large, but should be large enough to contain interesting patterns. Both the width and heights of the grids should be under {hint_grid_size}."""
     
     if library_function_hint_str:
@@ -210,7 +248,7 @@ def main():
     parser.add_argument("--sample_parallel", "-sp", type=int, default=1, help="how many parallel workers to use for sampling")
     parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
     parser.add_argument("--uncreative", "-u", action="store_true", help="use this flag to generate a prompt encourages less creativity, helpful for dumber LLMs", default=False)
-    parser.add_argument("--brief_common", "-bc", action="store_true", help="use this flag to only include common library functions that are called in the examples", default=False)
+    parser.add_argument("--brief_common", "-bc", action="store_true", help="use this flag to only include common library functions that are called in the examples", default=True)
     parser.add_argument("--generator_prompt", "-gp", action="store_true", help="use this flag to generate a list of concepts and have it pick one", default=False)
     parser.add_argument("--rng_offset", default=0, type=int)
     parser.add_argument("--nohtml", action="store_true", help="use this flag to not generate html", default=False)
@@ -271,8 +309,13 @@ def main():
 
     if arguments.sample_parallel == 1:
         for prompt, seed in tqdm(prompts_and_seeds):
-            sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model)[0]
-            samples_and_seeds.append((sample, seed))        
+            try:
+                sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model)[0]
+                samples_and_seeds.append((sample, seed))        
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
+            except:
+                print("no samples, prompt was too big")
     else:
         just_the_prompts = [prompt for prompt, seed in prompts_and_seeds]
         list_of_lists_of_samples = client.generate_parallel(just_the_prompts, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=model, temperature=arguments.temperature)

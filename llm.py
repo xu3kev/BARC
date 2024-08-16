@@ -21,6 +21,7 @@ class OpenAIModels(Enum):
     GPT_4_TURBO = 'gpt-4-turbo'
     GPT_4O = 'gpt-4o'
     GPT_35_TURBO = 'gpt-3.5-turbo'
+    GPT_4O_MINI = 'gpt-4o-mini'
 
 class GroqModels(Enum):
     LLAMA3_70B_8192 = 'llama3-70b-8192'
@@ -139,6 +140,9 @@ class LLMClient:
                     actually_got_samples = True
                 except Exception as e:
                     if "Rate limit reached for model" in str(e):
+                        if backoff_timer > 120:
+                            print("Request too big, skipping")
+                            break
                         print("Rate limit reached, backoff for", backoff_timer, "seconds")
                         time.sleep(backoff_timer)
                         backoff_timer *= 2
