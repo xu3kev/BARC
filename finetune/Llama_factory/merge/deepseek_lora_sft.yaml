@@ -1,0 +1,13 @@
+### Note: DO NOT use quantized model or quantization_bit when merging lora adapters
+
+### model
+model_name_or_path: deepseek-ai/deepseek-coder-6.7b-instruct
+adapter_name_or_path: /home/kh844/Fine-tune/LLaMA-Factory/sub/saves/deepseek-coder-6.7b-instruct/
+template: deepseek
+finetuning_type: lora
+
+### export
+export_dir: models/deepseek-coder-6.7b-instruct_lora_sft_string
+export_size: 2
+export_device: cpu
+export_legacy_format: false
