@@ -95,9 +95,5 @@ Run the sub script in `sub/train_llama31_distribution.sub`
   The example of  `llama31_vllm.yaml` is in `inference/`
 
   ```
-  API_PORT=8000 llamafactory-cli api examples/inference/llama31_vllm.yaml
+  python vllm_inference.py
   ```
-
-- **Step 3: run `vllm_inference.py`**
-
-  Make sure to set api_key into `http://localhost:API_PORT/v1`
