@@ -54,10 +54,10 @@ class LLMClient:
         Provider.OPENROUTER: OpenRouterModels
     }
 
-    def __init__(self, system_content=None, provider=Provider.OPENAI, cache_dir='cache', base_url = "http://localhost:8000/v1", key=None):
+    def __init__(self, system_content=None, provider=Provider.OPENAI, cache_dir='cache', base_url = "http://localhost:8000/v1",key=None):
         self.provider = provider
-        self.api_key = key or self._get_api_key()
         self.base_url = base_url
+        self.api_key = key or self._get_api_key()
         assert self.api_key is not None, f"API key not found for provider {self.provider}"
         self.system_content = system_content if system_content is not None else "You will be provided a few code examples on color grid input generator and transformation. You will be creative and come up with similar and interesting problems."
         self.client = self._initialize_client()
@@ -86,9 +86,9 @@ class LLMClient:
             return OpenAI(api_key=self.api_key, base_url="https://openrouter.ai/api/v1")
         return OpenAI(api_key=self.api_key)
 
-    def _hash_prompt(self, prompt, model, temperature, max_tokens, top_p):
+    def _hash_prompt(self, prompt, model, temperature, max_tokens, top_p, cnt):
         # Create a unique hash for the given parameters
-        hash_input = f"{prompt}-{model}-{temperature}-{max_tokens}-{self.system_content}-{top_p}".encode()
+        hash_input = f"{prompt}-{model}-{temperature}-{max_tokens}-{self.system_content}-{top_p}--{cnt}".encode()
         return hashlib.md5(hash_input).hexdigest()
 
     def send_request(self, prompt, model, temperature, max_tokens, top_p, num_samples):
@@ -124,21 +124,21 @@ class LLMClient:
             raise ValueError(f"Model {model} is not available for provider {self.provider}")
         return model
 
-    def get_samples_from_cache(self, prompt, model, temperature, max_tokens, top_p):
+    def get_samples_from_cache(self, prompt, model, temperature, max_tokens, top_p, cnt = 0):
         # Create a unique hash for the prompt and parameters (excluding num_samples)
-        cache_key = self._hash_prompt(prompt, model.value, temperature, max_tokens, top_p)
+        cache_key = self._hash_prompt(prompt, model.value, temperature, max_tokens, top_p, cnt)
         print(cache_key)
         return self.cache.get(cache_key, [])
 
-    def add_samples_to_cache(self, prompt, model, temperature, max_tokens, top_p, samples):
-        cache_key = self._hash_prompt(prompt, model.value, temperature, max_tokens, top_p)
+    def add_samples_to_cache(self, prompt, model, temperature, max_tokens, top_p, samples, cnt):
+        cache_key = self._hash_prompt(prompt, model.value, temperature, max_tokens, top_p, cnt)
         cached_samples = self.cache.get(cache_key, [])
         cached_samples.extend(samples)
         self.cache[cache_key] = cached_samples
 
-    def generate(self, prompt, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1):
+    def generate(self, prompt, num_samples, model=None, temperature=0.7, max_tokens=1024, top_p=1, cnt=0):
         model = self.check_model_name(model)
-        cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
+        cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p, cnt)
 
         # If the number of cached samples is less than requested, generate more samples
         if len(cached_samples) < num_samples:
@@ -149,7 +149,7 @@ class LLMClient:
                 try:
                     response = self.send_request(prompt, model, temperature, max_tokens, top_p, remaining_samples)
                     new_samples = [c.message.content for c in response.choices]
-                    self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
+                    self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples, cnt)
                     actually_got_samples = True
                 except Exception as e:
                     if "Rate limit reached for model" in str(e):

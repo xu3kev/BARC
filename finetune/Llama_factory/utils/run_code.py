@@ -50,6 +50,9 @@ def append_function_call(code, input_martix, logger):
 def transform_format_to_list(matrix):
     transform_success = True
     list_matrix = []
+    if 'array' in matrix:
+        return None, False
+    # print(matrix)
     try:
         # numpy format
         list_matrix = matrix.replace('\n','')
@@ -73,7 +76,6 @@ def get_code_answer(train_task, code, logger):
         if "Excuation Error:" in code_output:
             RE_task.append({'input': train['input'], 'correct_output': train['output'], 'code_output': f"{code_output}"})
             break
-        
         list_code_output, success = transform_format_to_list(code_output)
         if success == False:
             RE_task.append({'input': train['input'], 'correct_output': train['output'], 'code_output': 

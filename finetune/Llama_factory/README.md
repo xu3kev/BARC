@@ -9,6 +9,7 @@ pip install -e ".[torch,metrics]"
 
 #### Finetune Steps
 
+##### Single GPU
 - Step 1: Add dataset into file `LLamaFactory/data/`
 
   - In Open-AI format
@@ -70,6 +71,10 @@ llamafactory-cli train your_path/Llama31_8B_lora_sft.yaml
 The example of  `Llama31_8B_lora_sft.yaml` is in `sft/`
 
 After finetuning, the model will be in your output directory.
+
+##### Multiple GPUs
+
+Run the sub script in `sub/train_llama31_distribution.sub`
 
 #### Inference Steps
 
