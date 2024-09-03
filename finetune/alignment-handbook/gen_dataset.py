@@ -18,6 +18,83 @@ import tiktoken
 from datasets import Dataset
 
 
+# EXTRA_NEWLINE = "\n"
+EXTRA_NEWLINE = ""
+TRANSPOSE = False
+
+COLOR_MAPPING = {
+0: "Black",
+1: "Blue",
+2: "Red",
+3: "Green",
+4: "Yellow",
+5: "Grey",  # instead of "Grey"
+6: "Pink",
+7: "Orange",
+8: "Teal",
+9: "Maroon"
+}
+
+COLOR_REPLACEMENTS = {
+    "Grey": "Gray",
+    "Teal": "Purple",
+    "Maroon": "Brown",
+}
+
+# Fix Color Mapping
+for k, v in COLOR_MAPPING.items():
+    if v in COLOR_REPLACEMENTS:
+        COLOR_MAPPING[k] = COLOR_REPLACEMENTS[v]
+
+# Map a hard coded color to a deterministic some other color in source code, keeping cases same
+def color_deterministic(problem_source_code, old_color, new_color):
+    upper_template = f"(((?<=[^a-zA-Z])|^)({old_color.upper()})(?=[^a-zA-Z]|$))"
+    capitalized_template = (
+        f"(((?<=[^a-zA-Z])|^)({old_color.lower().capitalize()})(?=[^a-zA-Z]|$))"
+    )
+    lower_template = f"(((?<=[^a-zA-Z])|^)({old_color.lower()})(?=[^a-zA-Z]|$))"
+
+    # Do findall operation with this regex
+    upper_regex = re.compile(upper_template)
+    capitalized_regex = re.compile(capitalized_template)
+    lower_regex = re.compile(lower_template)
+
+    replace_upper = re.sub(
+        upper_regex, lambda x: new_color.upper(), problem_source_code
+    )
+
+    replace_capitalized = re.sub(
+        capitalized_regex,
+        lambda x: new_color.lower().capitalize(),
+        replace_upper,
+    )
+
+    replace_lower = re.sub(
+        lower_regex,
+        lambda x: new_color.lower(),
+        replace_capitalized,
+    )
+
+    return replace_lower
+
+
+def test_color_deterministic():
+    problem_source_code = "teal, Teal, TEAL"
+    ret = color_deterministic(problem_source_code, "teal", "purple")
+    print(ret)
+
+
+def convert_color_name(text, mapping):
+    for old_color, new_color in mapping.items():
+        text = color_deterministic(text, old_color, new_color)
+    return text
+
+def test_convert_color_name():
+    text = "teal, Teal, TEAL\nMaroon COLOR>MAROON, maroon"
+    ret = convert_color_name(text, COLOR_REPLACEMENTS)
+    print(ret)
+
+
 class IOPair:
     x: np.ndarray
     y: np.ndarray
@@ -84,36 +161,28 @@ class Problem:
         for pair in arc_problem.test_pairs:
             self.test_pairs.append(IOPair(pair.x.T, pair.y.T))
 
-def grid_to_input(grid):
-    color_dict = {
-    0: "Black",
-    1: "Blue",
-    2: "Red",
-    3: "Green",
-    4: "Yellow",
-    5: "Grey",  # or "Gray"
-    6: "Pink",
-    7: "Orange",
-    8: "Teal",
-    9: "Maroon"
-    }
-    return "\n".join(" ".join(color_dict[c] for c in row) for row in grid)
+def grid_to_input(grid, transpose: bool):
+    if transpose:
+        transformed_grid = grid.T
+    else:
+        transformed_grid = grid
+    return "\n".join(" ".join(COLOR_MAPPING[c] for c in row) for row in transformed_grid) + EXTRA_NEWLINE
 
-def make_problem_input_str(problem: Problem):
+def make_problem_input_str(problem: Problem, transpose: bool):
     prompt = ""
     prompt += "The following is a puzzle from the ARC dataset. Given training examples of input and output grids, predict the output grid for the test inputs.\nEach grid is represented as a 2D array where each cell is represented by an color. The grid input and output are written as a string where each cell is separated by a space and each row is separated by a newline.\n"
     prompt += "Here are the input and output grids for the training examples:\n"
     for pair in problem.train_pairs:
-        prompt += f"Input:\n{grid_to_input(pair.x)}\nOutput:\n{grid_to_input(pair.y)}\n\n" 
+        prompt += f"Input:\n{grid_to_input(pair.x, transpose)}\nOutput:\n{grid_to_input(pair.y, transpose)}\n\n" 
     prompt += "Here are the input grids for the test example:\n"
-    prompt += "Input:\n" + "\n".join(grid_to_input(pair.x) for pair in problem.test_pairs)
+    prompt += "Input:\n" + "\n".join(grid_to_input(pair.x, transpose) for pair in problem.test_pairs)
     return prompt
 
     # if problem.code:
     #     prompt += "The code to transform the input grid to the output grid is given below:\n"
     #     prompt += problem.code
 
-def make_input_prompt(problem: Problem):
+def make_input_prompt(problem: Problem, transpose: bool):
 #     common_lib_prefix = f"""
 # We first define a common library that contains the functions that you can use to solve the Puzzle.
 # Here is the common library function signature and docstring that you can use to solve the problem (skipping the implementation for brevity):
@@ -122,7 +191,7 @@ def make_input_prompt(problem: Problem):
 # ```
 # """
     common_lib_prefix = ""
-    question = common_lib_prefix + make_problem_input_str(problem)
+    question = common_lib_prefix + make_problem_input_str(problem, transpose=transpose)
     return question
 
 DEFAULT_SYSTEM_PROMPT = "You are an world-class puzzle solver who are extremely good at spotting patterns and solving puzzles. You are also an expert Python programmer who can write code to solve puzzles."
@@ -211,14 +280,21 @@ def main():
         random.shuffle(loaded_problems)
     # loaded_problems = loaded_problems[0:3000]
 
+    # TODO: actually, for the seed_problems, should NOT transpose
     problems = loaded_problems + seed_problems
     for problem in problems:
-        question = make_input_prompt(problem)
+        question = make_input_prompt(problem, transpose=TRANSPOSE)
         answer = f"""Let's solve this puzzle using Python code with the common library functions. We first reasoning about the problem and then writing the code to solve it. The `transform` function will take the input grid and return the output grid. Here is the Python code and the comments describing how to solve the problem:
 ```python
 {problem.code}
 ```
 """ 
+        
+        # print("==============before=============")
+        # print(answer)
+        answer = convert_color_name(answer, COLOR_REPLACEMENTS)
+        # print("==============after=============")
+        # print(answer)
         train_data.append(convert_chat_format(question, answer))
 
     print("==============input=============")
@@ -279,7 +355,10 @@ def main():
     })
     
     # Push to Hugging Face Hub
-    dataset_dict.push_to_hub("xu3kev/barc_v0.0.2")
+    dataset_dict.push_to_hub("barc0/barc_messages_format_v0.0.3")
+
+
+    
     
 
 if __name__ == "__main__":
