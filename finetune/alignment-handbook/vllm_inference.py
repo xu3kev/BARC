@@ -3,11 +3,15 @@
 
 BASE_MODEL = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 # LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-qlora-v0.0.3"
-LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-qlora-v0.0.2-v3-nopacking"
+# LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-qlora-v0.0.2-v3-nopacking"
+# LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-lora-data-mix-v0.0.1"
+# LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-lora-data-llama-codegen"
+# LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-lora-data-gpt4-descriptions"
+LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-lora-data-gpt4omini-codegen"
 
 
 BATCH_SIZE = 16
-num_of_samples_per_problem = 128
+num_of_samples_per_problem = 64
 TENSOR_PARALLEL = 1
 
 
@@ -16,9 +20,11 @@ tokenizer = AutoTokenizer.from_pretrained(LORA_DIR)
 
 import json
 data = []
-problem_file = "./arc_problems_train_327.jsonl"
-problem_file = "./arc_problems_validation_400.jsonl"
+# problem_file = "./arc_problems_train_327.jsonl"
+# problem_file = "./arc_problems_validation_400.jsonl"
+# problem_file = "./arc_problems_selected-val-subset50_50_extra_newline.jsonl"
 # problem_file = "./arc_problems_selected-train-subset50_50.jsonl"
+problem_file = "./arc_problems_selected-train-subset50_50_extra_newline.jsonl"
 with open(problem_file) as f:
     for line in f:
         data.append(json.loads(line))
@@ -32,7 +38,7 @@ lora_request=LoRARequest("barc_adapter", 1, LORA_DIR)
 
 import datetime
 datetime_str = datetime.datetime.now().strftime("%m%d%H%M%S%f")
-saving_file = f"{problem_file.replace('.jsonl', '')}_{BASE_MODEL.split('/')[1]}_{datetime_str}.jsonl"
+saving_file = f"{problem_file.replace('.jsonl', '')}_{LORA_DIR.split('/')[-1]}_{datetime_str}.jsonl"
 print(f"Saving to {saving_file}")
 
 from tqdm import tqdm
@@ -59,10 +65,13 @@ for d in tqdm(data):
         tmp_batch_size = BATCH_SIZE * 4
     elif len(input_tokens) < 3500:
         # double the number of samples
+        tmp_batch_size = BATCH_SIZE * 4
+    elif len(input_tokens) < 5000:
         tmp_batch_size = BATCH_SIZE * 2
     else:
         tmp_batch_size = BATCH_SIZE
 
+    print(f"batch size: {tmp_batch_size}")
     sampling_params = SamplingParams(temperature=0.8, max_tokens=1024,
                                      n=tmp_batch_size)
     aggregate_outputs = []
@@ -73,6 +82,9 @@ for d in tqdm(data):
             lora_request=lora_request
         ) 
         aggregate_outputs.append(outputs)
+
+    if not aggregate_outputs:
+        breakpoint()
 
 
     # Print the outputs.

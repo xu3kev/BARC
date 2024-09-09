@@ -19,7 +19,7 @@ from datasets import Dataset
 
 
 # EXTRA_NEWLINE = "\n"
-EXTRA_NEWLINE = ""
+EXTRA_NEWLINE = "\n"
 TRANSPOSE = False
 
 COLOR_MAPPING = {
@@ -213,7 +213,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--use_seeds", action="store_true")
     parser.add_argument("--load_file", type=str)
-
+    parser.add_argument("--load_huggingface_dataset", type=str)
+    parser.add_argument("--output_huggingface_dataset", type=str, required=False, default=None)
     args = parser.parse_args()
 
     SEEDS_PATH = "../../seeds"
@@ -240,15 +241,25 @@ def main():
     print(f"got {len(seed_problems)} seed problems")
 
 
+    if args.load_file or args.use_seeds:
+        assert args.output_huggingface_dataset , "output_huggingface_dataset is required"
+        output_huggingface_dataset = args.output_huggingface_dataset.strip("/")
+    elif args.load_huggingface_dataset:
+        output_huggingface_dataset = args.load_huggingface_dataset.strip("/") + "_messages_format"
+        print(f"output_huggingface_dataset: {output_huggingface_dataset}")
     loaded_problems = []
-    if args.load_file:
-        assert args.load_file.endswith(".jsonl"), "Expected a jsonl file"
-        assert os.path.exists(args.load_file), "File does not exist"
-        loaded_data = []
-        with open(args.load_file) as f:
-            for line in f:
-                loaded_data.append(json.loads(line))
-                
+    if args.load_file or args.load_huggingface_dataset:
+        if args.load_file:
+            assert args.load_file.endswith(".jsonl"), "Expected a jsonl file"
+            assert os.path.exists(args.load_file), "File does not exist"
+            loaded_data = []
+            with open(args.load_file) as f:
+                for line in f:
+                    loaded_data.append(json.loads(line))
+        else:
+            # load from huggingface dataset
+            import datasets
+            loaded_data = datasets.load_dataset(args.load_huggingface_dataset)['train']
 
         for d in loaded_data:
             all_pairs = []
@@ -333,7 +344,7 @@ def main():
     # Shuffle the data
     random.shuffle(filtered_train_data)
     
-    # Calculate split index (80% train, 20% test)
+    # Calculate split index (95% train, 5% test)
     split_index = int(0.95 * len(filtered_train_data))
     
     # Split the data
@@ -355,7 +366,7 @@ def main():
     })
     
     # Push to Hugging Face Hub
-    dataset_dict.push_to_hub("barc0/barc_messages_format_v0.0.3")
+    dataset_dict.push_to_hub(output_huggingface_dataset, private=True)
 
 
     
