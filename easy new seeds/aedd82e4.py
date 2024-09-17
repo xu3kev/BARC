@@ -8,7 +8,7 @@ from typing import *
 
 # description:
 # In the input you will see a grid with a red pattern
-# To make the output grid, you should find out the single isolated red object with size of 1x1 and change it to blue.
+# To make the output grid, you should find out any single isolated red objects with size of 1x1 and change them to blue.
 
 def main(input_grid):
     # Detect all the red objects in the grid, ignoring objects of other colors
