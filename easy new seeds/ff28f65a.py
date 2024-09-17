@@ -22,7 +22,9 @@ def main(input_grid):
     # Output grid is always 3 x 3.
     output_grid = np.zeros((3, 3), dtype=int)
 
-    # Get specific pattern sequence for the number of red squares.
+    # Fill the output grid with red square number follow specific pattern sequence:
+    # 1. Fill the top row, then the next row, but skip every other column.
+    # 2. Begin the first/third/fifth/etc row in the first column, but begin the second/forth/etc row in the second column.
     pos_list = []
     for i in range(9):
         if i % 2 == 0:
