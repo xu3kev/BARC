@@ -7,15 +7,17 @@ from typing import *
 # object detection, color change
 
 # description:
-# In the input you will see a grid with red pattern
+# In the input you will see a grid with a red pattern
 # To make the output grid, you should find out the single isolated red object with size of 1x1 and change it to blue.
 
 def main(input_grid):
-    # Detect all the red objects in the grid.
-    objects = detect_objects(grid=input_grid, colors=[Color.RED], monochromatic=True, connectivity=4)
+    # Detect all the red objects in the grid, ignoring objects of other colors
+    red_objects = detect_objects(grid=input_grid, colors=[Color.RED], monochromatic=True, connectivity=4)
+
+    # Convert 1x1 objects (isolated pixels) into blue
     output_grid = input_grid.copy()
-    for object in objects:
-        x, y, length, width = bounding_box(grid=object)
+    for object in red_objects:
+        x, y, length, width = bounding_box(object, background=Color.BLACK)
         # Find out the single isolated red object with size of 1x1 and change it to blue.
         if length == 1 and width == 1:
             output_grid[x, y] = Color.BLUE
