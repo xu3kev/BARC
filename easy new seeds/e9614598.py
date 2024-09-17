@@ -4,11 +4,11 @@ import numpy as np
 from typing import *
 
 # concepts:
-# Isoalted object detection, pattern drawing
+# object detection, pattern drawing
 
 # description:
-# In the input you will see two blue pixels on the grid with a distance of 5 pixels.
-# To make the output grid, you should place a 3x3 green cross pattern between the two blue pixels.
+# In the input you will see two blue pixels
+# To make the output grid, you should place a 3x3 green cross pattern between the two blue pixels exactly halfway between them.
 
 def main(input_grid):
     # Detect the two blue pixels on the grid.
