@@ -3,24 +3,14 @@ import numpy as np
 from typing import *
 
 # concepts:
-# - Extract: Extracting a central pattern from the grid.
-# - Square: Identifying and handling square patterns.
-# - Color: Changing the color of the extracted pattern to match the surrounding squares.
+# pattern extraction, color matching
 
 # description:
-# - `main` function: Extracts a central pattern from the grid surrounded by squares and changes its color to match the surrounding squares.
-# - `generate_input` function: Generates a grid with a central pattern surrounded by squares.
+# In the input you will see a grid with a central pattern surrounded by four pixels indicates a rectangle.
+# To make the output, you should extract the central pattern by the rectangle indicates by four pixels 
+# and change the color of the central pattern to match the surrounding squares.
 
 def main(input_grid: np.ndarray) -> np.ndarray:
-    """
-    Extracts the central pattern from the grid and changes its color to match the surrounding squares.
-
-    Parameters:
-    input_grid (np.ndarray): The input grid containing the central pattern and surrounding squares.
-
-    Returns:
-    np.ndarray: The extracted and color-modified pattern.
-    """
     grid = np.copy(input_grid)
 
     for i in range(0, len(grid)):
@@ -40,12 +30,6 @@ def main(input_grid: np.ndarray) -> np.ndarray:
                 return sub_matrix
 
 def generate_input() -> np.ndarray:
-    """
-    Generates a grid with a central pattern surrounded by squares.
-
-    Returns:
-    np.ndarray: The generated grid with a central pattern and surrounding squares.
-    """
     n, m = random.randint(3, 10), random.randint(3, 10)
     
     # Generate a random pattern

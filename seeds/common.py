@@ -1307,4 +1307,3 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
         objects = keep_objects + solution
 
     return objects
-

@@ -8,7 +8,7 @@ from typing import *
 
 # description:
 # In the input you will see three different 4x4 patterns of gray pixels place horizonlly and seperate by black interval. 
-# To make the output grid, you should find out each pattern corresponds to a color: red, blue, yellow, or green, 
+# To make the output grid, you should find out each pattern corresponds to a color: red, teal, yellow, or green, 
 # and color the corresponding row in the output grid with the corresponding color in the order from left to right.
 
 def main(input_grid):
@@ -20,7 +20,7 @@ def main(input_grid):
 
     # Distinguish four different pattern with different black pixels placing on the gray background.
     red_pattern = pattern_background.copy()
-    blue_patten = blit_sprite(grid=pattern_background.copy(), sprite=np.array([[Color.BLACK for _ in range(2)] for _ in range(2)]), x=1, y=1, background=Color.GRAY)
+    teal_patten = blit_sprite(grid=pattern_background.copy(), sprite=np.array([[Color.BLACK for _ in range(2)] for _ in range(2)]), x=1, y=1, background=Color.GRAY)
     yellow_pattern = blit_sprite(grid=pattern_background.copy(), sprite=np.array([[Color.BLACK for _ in range(2)] for _ in range(2)]), x=1, y=2, background=Color.GRAY)
     green_pattern = blit_sprite(grid=pattern_background.copy(), sprite=np.array([[Color.BLACK, Color.BLACK]]), x=0, y=1, background=Color.GRAY)
     green_pattern = blit_sprite(grid=green_pattern, sprite=np.array([[Color.BLACK, Color.BLACK]]), x=3, y=1, background=Color.GRAY)
@@ -31,8 +31,8 @@ def main(input_grid):
         cur_pattern = input_grid[square_num * (square_length + 1): square_num * (square_length + 1) + square_length]
         if np.array_equal(cur_pattern, red_pattern):
             color_list.append(Color.RED)
-        elif np.array_equal(cur_pattern, blue_patten):
-            color_list.append(Color.BLUE)
+        elif np.array_equal(cur_pattern, teal_patten):
+            color_list.append(Color.TEAL)
         elif np.array_equal(cur_pattern, yellow_pattern):
             color_list.append(Color.YELLOW)
         elif np.array_equal(cur_pattern, green_pattern):
@@ -54,7 +54,7 @@ def generate_input():
 
     # Create four different pattern by placing black pixels on the gray background.
     red_pattern = pattern_background.copy()
-    blue_patten = blit_sprite(grid=pattern_background.copy(), sprite=np.array([[Color.BLACK for _ in range(2)] for _ in range(2)]), x=1, y=1, background=Color.GRAY)
+    teal_patten = blit_sprite(grid=pattern_background.copy(), sprite=np.array([[Color.BLACK for _ in range(2)] for _ in range(2)]), x=1, y=1, background=Color.GRAY)
     yellow_pattern = blit_sprite(grid=pattern_background.copy(), sprite=np.array([[Color.BLACK for _ in range(2)] for _ in range(2)]), x=1, y=2, background=Color.GRAY)
     green_pattern = blit_sprite(grid=pattern_background.copy(), sprite=np.array([[Color.BLACK, Color.BLACK]]), x=0, y=1, background=Color.GRAY)
     green_pattern = blit_sprite(grid=green_pattern, sprite=np.array([[Color.BLACK, Color.BLACK]]), x=3, y=1, background=Color.GRAY)
@@ -66,7 +66,7 @@ def generate_input():
     grid = np.zeros((n, m), dtype=int)
 
     # Assign the color of each pattern.
-    available_colors = [Color.RED, Color.BLUE, Color.YELLOW, Color.GREEN]
+    available_colors = [Color.RED, Color.TEAL, Color.YELLOW, Color.GREEN]
 
     # Randomly choose the three patterns represented by the given colors on the input grid.
     color_list = np.random.choice(available_colors, size=square_number, replace=False)
@@ -78,8 +78,8 @@ def generate_input():
         
         if color == Color.RED:
             grid = blit_sprite(grid=grid, sprite=red_pattern, x=x, y=y)
-        elif color == Color.BLUE:
-            grid = blit_sprite(grid=grid, sprite=blue_patten, x=x, y=y)
+        elif color == Color.TEAL:
+            grid = blit_sprite(grid=grid, sprite=teal_patten, x=x, y=y)
         elif color == Color.YELLOW:
             grid = blit_sprite(grid=grid, sprite=yellow_pattern, x=x, y=y)
         elif color == Color.GREEN:

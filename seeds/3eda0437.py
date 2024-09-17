@@ -3,24 +3,13 @@ import numpy as np
 from typing import *
 
 # concepts:
-# - This script involves working with a grid of colors and modifying it by placing a sprite on it.
-# - The `main` function identifies the largest area of contiguous black cells and places a pink sprite over it.
-# - The `generate_input` function creates a random grid with blue sprites and places a random pink sprite on it.
+# rectangle detection
 
 # description:
-# - `main` function: Takes a grid as input, identifies the largest contiguous area of black cells, and places a pink sprite over that area.
-# - `generate_input` function: Creates a random grid with blue sprites and then adds a random pink sprite to it, returning the modified grid.
+# In the input you will see a grid with random blue pixels on it.
+# To make the output, you should find the largest rectangle area of black cells and turn it into pink.
 
 def main(input_grid: np.ndarray) -> np.ndarray:
-    """
-    Identifies the largest contiguous area of black cells in the input grid and places a pink sprite on it.
-
-    Parameters:
-    input_grid (np.ndarray): The input grid with different color values.
-
-    Returns:
-    np.ndarray: The modified grid with a pink sprite placed over the largest contiguous area of black cells.
-    """
     grid = np.copy(input_grid)  # Create a copy of the input grid to avoid modifying the original
     x, y, lx, ly = 0, 0, 0, 0  # Initialize variables to track the position and size of the largest rectangle
 
@@ -42,7 +31,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
                         mn = min(mn, l - j)  # Update the width of the rectangle
                         break
                 # Update the largest rectangle found so far
-                if lx * ly < (k - i + 1) * mn:
+                if k - i + 1 >= 2 and mn >= 2 and lx * ly < (k - i + 1) * mn:
                     x, y, lx, ly = i, j, k - i + 1, mn
 
     # Create a pink sprite with the size of the largest rectangle found
@@ -54,12 +43,6 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     return grid
 
 def generate_input() -> np.ndarray:
-    """
-    Generates a random grid with blue sprites and places a random pink sprite on it.
-
-    Returns:
-    np.ndarray: The generated grid with a pink sprite placed on it.
-    """
     m = random.randint(2, 4)  # Random number of columns
     grid = random_sprite(n=random.randint(2, 4), m=m, color_palette=[Color.BLUE])
 

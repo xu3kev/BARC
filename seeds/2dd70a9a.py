@@ -3,14 +3,13 @@ import numpy as np
 from typing import *
 
 # concepts:
-# - Finding a route between two green squares, turning around obstacles, and connecting to red squares.
-# - The grid contains green squares (start points), red squares (end points), and blue squares (obstacles).
+# route finding, path generation
 
 # description:
-# - `find` function: Recursively searches for a route from a green square, ensuring to turn around obstacles and connect to red squares.
-# - `main` function: Processes the grid to find the path between pairs of green squares while handling obstacles and ensuring connections to red squares.
-# - `random_direction` function: Chooses a random direction for generating the path in the grid.
-# - `generate_input` function: Creates a random grid with paths, green squares, red squares, and blue obstacles.
+# In the input you will see a grid with a green rectangle as start, a red rectangle as end, and several blue pixels as obstacles.
+# To make the output grid, you should find the path between green and red rectangles in the following way: 
+# 1. The green route expands follows the direction indicates by rectangle.
+# 2. When it touch any blue pixel, it turn around to another direction to red rectangle to avoid then.
 
 def find(grid, times, x, y, dx, dy, move):
     """
@@ -53,15 +52,6 @@ def find(grid, times, x, y, dx, dy, move):
         return False
 
 def main(input_grid: np.ndarray) -> np.ndarray:
-    """
-    Finds and marks the path between pairs of green squares in the input grid, while turning around obstacles and connecting to red squares.
-
-    Parameters:
-    input_grid (np.ndarray): The input grid with green, red, and blue squares.
-
-    Returns:
-    np.ndarray: The modified grid with the path marked.
-    """
     grid = np.copy(input_grid)
 
     # Find the path between pairs of green squares
@@ -105,12 +95,6 @@ def random_direction(grid, x, y, lst = 0):
     return random.choice(dires)
 
 def generate_input() -> np.ndarray:
-    """
-    Generates a random grid with paths, green squares (start points), red squares (end points), and blue obstacles.
-
-    Returns:
-    np.ndarray: The generated grid with a path and obstacles.
-    """
     n, m = random.randint(10, 18), random.randint(10, 18)
     grid = np.zeros((n, m), dtype=int)
     flag = np.zeros((n, m), dtype=int)

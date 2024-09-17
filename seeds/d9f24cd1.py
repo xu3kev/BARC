@@ -21,7 +21,7 @@ def main(input_grid):
                     output_grid[pos_x, pos_y] = Color.RED
                 else:
                     # If the red line touch the gray pixel, it should go right then up to avoid the gray pixel.
-                    output_grid[pos_x + 1, pos_y - 1] = Color.RED
+                    output_grid[pos_x + 1, pos_y + 1] = Color.RED
                     pos_x += 1
                     output_grid[pos_x, pos_y] = Color.RED
     return output_grid
@@ -50,7 +50,7 @@ def generate_input():
         gray_location = random.sample(available_postion, num_gray)
         gray_location.sort()
         # Ensure the gray pixels are not too close to each other.
-        while gray_location[1] - gray_location[0] < 2 or gray_location[-1] - gray_location[-2] < 2 or ():
+        while gray_location[1] - gray_location[0] < 2 or gray_location[-1] - gray_location[-2] < 2:
             gray_location = random.sample(available_postion, num_gray)
             gray_location.sort()
         gray_locations.append(gray_location)

@@ -3,14 +3,12 @@ import numpy as np
 from typing import *
 
 # concepts:
-# - Pattern extraction: Identifying and extracting rectangular patterns from the grid.
-# - Color replacement: Rotating and placing extracted patterns into a grid while handling boundary issues.
+# pattern recognition, pattern reconstruction
 
 # description:
-# - `find`: Recursively finds the bounding box of a pattern starting from a given point.
-# - `main`: Extracts a rectangular pattern from the grid, rotates it, and attempts to place it back into the grid.
-# - `add_pixel`: Expands the grid if necessary to accommodate new pixels at the specified position.
-# - `generate_input`: Creates a grid with random patterns and colors, ensuring space for testing.
+# In the input you will see a grid with one original color pattern and other incomplete patterns.
+# To make the output grid, you should find the red and yellow indicator of original color pattern and 
+# complete the incomplete patterns to the same pattern of the original color pattern.
 
 def find(grid, flag, x, y):
     """
@@ -42,15 +40,6 @@ def find(grid, flag, x, y):
     return l, r, h, t
 
 def main(input_grid: np.ndarray) -> np.ndarray:
-    """
-    Processes the input grid by extracting a pattern, rotating it, and placing it back into the grid.
-
-    Parameters:
-    input_grid (np.ndarray): The input grid with colored patterns.
-
-    Returns:
-    np.ndarray: The grid after placing the rotated pattern.
-    """
     grid = np.copy(input_grid)
     flag = np.zeros((len(grid), len(grid[0])), dtype=int)
     
@@ -66,25 +55,27 @@ def main(input_grid: np.ndarray) -> np.ndarray:
         x, y = d_[0], d_[1]
         if x >= h and x <= t and y >= l and y <= r:
             continue
-        for i in range(0, 4):
-            sub = np.rot90(sub, k=-1)
-            D = np.argwhere(sub == Color.RED)[0]
-            X, Y = D[0], D[1]
-            if (0 - X + x < 0 or len(sub) - 1 - X + x >= len(grid) or
-                0 - Y + y < 0 or len(sub[0]) - 1 - Y + y >= len(grid[0])):
-                continue
-            
-            flag = True
-            for j in range(len(sub)):
-                for k in range(len(sub[0])):
-                    sx, sy = j - X + x, k - Y + y
-                    if sub[j, k] == Color.YELLOW and grid[sx, sy] != Color.YELLOW:
-                        flag = False
-            if flag:
+        for j in range(0, 2):
+            sub = np.fliplr(sub)
+            for i in range(0, 4):
+                sub = np.rot90(sub, k=-1)
+                D = np.argwhere(sub == Color.RED)[0]
+                X, Y = D[0], D[1]
+                if (0 - X + x < 0 or len(sub) - 1 - X + x >= len(grid) or
+                    0 - Y + y < 0 or len(sub[0]) - 1 - Y + y >= len(grid[0])):
+                    continue
+                
+                flag = True
                 for j in range(len(sub)):
                     for k in range(len(sub[0])):
-                        grid[j - X + x, k - Y + y] = sub[j, k]
-                break
+                        sx, sy = j - X + x, k - Y + y
+                        if sub[j, k] == Color.YELLOW and grid[sx, sy] != Color.YELLOW:
+                            flag = False
+                if flag:
+                    for j in range(len(sub)):
+                        for k in range(len(sub[0])):
+                            grid[j - X + x, k - Y + y] = sub[j, k]
+                    break
 
     return grid
     
@@ -119,12 +110,6 @@ def add_pixel(grid, x, y, dx, dy):
     return grid, x, y, dx, dy
 
 def generate_input() -> np.ndarray:
-    """
-    Generates a grid with random colored patterns and enough space for testing.
-
-    Returns:
-    np.ndarray: The generated grid with random patterns and colors.
-    """
     # Create a base grid with random dimensions and a yellow sprite
     n, m = random.randint(3, 5), random.randint(3, 5)
     grid = random_sprite(n, m, color_palette=[Color.YELLOW])

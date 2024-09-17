@@ -47,14 +47,19 @@ def main(input_grid):
 
     # Get the 4 different colors in the 2x2 sprite.
     color_board = np.array([input_grid[x_board, y_board], input_grid[x_board + 1, y_board], input_grid[x_board, y_board + 1], input_grid[x_board + 1, y_board + 1]])
-    output_grid = input_grid.copy()
 
+    output_grid = input_grid.copy()
+    
     # Seperate the 6x6 green sprite into 4 3x3 sprites.
     # Color the 6x6 green sprite with the 4 different colors in the 2x2 sprite.
     output_grid[x_green: x_green + 3, y_green: y_green + 3][output_grid[x_green: x_green + 3, y_green: y_green + 3] == Color.GREEN] = color_board[0]
     output_grid[x_green + 3: x_green + 6, y_green: y_green + 3][output_grid[x_green + 3: x_green + 6, y_green: y_green + 3] == Color.GREEN] = color_board[1]
     output_grid[x_green: x_green + 3, y_green + 3: y_green + 6][output_grid[x_green: x_green + 3, y_green + 3: y_green + 6] == Color.GREEN] = color_board[2]
     output_grid[x_green + 3: x_green + 6, y_green + 3: y_green + 6][output_grid[x_green + 3: x_green + 6, y_green + 3: y_green + 6] == Color.GREEN] = color_board[3]
+
+    # Only output the 6x6 pattern sprite.
+    output_grid = output_grid[x_green: x_green + 6, y_green: y_green + 6]
+
     return output_grid
 
 def generate_input():

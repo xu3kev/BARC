@@ -10,7 +10,7 @@ from typing import *
 # In the input you will see one or two color pattern with a red or green pixel as an indicator
 # and a set of red and green pixels. 
 # To make the output, you should reconstruct the pattern with the red and green pixels 
-# indicates the pattern's position. If the indicator is red, the pattern should be rotated 180 degrees before reconstructing.
+# indicates the pattern's position. If the indicator is red, the pattern should be flipped by x-axis before reconstructing.
 
 def main(input_grid):
     # Detect the continuous object in the input grid
@@ -28,10 +28,10 @@ def main(input_grid):
     output_grid = input_grid.copy()
 
     for pattern in original_pattern:
-        # If the indicator color is red, rotate the pattern 180 degrees
+        # If the indicator color is red, flip the pattern by x-axis
         if np.any(pattern == Color.RED):
             indicator_color = Color.RED
-            pattern = np.rot90(pattern, k=2)
+            pattern = np.flipud(pattern)
         else:
             indicator_color = Color.GREEN
         
@@ -91,9 +91,9 @@ def generate_input():
         showed_pattern = object_pattern.copy()
         showed_pattern[showed_pattern == Color.GRAY] = available_color[i]
 
-        # If the indicator color is red, rotate the pattern 180 degrees
+        # If the indicator color is red, flip the pattern by x-axis
         if indicator_color[i] == Color.RED:
-            showed_pattern = np.rot90(showed_pattern, k=2)
+            showed_pattern = np.flipud(showed_pattern)
         
         # Place the original pattern in the grid
         x, y = random_free_location_for_sprite(grid=grid, sprite=showed_pattern, padding=1, padding_connectivity=8)

@@ -28,7 +28,7 @@ def main(input_grid):
                     break 
         if all_on_boundary:
             line_color = color
-    output_grid = input_grid.copy()
+    output_grid = np.zeros_like(input_grid)
 
     # Find out the indicator of the vertical line and draw it
     for x, column in enumerate(input_grid):

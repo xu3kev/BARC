@@ -3,23 +3,13 @@ import numpy as np
 from typing import *
 
 # concepts:
-# - Grid manipulation: Removing empty rows and aligning columns with gray color.
-# - Pattern generation: Creating and adjusting a grid with specific color patterns.
+# pattern alignment, color indicator
 
 # description:
-# - `main`: Processes the grid to remove empty rows and aligns columns with gray color.
-# - `generate_input`: Creates a grid with random color patterns and ensures proper alignment.
+# In the input you will see several pattern objects with gray pixels on its both size as indicators.
+# To make the output, you should align each pattern's left gray pixel with its left pattern's right gray pixel and remove empty rows.
 
 def main(input_grid: np.ndarray) -> np.ndarray:
-    """
-    Processes the input grid to remove empty rows and align columns with gray color.
-
-    Parameters:
-    input_grid (np.ndarray): The input grid with patterns.
-
-    Returns:
-    np.ndarray: The processed grid with aligned columns and removed empty rows.
-    """
     grid = np.copy(input_grid)  # Create a copy of the input grid for processing
     assert len(grid[0]) == 3  # Ensure the grid has exactly 3 columns
 
@@ -49,7 +39,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
             for j in range(3):
                 output_grid[x, j] = grid[i, j]
             x += 1
-        else:
+        elif x > lst:
             # Process empty rows and align columns
             c, mx, mn = 0, -1, 3
             for k in range(lst, x):
@@ -92,12 +82,6 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     return output_grid
 
 def generate_input() -> np.ndarray:
-    """
-    Generates a grid with random color patterns and adjusts for proper alignment.
-
-    Returns:
-    np.ndarray: The generated grid with random patterns and adjusted alignment.
-    """
     n, m = 3, 20  # Define the initial dimensions of the grid
     grid = np.zeros((n, m), dtype=int)  # Initialize the grid with zeros (black color)
 

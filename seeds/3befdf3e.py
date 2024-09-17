@@ -3,24 +3,14 @@ import numpy as np
 from typing import *
 
 # concepts:
-# - Color: Different colors used to represent different parts of the square and grid.
-# - Expand: Expanding a square into a larger shape.
-# - Square: Identifying and manipulating square shapes in the grid.
+# pattern construction, color sequence
 
 # description:
-# - `main` function: Expands any identified square in the grid into a larger shape and swaps colors between the inner and outer layers.
-# - `generate_input` function: Creates a grid with one or two randomly placed squares, which are either 1x1 or 2x2 in size.
+# In the input you will see a grid with one square with a different color indicates its border.
+# To make the output, you should expand the square into a larger shape, the length is the same as the inner square's side length, 
+# and swap the colors between the inner and outer layers.
 
 def main(input_grid: np.ndarray) -> np.ndarray:
-    """
-    Expands the squares in the grid into larger shapes and swaps colors between the inner and outer layers.
-
-    Parameters:
-    input_grid (np.ndarray): The input grid with one or two squares.
-
-    Returns:
-    np.ndarray: The modified grid with expanded squares and swapped colors.
-    """
     grid = np.copy(input_grid)
     n = len(grid)
     flag = np.zeros((n, n), dtype=int)
@@ -62,12 +52,6 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     return grid
 
 def generate_input() -> np.ndarray:
-    """
-    Generates a grid with one or two randomly placed squares, which can be either 1x1 or 2x2 in size.
-
-    Returns:
-    np.ndarray: The generated grid with squares.
-    """
     n = random.randint(24, 30)  # Size of the grid
     grid = np.zeros((n, n), dtype=int)
     flag = np.copy(grid)

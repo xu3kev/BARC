@@ -3,25 +3,15 @@ import numpy as np
 from typing import *
 
 # concepts:
-# - Repetition of patterns in a 3x3 grid.
-# - Filling incomplete patterns with a different color.
+# pattern reconstruction
 
 # description:
-# - The input grid is 17x17 pixels, divided into 6x6 subgrids. The top-left 5x5 portion of the grid is used as a pattern.
-# - The function `main` verifies if the subgrids match the pattern from the top-left corner. If a subgrid does not match, it fills the mismatched cells with a specific color.
-# - The function `generate_input` creates a 17x17 grid with a repeating pattern and introduces some variability in the pattern by randomly filling parts with a different color.
+# In the input you will see 9 squares seperated by 4 lines. The top-left square contains the original 5x5 pattern.
+# Each square contains either a small portion of pattern or remains empty.
+# To make the output, you should detect the pattern on the top-left square and fill each square 
+# with missing part of original pattern by the color of the line.
 
 def main(input_grid: np.ndarray) -> np.ndarray:
-    """
-    Checks each 6x6 subgrid in the input grid to ensure they match the pattern from the top-left 5x5 grid.
-    If a subgrid doesn't match, it fills the mismatched cells with a specific color.
-
-    Parameters:
-    input_grid (np.ndarray): The input 17x17 grid with potential pattern mismatches.
-
-    Returns:
-    np.ndarray: The corrected grid with mismatched areas filled with a specific color.
-    """
     grid = np.copy(input_grid)  # Create a copy of the input grid to avoid modifying the original
 
     c0 = grid[5, 5]  # Color to use for filling mismatched cells
@@ -32,19 +22,12 @@ def main(input_grid: np.ndarray) -> np.ndarray:
             # Check each cell within the 5x5 pattern of the current subgrid
             for x in range(0, 5):
                 for y in range(0, 5):
-                    if grid[i + x, j + y] != grid[x, y]:  # If the cell does not match the pattern
+                    if grid[i + x, j + y] != grid[x, y]:  # If the cell does not match the top-left pattern
                         grid[i + x, j + y] = c0  # Fill the mismatched cell with color c0
     
     return grid
 
 def generate_input() -> np.ndarray:
-    """
-    Generates a 17x17 grid with a pattern in the top-left corner and varying subgrids. 
-    The pattern in the top-left 5x5 grid is repeated throughout, with some subgrids filled with a different color.
-
-    Returns:
-    np.ndarray: The generated 17x17 grid with a pattern and variations.
-    """
     n, m = 17, 17  # Size of the grid
     line = [5, 11]  # Rows and columns to fill with a specific color
 

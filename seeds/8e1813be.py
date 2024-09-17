@@ -16,34 +16,43 @@ def main(input_grid):
     assert len(find_grid) == 1
     pos_x, pos_y, square_len, square_len = bounding_box(find_grid[0])
 
-    # Find the direction of stripes in the input grid
-    if_horizonal = False
-    for row in input_grid:
-        all_same_color = True
-        for item in row:
-            if item == Color.BLACK:
-                all_same_color = False
-                break
-        if all_same_color:
-            if_horizonal = True
-            break
-    
-    # Find the colors of the stripes in the input grid in order
-    colors_in_square = []
-    direction = (0, 1) if if_horizonal else (1, 0)
-    colors_in_square = np.unique(input_grid.flatten())
-    colors_in_square = [c for c in colors_in_square if c != Color.BLACK and c != Color.GRAY]
+    # Get the color lines in the input grid
+    objects = detect_objects(grid=input_grid, monochromatic=False, connectivity=8)
+    lines = []
+    x_len_cur, y_len_cur = -1, -1
+    if_horizonal = True
+    for obj in objects:
+        # Get the position and size of the color line
+        x_pos, y_pos, x_len, y_len = bounding_box(grid=obj)
+        color = obj[x_pos, y_pos]
+        if color != Color.GRAY:
+            lines.append({'x': x_pos, 'y': y_pos, 'color': color})
+            x_len_cur = x_len if x_len_cur == -1 else x_len_cur
+            y_len_cur = y_len if y_len_cur == -1 else y_len_cur
+            # If the line is horizonal, it's height should always be 1
+            if_horizonal = y_len == y_len_cur and if_horizonal
 
-    # The output gird is the same size as the gray square
-    assert len(colors_in_square) == square_len
+    # Sort the color lines by their position
+    if if_horizonal:
+        lines = sorted(lines, key=lambda x: x['y'])
+    else:
+        lines = sorted(lines, key=lambda x: x['x'])
+    
+    # Get the direction of the stripes
+    direction = (1, 0) if if_horizonal else (0, 1)
+
+    # Find the colors lines in the input grid in order
+    colors_in_square = [c['color'] for i, c in enumerate(lines) if i == 0 or c['color'] != lines[i - 1]['color']]
+
+    # Draw line on the grid same size of the gray square
     output_grid = np.zeros((square_len, square_len), dtype=int)
 
     # Fill the gray square with the colors of the stripes in the order and direction they appear
     for i in range(square_len):
         if if_horizonal:
-            draw_line(grid=output_grid, x=i, y=0, direction=direction, color=colors_in_square[i])
-        else:
             draw_line(grid=output_grid, x=0, y=i, direction=direction, color=colors_in_square[i])
+        else:
+            draw_line(grid=output_grid, x=i, y=0, direction=direction, color=colors_in_square[i])
             
     return output_grid
 
