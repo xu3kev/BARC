@@ -13,50 +13,53 @@ from typing import *
 def main(input_grid):
     # Detect the two blue pixels on the grid.
     blue_pixels = detect_objects(grid=input_grid, colors=[Color.BLUE], monochromatic=True, connectivity=4)
+    first_pixel, second_pixel = blue_pixels[0], blue_pixels[1]
 
-    # Get the position of the two blue pixels.
-    x_two, y_two = [], []
-    for blue_pixel in blue_pixels:
-        x, y, _, _ = bounding_box(grid=blue_pixel)
-        x_two.append(x)
-        y_two.append(y)
-    
-    # Find out if the two blue pixels are horizontal or vertical.
-    if_horizontal = y_two[0] == y_two[1]
+    # Find the midpoint
+    first_x, first_y = object_position(first_pixel, background=Color.BLACK, anchor="center")
+    second_x, second_y = object_position(second_pixel, background=Color.BLACK, anchor="center")
+    mid_x, mid_y = int((first_x + second_x) / 2), int((first_y + second_y) / 2)
 
     # Generate the 3x3 green cross pattern between the two blue pixels.
-    object_pattern = np.array( [[Color.BLACK, Color.GREEN, Color.BLACK],
+    green_cross_sprite = np.array( [[Color.BLACK, Color.GREEN, Color.BLACK],
                                 [Color.GREEN, Color.GREEN, Color.GREEN],
                                 [Color.BLACK, Color.GREEN, Color.BLACK]])
     output_grid = input_grid.copy()
+    green_cross_width, green_cross_height = 3, 3
 
-    # Place the 3x3 green cross pattern between the middle of two blue pixels.
-    if if_horizontal:
-        output_grid = blit_sprite(grid=output_grid, sprite=object_pattern, x=x_two[0] + 2, y=y_two[0] - 1)
-    else:
-        output_grid = blit_sprite(grid=output_grid, sprite=object_pattern, x=x_two[0] - 1, y=y_two[0] + 2)
+    # Put the cross centered at the midpoint
+    upper_left_x = mid_x - green_cross_width // 2
+    upper_left_y = mid_y - green_cross_height // 2
+    blit_sprite(output_grid, green_cross_sprite, x=upper_left_x, y=upper_left_y, background=Color.BLACK)
+
     return output_grid
 
 def generate_input():
     # Generate the background grid with size of n x m.
-    n, m = 10, 10
+    grid_len = np.random.randint(10, 15)
+    n, m = grid_len, grid_len
     grid = np.zeros((n, m), dtype=int)
 
     # Randomly choose if the two blue pixels are horizontal or vertical.
     if_horizontal  = np.random.choice([True, False])
 
-    # Randomly place two blue pixels on the grid with a distance of 5 pixels.
-    line_width = 5
+    # Randomly place two blue pixels on the grid and ensure a 3x3 green cross pattern can be placed in the middle of them.
+    line_interval = random.choice(range(1, 4))
+    line_width = 3 + line_interval * 2
+
+    while(line_width + 2 > grid_len):
+        line_interval = random.choice(range(1, 4))
+        line_width = 3 + line_interval * 2
 
     # Ensure there is enough space for the 3 x 3 green cross pattern and two blue pixels.
     if if_horizontal:
-        x = np.random.randint(0, n - 6)
+        x = np.random.randint(0, n - line_width - 1)
         y = np.random.randint(1, m - 1)
         grid[x, y] = Color.BLUE
         grid[x + line_width + 1, y] = Color.BLUE
     else:
         x = np.random.randint(1, n - 1)
-        y = np.random.randint(0, m - 6)
+        y = np.random.randint(0, m - line_width - 1)
         grid[x, y] = Color.BLUE
         grid[x, y + line_width + 1] = Color.BLUE
 
