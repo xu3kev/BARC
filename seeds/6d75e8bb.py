@@ -33,12 +33,12 @@ def generate_input():
     x_len = np.random.randint(n // 2, n - 2)
     y_len = np.random.randint(m // 2, m - 2)
 
-    # Randomly generate a rectangle with a size of x_len x y_len that is incomplete
-    rectangle = random_sprite(n=x_len, m=y_len, color_palette=[Color.TEAL], density=0.3, connectivity=8)
+    # Randomly generate a rectangle with a size of x_len x y_len that is incomplete (density < 1)
+    rectangle_sprite = random_sprite(n=x_len, m=y_len, color_palette=[Color.TEAL], density=0.3, connectivity=8)
 
     # Randomly choose a position to draw the rectangle
-    x, y = random_free_location_for_sprite(grid=grid, sprite=rectangle, border_size=1)
-    grid = blit_sprite(grid=grid, sprite=rectangle, x=x, y=y)
+    x, y = random_free_location_for_sprite(grid=grid, sprite=rectangle_sprite, border_size=1)
+    grid = blit_sprite(grid=grid, sprite=rectangle_sprite, x=x, y=y)
 
     return grid
 
