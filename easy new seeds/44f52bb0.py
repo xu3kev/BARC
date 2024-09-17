@@ -38,19 +38,8 @@ def generate_input():
     # Randomly generate a 3x3 grid with symmetric pattern or not.
     has_y_axis_symmetry = np.random.choice([True, False])
     symmetry_type = "horizontal" if has_y_axis_symmetry else "not_symmetric"
-    grid = random_sprite(n=3, m=3, density=num_pixel // 9, color_palette=[Color.RED], symmetry=symmetry_type)
-
-    # Randomly scatter color pixels on the grid.
-    def random_scatter_point_on_grid(grid, color, density):
-        n, m = grid.shape
-        colored = 0
-        # Randomly scatter density of color pixels on the grid.
-        while colored < density * n * m:
-            x = 
-            y = np.random.randint(0, m)
-            grid[x, y] = color
-            colored += 1
-        return grid
+    density = random.choice([0.3, 0.4, 0.5, 0.6])
+    grid = random_sprite(n=3, m=3, density=density, color_palette=[Color.RED], symmetry=symmetry_type)
     
     # If the pattern is not symmetric, scatter some black pixels on the grid to make it not symmetric.
     if not has_y_axis_symmetry:
