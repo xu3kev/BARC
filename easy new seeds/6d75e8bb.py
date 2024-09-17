@@ -13,7 +13,7 @@ from typing import *
 def main(input_grid):
     # Find the bounding box of the incomplete rectangle and use it to extra the sprite
     x, y, x_len, y_len = bounding_box(grid=input_grid)
-    rectangle_sprite = input_grid[x:x + x_len, y:y + y_len]
+    rectangle = input_grid[x:x + x_len, y:y + y_len]
 
     # Find the missing parts of the rectangle (which are colored black) and complete it with red color
     rectangle_sprite = np.where(rectangle == Color.BLACK, Color.RED, rectangle)
@@ -34,27 +34,7 @@ def generate_input():
     y_len = np.random.randint(m // 2, m - 2)
 
     # Randomly generate a rectangle with a size of x_len x y_len that is incomplete
-    rectangle = random_sprite(n=x_len, m=y_len, color_palette=[Color.TEAL], density=0.2)
-
-    # Draw half of the border of the rectangle
-    # Randomly choose a position to draw the border
-    line_pos = random.choice([[0, 0], [0, y_len - 1], [x_len - 1, 0], [x_len - 1, y_len - 1]])
-    if line_pos[0] == 0 and line_pos[1] == 0:
-        direction_horizontal = (1, 0)
-        direction_vertical = (0, 1)
-    elif line_pos[0] == 0 and line_pos[1] == y_len - 1:
-        direction_horizontal = (1, 0)
-        direction_vertical = (0, -1)
-    elif line_pos[0] == x_len - 1 and line_pos[1] == 0:
-        direction_horizontal = (-1, 0)
-        direction_vertical = (0, 1)
-    else:
-        direction_horizontal = (-1, 0)
-        direction_vertical = (0, -1)
-
-    # Draw half of the border of the rectangle
-    rectangle = draw_line(grid=rectangle, x=line_pos[0], y=line_pos[1], direction=direction_horizontal, length=x_len, color=Color.TEAL)
-    rectangle = draw_line(grid=rectangle, x=line_pos[0], y=line_pos[1], direction=direction_vertical, length=y_len, color=Color.TEAL)
+    rectangle = random_sprite(n=x_len, m=y_len, color_palette=[Color.TEAL], density=0.3, connectivity=8)
 
     # Randomly choose a position to draw the rectangle
     x, y = random_free_location_for_sprite(grid=grid, sprite=rectangle, border_size=1)
