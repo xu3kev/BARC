@@ -8,27 +8,21 @@ from typing import *
 
 # description:
 # In the input you will see a 3x3 grid with red pixels scattered randomly.
-# To make the output grid, you should recognize if the input grid has mirror symmetry along the y-axis.
-# If the input grid has mirror symmetry along the y-axis, output a 1x1 grid with a blue pixel.
+# To make the output grid, you should recognize if the input grid has mirror symmetry along the x-axis.
+# If the input grid has mirror symmetry along the x-axis, output a 1x1 grid with a blue pixel.
 # Otherwise, output a 1x1 grid with an orange pixel.
 
 def main(input_grid):
-    # Find the possible symmetry of the input grid.
-    best_symmetry = detect_mirror_symmetry(grid=input_grid)
-
-    # Check if the symmetry is symmetric along the y-axis.
-    has_y_axis_symmetry = False
-    for symmetry in best_symmetry:
-        if symmetry.mirror_y is not None:
-            has_y_axis_symmetry = True
-            break
+    # Check if the input grid has mirror symmetry along the middle x-axis.
+    middle_x = len(input_grid) // 2
+    print(input_grid[0: middle_x], input_grid[middle_x + 1:][::-1])
     
-    # Output a 1x1 grid with a blue pixel if the input grid has mirror symmetry along the y-axis.
-    if has_y_axis_symmetry:
+    # If the input grid has mirror symmetry along the middle x-axis, output a blue pixel.
+    # Otherwise, output an orange pixel.
+    if np.all(input_grid[0: middle_x] == input_grid[middle_x + 1:][::-1]):
         output_grid = np.array([[Color.BLUE]])
     else:
         output_grid = np.array([[Color.ORANGE]])
-    
     return output_grid
 
 def generate_input():
