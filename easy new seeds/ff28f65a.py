@@ -4,12 +4,13 @@ import numpy as np
 from typing import *
 
 # concepts:
-# square counting, number representation
+# counting, object detection, alternating pattern
 
 # description:
 # In the input you will see several 2 x 2 red squares on the grid.
-# To make the output grid, you should count the number of red squares, and place the same number of 1 x 1 blue squares 
-# on the output grid follow a specific pattern squence.
+# To make the output grid, you should count the number of red squares
+# Then place the same number of 1 x 1 blue squares on the output grid following this pattern in the output:
+# First fill the top row, then the next row, but skip every other column. Begin the first/third/fifth/etc row in the first column, but begin the second/forth/etc row in the second column.
 
 def main(input_grid):
     # Detect all the 2 x 2 red squares on the grid.
