@@ -4,21 +4,23 @@ import numpy as np
 from typing import *
 
 # concepts:
-# complete shape, object detection
+# shape completion
 
 # description:
-# In the input you will see an imcomplete teal ractangle
+# In the input you will see an incomplete teal ractangle
 # To make the output grid, you should use the red color to complete the rectangle.
 
 def main(input_grid):
-    # Find the bounding box of the incomplete rectangle
+    # Find the bounding box of the incomplete rectangle and use it to extra the sprite
     x, y, x_len, y_len = bounding_box(grid=input_grid)
-    rectangle = input_grid[x:x + x_len, y:y + y_len]
+    rectangle_sprite = input_grid[x:x + x_len, y:y + y_len]
 
-    # Find out the missing parts of the rectangle and complete it with red color
-    rectangle = np.where(rectangle == Color.BLACK, Color.RED, rectangle)
+    # Find the missing parts of the rectangle (which are colored black) and complete it with red color
+    rectangle_sprite = np.where(rectangle == Color.BLACK, Color.RED, rectangle)
+
+    # Make the output by copying the sprite to a new canvas
     output_grid = np.copy(input_grid)
-    output_grid = blit_sprite(grid=output_grid, sprite=rectangle, x=x, y=y)
+    output_grid = blit_sprite(grid=output_grid, sprite=rectangle_sprite, x=x, y=y)
 
     return output_grid
 
