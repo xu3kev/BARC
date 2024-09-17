@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# Isoalted object detection, color changing
+# object detection, color change
 
 # description:
 # In the input you will see a grid with red pattern
