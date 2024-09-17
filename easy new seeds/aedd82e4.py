@@ -29,34 +29,21 @@ def generate_input():
     n, m = np.random.randint(3, 6), np.random.randint(3, 6)
     grid = np.zeros((n, m), dtype=int)
 
-    # Randomly scatter color pixels on the grid.
-    def random_scatter_point_on_grid(grid, color, density):
-        n, m = grid.shape
-        colored = 0
-        # Randomly scatter density of color pixels on the grid.
-        while colored < density * n * m:
-            x = np.random.randint(0, n)
-            y = np.random.randint(0, m)
-            if grid[x, y] == Color.BLACK:
-                grid[x, y] = color
-                colored += 1
-        return grid
-    
-    # Randomly scatter color pixels on the grid.
-    grid = random_scatter_point_on_grid(grid, Color.RED, 0.5)
+    colored = 0
+    # Randomly scatter density of red pixels on the grid.
+    density = 0.4
+    while colored < density * n * m:
+        x = np.random.randint(0, n)
+        y = np.random.randint(0, m)
+        if grid[x, y] == Color.BLACK:
+            grid[x, y] = Color.RED
+            colored += 1
 
     # Ensure there is at least one 1x1 single isolated red object in the grid.
-    random_x, random_y = np.random.randint(0, n), np.random.randint(0, m)
-    grid[random_x, random_y] = Color.RED
-    if random_x > 0:
-        grid[random_x - 1, random_y] = Color.BLACK 
-    if random_x < n - 1:
-        grid[random_x + 1, random_y] = Color.BLACK
-    if random_y > 0:
-        grid[random_x, random_y - 1] = Color.BLACK
-    if random_y < m - 1:
-        grid[random_x, random_y + 1] = Color.BLACK
-
+    red_objects = detect_objects(grid=grid, colors=[Color.RED], monochromatic=True, connectivity=4)
+    if not any(np.sum(object != Color.BLACK) == 1 for object in red_objects):
+        return generate_input()
+    
     return grid
 
 # ============= remove below this point for prompting =============
