@@ -17,9 +17,12 @@
 Supervised fine-tuning script for decoder language models.
 """
 
+
+
 import logging
 import random
 import sys
+import os
 
 import datasets
 import torch
@@ -44,6 +47,9 @@ from trl import SFTTrainer, setup_chat_format, DataCollatorForCompletionOnlyLM
 
 
 logger = logging.getLogger(__name__)
+
+# set env variable for wandb
+os.environ["WANDB_PROJECT"] = "ARC"
 
 
 def main():
@@ -101,6 +107,7 @@ def main():
     ################
     tokenizer = get_tokenizer(model_args, data_args)
 
+
     if tokenizer.eos_token_id == tokenizer.pad_token_id:
         # set pad token to a different value
         # tokenizer.pad_token_id = 770 # for mistral v3
@@ -152,6 +159,11 @@ def main():
         desc="Applying chat template",
     )
 
+
+    response_template = "<|start_header_id|>assistant<|end_header_id|>"
+    response_template_ids = tokenizer.encode(response_template, add_special_tokens=False)
+    collator = DataCollatorForCompletionOnlyLM(response_template_ids, tokenizer=tokenizer, padding_free=True)
+
     ##########################
     # Decontaminate benchmarks
     ##########################
@@ -184,10 +196,11 @@ def main():
         eval_dataset=eval_dataset,
         dataset_text_field="text",
         max_seq_length=training_args.max_seq_length,
-        tokenizer=tokenizer,
+        # tokenizer=tokenizer,
         # packing=True,
         peft_config=get_peft_config(model_args),
         dataset_kwargs=training_args.dataset_kwargs,
+        data_collator=collator,
     )
 
     ###############

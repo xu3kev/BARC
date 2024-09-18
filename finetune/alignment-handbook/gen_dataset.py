@@ -16,7 +16,7 @@ import json
 import numpy as np
 import tiktoken
 from datasets import Dataset
-
+from tqdm import tqdm
 
 # EXTRA_NEWLINE = "\n"
 EXTRA_NEWLINE = "\n"
@@ -227,6 +227,8 @@ def main():
 
     # common_lib, _ = get_common_lib_from_file("seeds/common.py")
 
+    from transformers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3.1-8B-Instruct")
     seed_problems = []
     if args.use_seeds:
         for seed in seeds:
@@ -261,12 +263,18 @@ def main():
             import datasets
             loaded_data = datasets.load_dataset(args.load_huggingface_dataset)['train']
 
-        for d in loaded_data:
+        for d in tqdm(loaded_data):
             all_pairs = []
             for example in d["examples"]:
                 input_grid = np.array(example[0])
                 output_grid = np.array(example[1])
+                if (input_grid.shape[0] > 30 or input_grid.shape[1] > 30 
+                    or output_grid.shape[0] > 30 or output_grid.shape[1] > 30):
+                    continue
                 all_pairs.append(IOPair(input_grid, output_grid))
+
+            if len(all_pairs) < 4:
+                continue
 
             code = d['source']
             if "def generate_input" not in code or "def main(" not in code:
@@ -315,17 +323,21 @@ def main():
 
 
     # calculate total number of tokens
-    encoding = tiktoken.encoding_for_model("gpt-4o-mini")
+    # encoding = tiktoken.encoding_for_model("gpt-4o-mini")
+
     token_counts = []
     filtered_train_data = []
     for data in train_data:
         token_count = 0 
-        token_count += len(encoding.encode(data["messages"][0]["content"]))
-        token_count += len(encoding.encode(data["messages"][1]["content"]))
-        token_count += len(encoding.encode(data["messages"][2]["content"]))
-        token_counts.append(token_count)
+        # token_count += len(encoding.encode(data["messages"][0]["content"]))
+        # token_count += len(encoding.encode(data["messages"][1]["content"]))
+        # token_count += len(encoding.encode(data["messages"][2]["content"]))
+        token_count += len(tokenizer.encode(data["messages"][0]["content"]))
+        token_count += len(tokenizer.encode(data["messages"][1]["content"]))
+        token_count += len(tokenizer.encode(data["messages"][2]["content"]))
         if token_count < 8000:
             filtered_train_data.append(data)
+            token_counts.append(token_count)
     
 
     print(f"Total number of tokens: {sum(token_counts)}")
@@ -334,6 +346,7 @@ def main():
 
     print(f"Original number of examples: {len(train_data)}")
     print(f"Filtered number of examples: {len(filtered_train_data)}")
+    breakpoint()
 
     with open("filtered_finetune_data.jsonl", "w") as f:
         f.write("\n".join(json.dumps(data) for data in train_data))

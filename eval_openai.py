@@ -60,7 +60,7 @@ def validate(arc_problem, code):
 
         try:
             output_grids = multi_execute_transformation([code], [input_grid], random_seeds=[0], timeout=2, 
-                                                        function_name="transform")
+                                                        function_name="transform", num_workers=32)
             output_grid = output_grids[0]
         except KeyboardInterrupt:
             exit()
@@ -107,7 +107,7 @@ def multi_validate(arc_problem, codes):
         input_grid = pairs[pair_idx].x
         try:
             output_grids = multi_execute_transformation(codes, [input_grid]*len(codes), random_seeds=[0]*len(codes),
-                                                        timeout=2, function_name="transform")
+                                                        timeout=2, function_name="transform", num_workers=64)
         except KeyboardInterrupt:
             exit()
 

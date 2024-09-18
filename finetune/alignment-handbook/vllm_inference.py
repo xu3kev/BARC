@@ -7,10 +7,11 @@ BASE_MODEL = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 # LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-lora-data-mix-v0.0.1"
 # LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-lora-data-llama-codegen"
 # LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-lora-data-gpt4-descriptions"
-LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-lora-data-gpt4omini-codegen"
+# LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-lora-data-gpt4omini-codegen"
+LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-lora-gpt-4_description_20000_with_gpt-4o-mini_and_llama3_codegen"
 
 
-BATCH_SIZE = 16
+BATCH_SIZE = 8
 num_of_samples_per_problem = 64
 TENSOR_PARALLEL = 1
 
@@ -24,7 +25,11 @@ data = []
 # problem_file = "./arc_problems_validation_400.jsonl"
 # problem_file = "./arc_problems_selected-val-subset50_50_extra_newline.jsonl"
 # problem_file = "./arc_problems_selected-train-subset50_50.jsonl"
-problem_file = "./arc_problems_selected-train-subset50_50_extra_newline.jsonl"
+
+# problem_file = "./arc_problems_selected-train-subset50_50_extra_newline.jsonl"
+# problem_file = "./arc_problems_train_327_extra_newline.jsonl"
+problem_file = "./arc_problems_validation_400_extra_newline.jsonl"
+
 with open(problem_file) as f:
     for line in f:
         data.append(json.loads(line))
@@ -57,7 +62,8 @@ for d in tqdm(data):
     ], tokenize=True, add_generation_prompt=True)
     # print(inputs)
     print(f"Number of tokens: {len(input_tokens)}")
-    if len(input_tokens) > 7000:
+    if len(input_tokens) > 8000:
+        print("skip!!!!!")
         continue
 
     assert num_of_samples_per_problem % BATCH_SIZE == 0
@@ -72,7 +78,7 @@ for d in tqdm(data):
         tmp_batch_size = BATCH_SIZE
 
     print(f"batch size: {tmp_batch_size}")
-    sampling_params = SamplingParams(temperature=0.8, max_tokens=1024,
+    sampling_params = SamplingParams(temperature=0.8, max_tokens=1536,
                                      n=tmp_batch_size)
     aggregate_outputs = []
     for i in range(num_of_samples_per_problem // tmp_batch_size):

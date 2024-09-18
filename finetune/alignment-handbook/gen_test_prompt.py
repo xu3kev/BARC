@@ -7,10 +7,10 @@ import re
 
 from gen_dataset import TRANSPOSE, EXTRA_NEWLINE
 
-# SPLIT="validation"
+SPLIT="validation"
 # SPLIT = "train"
 # SPLIT = "selected-val-subset50.json"
-SPLIT = "selected-train-subset50.json"
+# SPLIT = "selected-train-subset50.json"
 
 ALL_PROBLEMS = []
 
