@@ -32,21 +32,15 @@ def generate_input():
     n, m = np.random.randint(9, 15), np.random.randint(9, 15)
     grid = np.zeros((n, m), dtype=int)
 
-    # Randomly scatter color pixels on the grid.
-    def random_scatter_point_on_grid(grid, color, density):
-        n, m = grid.shape
-        colored = 0
-        # Randomly scatter density of color pixels on the grid.
-        while colored < density * n * m:
+    # Generate random teal pixels on the grid.    
+    density = 0.2
+    colored = 0
+    while colored < density * n * m:
             x = np.random.randint(0, n)
             y = np.random.randint(0, m)
             if grid[x, y] == Color.BLACK:
-                grid[x, y] = color
+                grid[x, y] = Color.TEAL
                 colored += 1
-        return grid
-    
-    # Generate random teal pixels on the grid.
-    grid = random_scatter_point_on_grid(grid=grid, color=Color.TEAL, density=0.2)
 
     # Randomly get the width, length and position of the extract part.
     width, length = np.random.randint(4, n - 1), np.random.randint(4, m - 1)

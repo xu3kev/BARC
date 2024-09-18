@@ -21,7 +21,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     for i in range(m):
         flag = True
         for j in range(3):
-            if grid[i, j] != Color.BLACK:
+            if output_grid[i, j] != Color.BLACK:
                 flag = False
         if not flag:
             # Increment the counter for non-empty rows
@@ -38,12 +38,12 @@ def main(input_grid: np.ndarray) -> np.ndarray:
         if i < m:
             # Check if the current row is empty
             for j in range(3):
-                if grid[i, j] != Color.BLACK:
+                if output_grid[i, j] != Color.BLACK:
                     flag = False
         if not flag:
             # Copy non-empty rows to the output grid
             for j in range(3):
-                output_grid[x, j] = grid[i, j]
+                output_grid[x, j] = output_grid[i, j]
             x += 1
         elif x > last_x:
             # Process empty rows and align columns

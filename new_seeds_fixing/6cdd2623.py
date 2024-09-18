@@ -46,29 +46,23 @@ def generate_input():
     n, m = np.random.randint(12, 20), np.random.randint(12, 20)
     grid = np.zeros((n, m), dtype=int)
 
-    # Randomly scatter color pixels on the grid.
-    def random_scatter_point_on_grid(grid, color, density):
-        n, m = grid.shape
+    # Generate random three colors on the grid.
+    three_colors = random.sample(Color.NOT_BLACK, k = 3)
+
+    # Two colors of pixels are scattered on the grid as noise.
+    for i in range(2):
+        density=0.2
         colored = 0
         # Randomly scatter density of color pixels on the grid.
         while colored < density * n * m:
             x = np.random.randint(0, n)
             y = np.random.randint(0, m)
             if grid[x, y] == Color.BLACK:
-                grid[x, y] = color
+                grid[x, y] = three_colors[i]
                 colored += 1
-        return grid
 
-    # Generate random three colors on the grid.
-    three_colors = random.sample(Color.NOT_BLACK, k = 3)
-
-    # Two colors of pixels are scattered on the grid as noise.
-    for _ in range(2):
-        grid = random_scatter_point_on_grid(grid=grid, color=three_colors[_], density=0.2)
-    
     # One color of pixels are scattered on the boundary of the grid, and only four pixels
     # They are guaranteed to form two lines.
-
     for _ in range(2):
         # Choose if the line is horizontal or vertical
         if_horizonal = np.random.choice([True, False])
