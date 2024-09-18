@@ -6,14 +6,16 @@ from typing import *
 # pattern alignment, color indicator
 
 # description:
-# In the input you will see several pattern objects with gray pixels on its both size as indicators.
-# To make the output, you should align each pattern's left gray pixel with its left pattern's right gray pixel and remove empty rows.
+# In the input you will see several objects that each have gray pixel(s) on their left/right side.
+# To make the output, move the objects to align their gray pixels. Then change the gray to be the other color of each object. 
+# Remove any empty columns.
 
 def main(input_grid: np.ndarray) -> np.ndarray:
-    grid = np.copy(input_grid)  # Create a copy of the input grid for processing
-    assert len(grid[0]) == 3  # Ensure the grid has exactly 3 columns
+    # Create a copy of the input grid for processing
+    output_grid = np.copy(input_grid)  
 
-    m, n = len(grid), 0  # Initialize the number of rows in the output grid and a counter for non-empty rows
+    # Initialize the number of rows in the output grid and a counter for non-empty rows
+    m, n = len(output_grid), 0  
 
     # Identify and count non-empty rows
     for i in range(m):
@@ -22,10 +24,14 @@ def main(input_grid: np.ndarray) -> np.ndarray:
             if grid[i, j] != Color.BLACK:
                 flag = False
         if not flag:
-            n += 1  # Increment the counter for non-empty rows
+            # Increment the counter for non-empty rows
+            n += 1  
 
-    output_grid = np.zeros((n, 3), dtype=int)  # Initialize the output grid with zeros (black color)
-    x, lst, lsty = 0, 0, 0  # x: index for the output grid row, lst: index for the starting row of the current block, lsty: column index of gray color
+    # Initialize the output grid with zeros (black color)
+    output_grid = np.zeros((n, 3), dtype=int) 
+
+    # x: index for the output grid row, last_x: index for the starting row of the current block, last_y: column index of gray color
+    x, last_x, last_y = 0, 0, 0  
 
     for i in range(m + 1):
         flag = True
@@ -39,25 +45,25 @@ def main(input_grid: np.ndarray) -> np.ndarray:
             for j in range(3):
                 output_grid[x, j] = grid[i, j]
             x += 1
-        elif x > lst:
+        elif x > last_x:
             # Process empty rows and align columns
             c, mx, mn = 0, -1, 3
-            for k in range(lst, x):
+            for k in range(last_x, x):
                 for j in range(3):
                     if output_grid[k, j] != Color.BLACK:
                         mx = max(mx, j)
                         mn = min(mn, j)
                     if output_grid[k, j] != Color.BLACK and output_grid[k, j] != Color.GREY:
                         c = output_grid[k, j]
-            if lst > 0:
+            if last_x > 0:
                 offset = 0
                 # Determine the offset needed to align columns
                 for k in range(-mn, 3 - mx):
-                    if lsty - k >= 0 and lsty - k < 3 and output_grid[lst, lsty - k] == Color.GREY:
+                    if last_y - k >= 0 and last_y - k < 3 and output_grid[last_x, last_y - k] == Color.GREY:
                         offset = k
                 if offset < 0:
                     # Shift columns left if needed
-                    for k in range(lst, x):
+                    for k in range(last_x, x):
                         for j in range(3):
                             if j - offset < 3:
                                 output_grid[k, j] = output_grid[k, j - offset]
@@ -65,36 +71,43 @@ def main(input_grid: np.ndarray) -> np.ndarray:
                                 output_grid[k, j] = Color.BLACK
                 if offset > 0:
                     # Shift columns right if needed
-                    for k in range(lst, x):
+                    for k in range(last_x, x):
                         for j in range(2, -1, -1):
                             if j - offset >= 0:
                                 output_grid[k, j] = output_grid[k, j - offset]
                             else:
                                 output_grid[k, j] = Color.BLACK
-                output_grid[lst, lsty] = c
+                output_grid[last_x, last_y] = c
             # Update the column index for gray color
             for j in range(3):
                 if output_grid[x - 1, j] == Color.GREY:
-                    lsty = j
+                    last_y = j
                     output_grid[x - 1, j] = c
-            lst = x  # Update the starting row index for the next block
+            # Update the starting row index for the next block
+            last_x = x 
 
     return output_grid
 
 def generate_input() -> np.ndarray:
-    n, m = 3, 20  # Define the initial dimensions of the grid
-    grid = np.zeros((n, m), dtype=int)  # Initialize the grid with zeros (black color)
+    # Define the initial dimensions of the grid
+    n, m = 3, 20  
+    # Initialize the grid with zeros (black color)
+    grid = np.zeros((n, m), dtype=int) 
 
+    # Exclude gray color for pattern generation
     colors = Color.NOT_BLACK.copy()
-    colors.remove(Color.GREY)  # Exclude gray color for pattern generation
-    t = random.choice([3, 4])  # Randomly choose the number of patterns to generate
-    X, Y = random.choice([0, 1, 2]), 0  # Initial starting position for the pattern
+    colors.remove(Color.GREY)  
+    # Randomly choose the number of patterns to generate
+    t = random.choice([3, 4])  
+    # Initial starting position for the pattern
+    X, Y = random.choice([0, 1, 2]), 0  
     f_h = True
 
     # Generate color patterns
     while t > 0:
         t -= 1
-        c = random.choice(colors)  # Choose a random color for the pattern
+        # Choose a random color for the pattern
+        c = random.choice(colors)  
         x, y = X, Y
         mx, mn = X, X
         f_t = True
@@ -103,16 +116,20 @@ def generate_input() -> np.ndarray:
         while t_in > 0:
             t_in -= 1
             if (not f_h and f_t) or (t_in == 0 and t > 0):
-                grid[x, y] = Color.GREY  # Mark the position with gray color
+                # Mark the position with gray color
+                grid[x, y] = Color.GREY 
             else:
-                grid[x, y] = c  # Set the color at the current position
+                # Set the color at the current position
+                grid[x, y] = c  
             f_t = False
-            dires = [[0, 1]]  # Possible directions to extend the pattern
+            # Possible directions to extend the pattern
+            dires = [[0, 1]]  
             if t_in > 0 and x > 0 and grid[x - 1, y] == Color.BLACK:
                 dires.append([-1, 0])
             if t_in > 0 and x < 2 and grid[x + 1, y] == Color.BLACK:
                 dires.append([1, 0])
-            dire = random.choice(dires)  # Choose a random direction to extend the pattern
+            # Choose a random direction to extend the pattern
+            dire = random.choice(dires)  
             x += dire[0]
             y += dire[1]
             mx = max(mx, x)
