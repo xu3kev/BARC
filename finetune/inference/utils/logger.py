@@ -9,7 +9,12 @@ def get_logger(name, args):
     logger.setLevel(logging.DEBUG)
 
     os.makedirs('log',exist_ok=True)
-    file_handler = logging.FileHandler(f'log/{name}_{current_time}.log')
+    if 'beamsearch' not in name:
+        os.makedirs(f'log/induction',exist_ok=True)
+        file_handler = logging.FileHandler(f'log/induction/{name}_{current_time}.log')
+    else:
+        os.makedirs(f'log/transduction',exist_ok=True)
+        file_handler = logging.FileHandler(f'log/transduction/{name}_{current_time}.log')
     file_handler.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

@@ -31,11 +31,14 @@ def start_model_server(model_name="llama31_8B_transduction"):
         return model
     
     available_port = find_available_port(8000)
-
+    if 'barc0' in model_name:
+        model_name = model_name
+    else:
+        model_name = f"models/{model_name}"
     command_args = [
         'vllm',
         'serve',
-        f'models/{model_name}',
+        f'{model_name}',
         '--dtype',
         'auto',
         '--max_model_len',

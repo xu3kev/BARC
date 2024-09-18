@@ -40,6 +40,7 @@ def append_function_call(code, input_martix, logger):
         # print(f"Excuation Error: {e}")
         if logger is not None:
             logger.error(f"Excuation Error: {e}")
+            # logger.error(f"Code: {code}")
         else:
             # print(f"Excuation Error: {e}")
             pass
@@ -73,11 +74,13 @@ def get_code_answer(train_task, code, logger):
     RE_task = []
     for i, train in enumerate(train_task['train']):
         code_output, _ = append_function_call(code, train['input'], logger)
-        if "Excuation Error:" in code_output:
+        if "Error:" in code_output:
+            # logger.error(f"Excuation Error: {code_output}")
             RE_task.append({'input': train['input'], 'correct_output': train['output'], 'code_output': f"{code_output}"})
             break
         list_code_output, success = transform_format_to_list(code_output)
         if success == False:
+            logger.error(f"wrong output format: {code_output}")
             RE_task.append({'input': train['input'], 'correct_output': train['output'], 'code_output': 
                                "wrong output format: " + code_output + "\n The correct format should be np.array"})
             break
