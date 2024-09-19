@@ -6,29 +6,26 @@ from typing import *
 # pattern extraction, color matching
 
 # description:
-# In the input you will see a grid with a central pattern corner by four pixels indicates a rectangle.
-# To make the output, you should extract the central pattern by the rectangle indicates by four pixels 
-# and change the color of the central pattern to match the corner squares.
+# In the input you will see a grid with a central pattern with four differently-colored pixels at the corners.
+# To make the output, you should extract the central pattern (removing the differently-colored corners), 
+# and change the color of the central pattern to match the corner pixels.
 
 def main(input_grid: np.ndarray) -> np.ndarray:
     # Extract the central pattern by the four corner squares
     output_grid = np.copy(input_grid)
-    for i in range(0, len(output_grid)):
-        for j in range(0, len(output_grid[0])):
-            # Check if the current cell is part of a corner square
-            if output_grid[i, j] != Color.BLACK:
-                x, y = i + 1, j + 1
-                # Find the extent of the pattern by moving right and down
-                while output_grid[x, j] == Color.BLACK:
-                    x = x + 1
-                while output_grid[i, y] == Color.BLACK:
-                    y = y + 1
-                # Extract the central pattern
-                sub_matrix = output_grid[i + 1:x, j + 1:y]
-                # Change the color of the central pattern to match the corner squares
-                sub_matrix[sub_matrix != Color.BLACK] = output_grid[i, j]
-                output_grid = sub_matrix
-                return output_grid
+
+    # Crop the pattern out
+    output_grid = crop(grid=output_grid)
+
+    # Get the color of the corner squares
+    corner_color = output_grid[0, 0]
+
+    # Change the color of the central pattern to match the corner squares
+    output_grid[output_grid != Color.BLACK] = corner_color
+
+    # Remove the one pixel border around the central pattern
+    output_grid = output_grid[1:-1, 1:-1]
+    return output_grid
 
 def generate_input() -> np.ndarray:
     # Random generate the size of the pattern 

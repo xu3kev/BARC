@@ -12,14 +12,14 @@ from typing import *
 
 def main(input_grid):
     # Detects the rectangle in the input grid that are of the color TEAL,
-    find_grid = detect_objects(grid=input_grid, colors=[Color.TEAL], monochromatic=True, connectivity=4)
+    teal_objects = detect_objects(grid=input_grid, colors=[Color.TEAL], monochromatic=True, connectivity=4)
     
     # There should only be one rectangle of the color TEAL has been detected in the grid.
-    assert len(find_grid) == 1
-    find_grid = find_grid[0]
+    assert len(teal_objects) == 1
+    teal_object = teal_objects[0]
     
     # Get the size and coordinates of the TEAL rectangle.
-    x_grid, y_grid, width, height = bounding_box(find_grid)
+    x_grid, y_grid, width, height = bounding_box(teal_object)
 
     # color pixels are NOT black and NOT TEAL.
     color_except_teal = [c for c in Color.NOT_BLACK if c != Color.TEAL]
@@ -61,7 +61,7 @@ def generate_input():
     x_grid, y_grid = np.random.randint(2, n - width - 1), np.random.randint(2, m - height - 1)
     
     # Generate the TEAL rectangle
-    sprite = random_sprite(n=width, m=height, color_palette=[Color.TEAL], density=1.0)
+    sprite = np.full((width, height), Color.TEAL)
     
     # Blit the sprite into the main grid at the randomly chosen location.
     blit_sprite(grid, sprite, x_grid, y_grid)

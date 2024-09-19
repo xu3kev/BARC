@@ -23,25 +23,35 @@ def main(input_grid: np.ndarray) -> np.ndarray:
             break
     
     # Get all the squares seperated by lines in the grid
-    squares = detect_objects(grid=output_grid, background=line_color, monochromatic=False, connectivity=4)
-    cropped_square  = []
-    for obj in squares:
-        square = crop(grid=obj, background=line_color)
-        cropped_square.append(square)
-    
-    # Get the length of the square and the length of the grid
-    sqare_len = cropped_square[0].shape[0]
-    grid_len = output_grid.shape[0]     
+    squares = find_connected_components(grid=output_grid, background=line_color, monochromatic=False, connectivity=4)
 
-    # Iterate over each square within the grid
-    for i in range(0, grid_len, sqare_len + 1):
-        for j in range(0, grid_len, sqare_len + 1):
-            # Check each cell within the pattern of the current square
-            for x in range(0, sqare_len):
-                for y in range(0, sqare_len):
-                    # If the cell is the missing part of the top-left pattern, fill it with the line color
-                    if output_grid[i + x, j + y] != output_grid[x, y]:  
-                        output_grid[i + x, j + y] = line_color 
+    # Get all squares' bounding box and cropped pattern
+    cropped_squares  = []
+    for obj in squares:
+        x, y, width, height = bounding_box(grid=obj, background=line_color)
+        square = crop(grid=obj, background=line_color)
+        cropped_squares.append({'x': x, 'y': y, 'len': width, 'pattern': square})
+
+    # Sort the squares by their position
+    cropped_squares = sorted(cropped_squares, key=lambda x: (x['x'], x['y']))
+
+    # The top-left square contains the original pattern
+    template_pattern = cropped_squares[0]['pattern']
+    other_patterns = cropped_squares[1:]
+
+    # Fill the missing pattern compared to template square with line color
+    for square in other_patterns:
+        x, y = square['x'], square['y']
+        square_pattern = square['pattern']
+
+        # Fill the missing pattern compared to template square with line color
+        for i, j in np.argwhere(template_pattern != Color.BLACK):
+            if template_pattern[i, j] != square_pattern[i, j]:
+                square_pattern[i, j] = line_color
+
+        # Place the reconstructed pattern on the output grid
+        output_grid = blit_sprite(grid=output_grid, sprite=square_pattern, x=x, y=y)
+
     return output_grid
 
 def generate_input() -> np.ndarray:
@@ -67,20 +77,24 @@ def generate_input() -> np.ndarray:
         draw_line(grid=grid, x=0, y=i, color=line_color, direction=(1, 0))
 
     # Create the pattern in the top-left square with the pattern color
-    sprite = random_sprite(n=pattern_len, m=pattern_len, color_palette=[pattern_color], connectivity=8, density=0.5)
+    template_sprite = random_sprite(n=pattern_len, m=pattern_len, color_palette=[pattern_color], connectivity=8, density=0.5)
 
-    # Fill the top-left square with the origianl pattern
-    # Fill the left squares with parts of the pattern
+    # Fill the top-left square with the original pattern
+    # Fill the other regions with corrupted versions that have pixels randomly set to black
     for i in range(0, n, square_len + 1):
         for j in range(0, m, square_len + 1):
-            sprite_ = sprite.copy()
-            for x in range(0, pattern_len):
-                for y in range(0, pattern_len):
-                    # Randomly set cells to black if they are not in the top-left corner
-                    if (i != 0 or j != 0) and random.choice([0, 1]) == 0:
-                        sprite_[x, y] = Color.BLACK
+            # are we the top-left region?
+            if i == 0 and j == 0:
+                blit_sprite(grid, template_sprite, i + 1, j + 1)
+                continue
+
+            # otherwise: Create a corrupted version of the pattern; randomly set some pixels to black
+            corrupted_sprite = template_sprite.copy()
+            for x, y in np.argwhere(corrupted_sprite != Color.BLACK):
+                if random.choice([0, 1]) == 0:
+                    corrupted_sprite[x, y] = Color.BLACK
             # Place the sprite on the grid, remain a black border around the sprite
-            blit(grid, sprite_, i + 1, j + 1)  
+            blit_sprite(grid, corrupted_sprite, i + 1, j + 1)  
     
     return grid
 

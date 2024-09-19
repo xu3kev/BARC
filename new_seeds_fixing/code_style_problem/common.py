@@ -159,6 +159,32 @@ def find_connected_components(
                 connected_components.append(connected_component)
         return connected_components
 
+def random_scatter_points(grid, color, density=0.5, background=Color.BLACK):
+    """
+    Randomly scatter points of the specified color in the grid with specified density.
+    """
+    colored = 0
+    n, m = grid.shape
+    while colored < density * n * m:
+        x = np.random.randint(0, n)
+        y = np.random.randint(0, m)
+        if grid[x, y] == background:
+            grid[x, y] = color
+            colored += 1
+    return grid
+
+def scale_pattern(pattern, scale):
+    assert scale >= 1 and type(scale) is int
+    """
+    Scales the pattern by the specified factor.
+    """
+    n, m = pattern.shape
+    new_n, new_m = n * scale, m * scale
+    new_pattern = np.zeros((new_n, new_m), dtype=pattern.dtype)
+    for i in range(new_n):
+        for j in range(new_m):
+            new_pattern[i, j] = pattern[i // scale, j // scale]
+    return new_pattern
 
 def blit(grid, sprite, x=0, y=0, background=None):
     """
@@ -393,6 +419,28 @@ def contact(
                         return True
 
     return False
+
+def generate_position_has_interval(max_len, position_num, if_padding=False):
+    """
+    Generate the position of the lines with random interval.
+    """
+    # Generate position list that has one interval
+    # Use 1 to represent the line, 0 to represent the interval
+    if if_padding:
+        position_list = ([0] + [1]) * (position_num) + [0]
+    else:
+        position_list = ([1] + [0]) * (position_num - 1) + [1]
+
+    if len(position_list) > max_len:
+        return None
+    for i in range(max_len - len(position_list)):
+        position_list.insert(np.random.randint(0, len(position_list)), 0)
+
+    position_list = np.array(position_list)
+    
+    return np.argwhere(position_list == 1).flatten()
+
+    
 
 
 def random_free_location_for_sprite(

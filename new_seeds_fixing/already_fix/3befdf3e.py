@@ -16,14 +16,10 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     output_grid = np.copy(input_grid)
 
     # Detect the square pattern in the input grid.
-    entire_square = detect_objects(grid=input_grid, connectivity=4, monochromatic=False)
+    entire_square = find_connected_components(grid=input_grid, connectivity=4, monochromatic=False)
     for each_square in entire_square:
         # Detect the inner and outer squares in the pattern.
-        object_square = detect_objects(grid=each_square, connectivity=4, monochromatic=True)
-
-        # If there is only one square in the pattern, skip it.
-        if len(object_square) == 1:
-            continue
+        object_square = find_connected_components(grid=each_square, connectivity=4, monochromatic=True)
 
         # Split the square pattern into inner and outer squares.
         split_objects = []
@@ -52,11 +48,11 @@ def main(input_grid: np.ndarray) -> np.ndarray:
 
         # Draw the rectangle as growing from outer square, the width is the same as the length of the inner square.
         # The rectangle is the same color as the original outer square.
-        rectangle_len, rectangle_height = outer_square['len'], inner_square['len']  
+        rectangle_width, rectangle_height = outer_square['len'], inner_square['len']  
         
         # Create the rectangle pattern for the edges of the outer square.
-        rectangle_up_down = random_sprite(n=rectangle_len, m=rectangle_height, color_palette=[outer_square['color']], density=1.0)
-        rectangle_left_right = random_sprite(n=rectangle_height, m=rectangle_len, color_palette=[outer_square['color']], density=1.0)
+        rectangle_up_down = np.full((rectangle_width, rectangle_height), outer_square['color'])
+        rectangle_left_right = np.full((rectangle_height, rectangle_width), outer_square['color'])
 
         # Draw the rectangle on the four edges of the outer square.
         output_grid = blit_sprite(grid=output_grid, sprite=rectangle_up_down, x=outer_square['x'], y=outer_square['y'] - inner_square['len'])
