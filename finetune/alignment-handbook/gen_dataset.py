@@ -18,6 +18,8 @@ import tiktoken
 from datasets import Dataset
 from tqdm import tqdm
 
+VERSION = "0.2"
+
 # EXTRA_NEWLINE = "\n"
 EXTRA_NEWLINE = "\n"
 TRANSPOSE = False
@@ -169,12 +171,14 @@ def grid_to_input(grid, transpose: bool):
     return "\n".join(" ".join(COLOR_MAPPING[c] for c in row) for row in transformed_grid) + EXTRA_NEWLINE
 
 def make_problem_input_str(problem: Problem, transpose: bool):
-    prompt = ""
-    prompt += "The following is a puzzle from the ARC dataset. Given training examples of input and output grids, predict the output grid for the test inputs.\nEach grid is represented as a 2D array where each cell is represented by an color. The grid input and output are written as a string where each cell is separated by a space and each row is separated by a newline.\n"
-    prompt += "Here are the input and output grids for the training examples:\n"
-    for pair in problem.train_pairs:
+    # prompt = "You will be given several pairs of input-output grids as examples. Each input-output image pair follow the same transformation rule."
+    # prompt += "Given training examples of input and output grids, predict the output grid for the test inputs.\nEach grid is represented as a 2D array where each cell is represented by an color. The grid input and output are written as a string where each cell is separated by a space and each row is separated by a newline.\n"
+    prompt ="Given input-output grid pairs as reference examples, carefully observe the patterns to predict the output grid for new test input. Each pair follows the same transformation rule. Grids are 2D arrays represented as strings, with cells (colors) separated by spaces and rows by newlines."
+    prompt += "\nHere are the input and output grids for the reference examples:\n"
+    for i, pair in enumerate(problem.train_pairs):
+        prompt += f"Example {i+1}\n"
         prompt += f"Input:\n{grid_to_input(pair.x, transpose)}\nOutput:\n{grid_to_input(pair.y, transpose)}\n\n" 
-    prompt += "Here are the input grids for the test example:\n"
+    prompt += "Here is the input grid for the test example:\n"
     prompt += "Input:\n" + "\n".join(grid_to_input(pair.x, transpose) for pair in problem.test_pairs)
     return prompt
 
@@ -192,9 +196,12 @@ def make_input_prompt(problem: Problem, transpose: bool):
 # """
     common_lib_prefix = ""
     question = common_lib_prefix + make_problem_input_str(problem, transpose=transpose)
+    question += "\nWrite a Python function `transform` that can convert any given input grid to its corresponding output grid based on the pattern observed in the reference examples."
     return question
 
-DEFAULT_SYSTEM_PROMPT = "You are an world-class puzzle solver who are extremely good at spotting patterns and solving puzzles. You are also an expert Python programmer who can write code to solve puzzles."
+# DEFAULT_SYSTEM_PROMPT = "You are an world-class puzzle solver who are extremely good at spotting patterns and solving puzzles. You are also an expert Python programmer who can write code to solve puzzles."
+
+DEFAULT_SYSTEM_PROMPT = "You are a world-class puzzle solver with exceptional pattern recognition skills and expertise in Python programming. Your task is to analyze puzzles and provide Python solutions."
 
 def convert_chat_format(question, answer):
     messages =  {
@@ -247,7 +254,7 @@ def main():
         assert args.output_huggingface_dataset , "output_huggingface_dataset is required"
         output_huggingface_dataset = args.output_huggingface_dataset.strip("/")
     elif args.load_huggingface_dataset:
-        output_huggingface_dataset = args.load_huggingface_dataset.strip("/") + "_messages_format"
+        output_huggingface_dataset = args.load_huggingface_dataset.strip("/") + "_messages_format" + "_" + VERSION
         print(f"output_huggingface_dataset: {output_huggingface_dataset}")
     loaded_problems = []
     if args.load_file or args.load_huggingface_dataset:
@@ -303,7 +310,7 @@ def main():
     problems = loaded_problems + seed_problems
     for problem in problems:
         question = make_input_prompt(problem, transpose=TRANSPOSE)
-        answer = f"""Let's solve this puzzle using Python code with the common library functions. We first reasoning about the problem and then writing the code to solve it. The `transform` function will take the input grid and return the output grid. Here is the Python code and the comments describing how to solve the problem:
+        answer = f"""Let's solve this puzzle using Python code with the common library functions. We'll first reason about the problem and then write the code to solve it. The `transform` function will take the input grid and return the output grid. Here is the Python code with the comments describing how to solve the problem:
 ```python
 {problem.code}
 ```
@@ -346,13 +353,9 @@ def main():
 
     print(f"Original number of examples: {len(train_data)}")
     print(f"Filtered number of examples: {len(filtered_train_data)}")
-    breakpoint()
 
-    with open("filtered_finetune_data.jsonl", "w") as f:
-        f.write("\n".join(json.dumps(data) for data in train_data))
-
-
-
+    # with open("filtered_finetune_data.jsonl", "w") as f:
+    #     f.write("\n".join(json.dumps(data) for data in train_data))
     
     # Shuffle the data
     random.shuffle(filtered_train_data)
