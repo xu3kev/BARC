@@ -173,17 +173,16 @@ def random_scatter_points(grid, color, density=0.5, background=Color.BLACK):
             colored += 1
     return grid
 
-def scale_pattern(pattern, scale):
-    assert scale >= 1 and type(scale) is int
+def scale_pattern(pattern, scale_factor):
     """
     Scales the pattern by the specified factor.
     """
     n, m = pattern.shape
-    new_n, new_m = n * scale, m * scale
+    new_n, new_m = n * scale_factor, m * scale_factor
     new_pattern = np.zeros((new_n, new_m), dtype=pattern.dtype)
     for i in range(new_n):
         for j in range(new_m):
-            new_pattern[i, j] = pattern[i // scale, j // scale]
+            new_pattern[i, j] = pattern[i // scale_factor, j // scale_factor]
     return new_pattern
 
 def blit(grid, sprite, x=0, y=0, background=None):
