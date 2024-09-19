@@ -51,10 +51,6 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     return output_grid
 
 def generate_input() -> np.ndarray:
-    """
-    Generate grid first
-    And random the position of the four lines
-    """
     # Generate the background grid with size of n x m.
     n, m = np.random.randint(15, 25), np.random.randint(15, 25)
     grid = np.zeros((n, m), dtype=int)
