@@ -3,23 +3,15 @@ import numpy as np
 from typing import *
 
 # concepts:
-# - Extraction: Identifying non-zero rows and columns to crop the grid.
-# - Filling: Extending the color from the boundary to fill gaps.
+# pattern extraction, pixel expanding
 
 # description:
-# - `main` function: Crops the grid to remove rows and columns that only contain zeros, and then fills regions of the grid where a specific color is present, extending this color to the grid's boundaries.
-# - `generate_input` function: Generates a grid with colored patterns and random black cells, ensuring that the grid contains specific patterns and gaps for testing.
+# In the input you will see four lines  of different colors intersecting and forming a rectangle.
+# Few pixels of one specific line's color are scattered in the grid.
+# To make the output, you should cropped out the rectangle and extend the scatterd pixels to 
+# the specific line which has same color as the scattered pixels.
 
 def main(input_grid: np.ndarray) -> np.ndarray:
-    """
-    Processes the input grid by cropping rows and columns with only zeros and then extends specific colors to fill gaps in the grid.
-
-    Parameters:
-    input_grid (np.ndarray): The input grid with colored patterns and gaps.
-
-    Returns:
-    np.ndarray: The processed grid with colors extended to fill gaps.
-    """
     grid = np.copy(input_grid)
     
     # Identify non-zero rows and columns
@@ -56,12 +48,6 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     return grid
 
 def generate_input() -> np.ndarray:
-    """
-    Generates a grid with a specific pattern of colors and black cells for testing.
-
-    Returns:
-    np.ndarray: The generated grid with colored patterns and random black cells.
-    """
     # Generate random dimensions for the grid
     f = np.random.randint(1, 11, size=3)
     g = np.random.randint(1, 11, size=3)
