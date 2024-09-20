@@ -25,7 +25,7 @@ def main(input_grid):
     # Construct the specific pattern that is going to be drawn where the red pixel was
     pattern = np.array([[Color.GREEN, Color.BLACK, Color.PINK], 
                         [Color.BLACK, Color.BLACK, Color.BLACK],
-                        [Color.TEAL, Color.BLACK, Color.YELLOW]]).transpose()
+                        [Color.TEAL, Color.BLACK, Color.ORANGE]]).transpose()
     
     # Because sprites are anchored by the upper left corner, we are going to need to calculate where the pattern's upper left corner should be
     pattern_width, pattern_height = pattern.shape

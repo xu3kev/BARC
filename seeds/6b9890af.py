@@ -26,7 +26,7 @@ def main(input_grid):
     scale = len(bounding_box_obj - 2) // len(inner_obj)
 
     # Scale the pattern square scale times larger
-    scaled_inner_object = scale_pattern(pattern=inner_obj, scale=scale)
+    scaled_inner_object = scale_pattern(pattern=inner_obj, scale_factor=scale)
 
     # Place the scaled pattern square in the red frame square
     output_grid = blit_sprite(x=1, y=1, grid=bounding_box_obj, sprite=scaled_inner_object, background=Color.BLACK)
