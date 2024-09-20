@@ -4,32 +4,37 @@ import numpy as np
 from typing import *
 
 # concepts:
-# pattern location
+# constant pattern, diagonal corners
 
 # description:
 # In the input you will see one red pixel
 # To make the output grid, you should 
-# 1. draw a pattern with four different colors that centered at the red pixel
-# 2. remove the red pixel
+# 1. draw a pattern with four different colors centered at the red pixel at its diagonal corners:
+#    green in the upper left, pink in the upper right, teal in the lower left, and yellow in the lower right.
+# 2. remove the red pixel (equivalently start with a blank canvas and draw the pattern at the red pixel location)
 
 def main(input_grid):
-    # Find out the position of the red pixel.
-    red_x, red_y, w, h = bounding_box(grid=input_grid, background=Color.BLACK)
+    # Find the red single pixel object
+    red_pixel_objects = detect_objects(grid=input_grid, colors=[Color.RED], allowed_dimensions=[(1, 1)], monochromatic=True, connectivity=4)
+    assert len(red_pixel_objects) == 1
+    red_pixel_object = red_pixel_objects[0]
 
-    # Get the specific surrounding pattern
+    # Find out the position of the red pixel
+    red_x, red_y = object_position(red_pixel_object, background=Color.BLACK, anchor="upper left")
+
+    # Construct the specific pattern that is going to be drawn where the red pixel was
     pattern = np.array([[Color.GREEN, Color.BLACK, Color.PINK], 
                         [Color.BLACK, Color.BLACK, Color.BLACK],
                         [Color.TEAL, Color.BLACK, Color.YELLOW]]).transpose()
     
-    # Get the relative position of pattern on the output grid
-    rela_x, rela_y = red_x - 1, red_y - 1
+    # Because sprites are anchored by the upper left corner, we are going to need to calculate where the pattern's upper left corner should be
+    pattern_width, pattern_height = pattern.shape
+    pattern_x, pattern_y = red_x - pattern_width//2, red_y - pattern_height//2
 
     # The output grid is the same size of input grid
-    output_grid = np.copy(input_grid)
-    output_grid = blit_sprite(grid=output_grid, x=rela_x, y=rela_y, sprite=pattern, background=Color.BLACK)
-
-    # Remove the red pixel
-    output_grid[red_x, red_y] = Color.BLACK
+    # start with a blank canvas and then lit the pattern
+    output_grid = np.full(input_grid.shape, Color.BLACK)
+    output_grid = blit_sprite(grid=output_grid, x=pattern_x, y=pattern_y, sprite=pattern, background=Color.BLACK)
 
     return output_grid
     

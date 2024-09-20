@@ -4,25 +4,35 @@ import numpy as np
 from typing import *
 
 # concepts:
-# object moving, color changing
+# translation, color change
 
 # description:
 # In the input you will see a grid with a teal object.
-# To make the output grid, you should move the teal object down by 1 pixel and change its color to red.
+# To make the output grid, you should translate the teal object down by 1 pixel and change its color to red.
 
 def main(input_grid):
-    # Get the position of the single teal object.
-    x, y, w, h = bounding_box(grid=input_grid, background=Color.BLACK)
+    # Plan:
+    # 1. Find the object (it's the only one)
+    # 2. Change its color to red
+    # 3. Translate it downward by 1 pixel
 
-    # Crop the teal object.
-    teal_object = crop(grid=input_grid, background=Color.BLACK)
+    
+    # Get the single teal object
+    objects = find_connected_components(input_grid, connectivity=4, monochromatic=False, background=Color.BLACK)
+    assert len(objects) == 1
+    teal_object = objects[0]
 
-    # Get the output background grid.
-    output_grid = np.zeros_like(input_grid)
+    # Make a blank output grid
+    output_grid = np.full(input_grid.shape, Color.BLACK)
 
-    # Move the teal object down by 1 pixel and change its color to red.
-    teal_object[teal_object == Color.TEAL] = Color.RED
-    output_grid = blit_sprite(grid=output_grid, x=x, y=y + 1, sprite=teal_object, background=Color.BLACK)
+    # Change its color to red
+    teal_object[teal_object != Color.BLACK] = Color.RED
+
+    # Translate it downward by 1 pixel
+    teal_object = translate(teal_object, x=0, y=1, background=Color.BLACK)
+
+    # Blit the teal object onto the output grid
+    output_grid = blit_object(grid=output_grid, obj=teal_object, background=Color.BLACK)
 
     return output_grid
 

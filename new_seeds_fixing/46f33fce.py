@@ -12,25 +12,35 @@ from typing import *
 # then scale in whole grid 2 times.
 
 def main(input_grid):
+    # Plan:
+    # 1. Detect all the colored pixels
+    # 2. Rescale each such sprite
+    # 3. Blit the rescaled sprite onto the output grid, taking care to anchor it correctly
+    # 4. Rescale the output grid (2x)
+
     # Detect all the colored pixels in the input grid
-    pixels = detect_objects(grid=input_grid, colors=Color.NOT_BLACK, monochromatic=True, connectivity=4)
+    pixel_objects = detect_objects(grid=input_grid, colors=Color.NOT_BLACK,
+                            # These are single pixels, so they are 1x1
+                            allowed_dimensions=[(1, 1)],
+                            monochromatic=True, connectivity=4)
 
     # Initialize the output grid with the same size as the input grid
     output_grid = np.copy(input_grid)
 
     scale_factor = 2
-    for pixel in pixels:
-        # Get the position of each colored pixel and crop the pixel
-        x, y, w, h = bounding_box(grid=pixel, background=Color.BLACK)
-        single_pixel = crop(grid=pixel, background=Color.BLACK)
-        # Scale the pattern by scale_factor times
-        scaled_pattern = scale_pattern(pattern=single_pixel, scale_factor=scale_factor)
+    for obj in pixel_objects:
+        # Get the position of each colored pixel, and crop it to produce a sprite
+        x, y = object_position(obj, background=Color.BLACK, anchor="upper left")
+        single_pixel_sprite = crop(obj, background=Color.BLACK)
 
-        # The coordinate of the scaled pattern is the top-left corner of the bounding box
-        dx, dy = x - scale_factor + 1, y - scale_factor + 1
+        # Scale the sprite by `scale_factor` times
+        scaled_sprite = scale_pattern(pattern=single_pixel_sprite, scale_factor=scale_factor)
+
+        # The coordinate of the scaled pattern (anchored at the upper left)
+        new_x, new_y = x - scale_factor + 1, y - scale_factor + 1
 
         # Put the scaled pattern on the output grid
-        output_grid = blit_sprite(grid=output_grid, x=dx, y=dy, sprite=scaled_pattern, background=Color.BLACK)
+        output_grid = blit_sprite(grid=output_grid, x=new_x, y=new_y, sprite=scaled_sprite, background=Color.BLACK)
     
     # Scale the whole grid by scale_factor times
     output_grid = scale_pattern(pattern=output_grid, scale_factor=scale_factor)
@@ -43,7 +53,7 @@ def generate_input():
     grid = np.zeros((grid_size, grid_size), dtype=int)
 
     # randomly scatter the pixels on the grid with only every scaling_factor coordinates
-    # Left enough space for scaling
+    # Leave enough space for scaling
     density = 0.4
     scaling_factor = 2
     colors = Color.NOT_BLACK
