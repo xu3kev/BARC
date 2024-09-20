@@ -39,14 +39,14 @@ gradient_checkpointing_kwargs:
   use_reentrant: false
 hub_model_id: barc-7b-sft-qlora
 hub_strategy: every_save
-learning_rate: 1.0e-05
+learning_rate: 4.0e-05
 log_level: info
 logging_steps: 1
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_seq_length: 8192
 max_steps: -1
-num_train_epochs: 3
+num_train_epochs: 2
 output_dir: data/barc-llama3.1-8b-instruct-fft-sft-induction_transduction_fixed_balance_lr1e-5_epoch3
 overwrite_output_dir: true
 per_device_eval_batch_size: 4

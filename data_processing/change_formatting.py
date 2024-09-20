@@ -63,9 +63,11 @@ if __name__ == "__main__":
             message_data = item["messages"]
             content = message_data[1]["content"]
             train_examples, test_examples = parse_examples(content)
+            test_output = message_data[2]["content"].split("```")[0].split("Output:")[1].strip()
+
 
             question = make_problem_input_str(train_examples, test_examples)
-            answer = f"The output grid for the test input grid is:\n\n```\n{test_examples[0]}\n```"
+            answer = f"The output grid for the test input grid is:\n\n```\n{test_output}\n```"
             
             all_data[split].append(convert_chat_format(question, answer))
 
@@ -74,6 +76,7 @@ if __name__ == "__main__":
     print(all_data['train_sft'][0]["messages"][1]["content"])
     print("==============output=============")
     print(all_data['train_sft'][0]["messages"][2]["content"])
+
 
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3.1-8B-Instruct")
