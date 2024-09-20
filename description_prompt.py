@@ -58,7 +58,7 @@ def make_self_instruct_prompt(seeds_contents, rng_seed, num_descriptions=None, u
         description = description[0]
 
         # remove "color change" from the concepts, because it is problematic and easily misinterpreted
-        concepts = [c for c in concepts if c != "color change"]
+        concepts = [c for c in concepts if "color change" not in c]
         # deduplicate and randomly permute
         concepts = list(sorted(set(concepts)))
         rng.shuffle(concepts)
@@ -84,7 +84,7 @@ def main():
     parser = argparse.ArgumentParser(description = "problem generator")
 
     parser.add_argument("--num_descriptions", "-d", type=int, default=None, help="how many descriptions to show in the prompt, if not all of them")
-    parser.add_argument("--batch_size", "-b", type=int, default=64, help="how many batches of descriptions to generate")
+    parser.add_argument("--batch_size", "-b", type=int, default=10, help="how many batches of descriptions to generate")
     parser.add_argument("--num_generations", "-n", type=int, default=5, help="how many generations to generate in the prompt")
     parser.add_argument("--temperature", "-t", type=float, default=0.7)
     parser.add_argument("--model", "-m", type=str, default="gpt-4-turbo", help="which model to use", 
@@ -172,7 +172,7 @@ def main():
             f.write(json.dumps({"concepts": concepts,
                                 "description": description,
                                 }) + "\n")
-    print(f"{len(concepts_descriptions)} codes written to {file_name_json}")
+    print(f"{len(concepts_descriptions)} descriptions written to {file_name_json}")
     client.show_token_usage()
     client.show_global_token_usage()
     

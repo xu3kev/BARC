@@ -113,6 +113,7 @@ def main():
     parser.add_argument("--jsonl", type=str, default=None, help="jsonl file descriptions to use in prompts")
     parser.add_argument("--num_seeds", "-s", type=int, default=1, help="how many seeds to show in the prompt, if more than 1")
     parser.add_argument("--temperature", "-t", type=float, default=0.7)
+    parser.add_argument("--num_samples", "-n", type=int, default=1, help="how many samples to generate")
     parser.add_argument("--prompt_model", "-pm", type=str, default="gpt-4-turbo", help="which model to use for problem generation", 
                         choices=[m.value for model_list in LLMClient.AVAILABLE_MODELS.values() for m in model_list])
     parser.add_argument("--embedding_model", "-em", type=str, default="text-embedding-ada-002", help="which model to use for embedding",
@@ -215,25 +216,25 @@ def main():
     if arguments.sample_parallel == 1:
         for prompt, seed in tqdm(prompts_and_seeds):
             try:
-                sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=prompt_model, ignore_cache_samples=arguments.ignore_cache_samples)[0]
+                sample = client.generate(prompt, num_samples=arguments.num_samples, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=prompt_model, ignore_cache_samples=arguments.ignore_cache_samples)
                 samples_and_seeds.append((sample, seed))        
             except Exception as e:
                 print(f"error occurred: {e}")
     else:
         just_the_prompts = [prompt for prompt, seed in prompts_and_seeds]
-        list_of_lists_of_samples = client.generate_parallel(just_the_prompts, num_samples=1, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=prompt_model, temperature=arguments.temperature)
+        list_of_lists_of_samples = client.generate_parallel(just_the_prompts, num_samples=arguments.num_samples, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=prompt_model, temperature=arguments.temperature)
         # flatten the list
         samples = [sample for sublist in list_of_lists_of_samples for sample in sublist]
         samples_and_seeds = list(zip(samples, [seed for prompt, seed in prompts_and_seeds]))
 
     codes_and_seeds = []
-    for sample, seeds in samples_and_seeds:
-        parsed_codes = parse_code(sample)
+    for samples, seeds in samples_and_seeds:
+        parsed_codes = [parse_code(sample) for sample in samples]
         if parsed_codes:
-            parsed_code = parsed_codes[0]
+            codes_and_seeds.append((parsed_codes, seeds))
         else:
             parsed_code = ""
-        codes_and_seeds.append((parsed_code, seeds))
+            codes_and_seeds.append((parsed_code, seeds))
 
     client.show_token_usage()
     client.show_global_token_usage()
@@ -245,12 +246,13 @@ def main():
     if arguments.brief_common:
         file_name_base += "_briefcommon"
     file_name_json = file_name_base + f"_description_file_{arguments.jsonl.replace('.jsonl', '')}" + ".jsonl"
+    file_name_json = file_name_json.replace("/", "_")
     print(f"Writing to jsonl {file_name_json}")
     with open(file_name_json, "w") as f:
         # jsonl, one json per line
         import json
-        for code, seeds in codes_and_seeds:
-            f.write(json.dumps({"code": ensure_colors_exist(code),
+        for codes, seeds in codes_and_seeds:
+            f.write(json.dumps({"code": [ensure_colors_exist(code[0]) for code in codes],
                                 "seeds": seeds
                                 }) + "\n")
     print(f"{len(codes_and_seeds)} codes written to {file_name_json}")

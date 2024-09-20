@@ -143,6 +143,7 @@ def plot_without_thumbnails(embeddings2d, seeds, seed_descriptions, generated_pr
         png_file_base += '_with_concepts'
     if jsonl_model:
         png_file_base += f'_with_{jsonl_model}'
+    print(f"Saving plot to {png_file_base}.png")
     plt.savefig(f'{png_file_base}.png', dpi=150, bbox_inches='tight')
     plt.savefig(f'{png_file_base}.svg', format='svg', bbox_inches='tight')
     plt.close()
@@ -232,14 +233,20 @@ def main():
     if use_concepts:
         # get seed concepts
         embeddings_original = get_seed_concepts(seeds_contents, client, model, description_embeddings_original)
-        embeddings_generated = [client.generate_embedding(concepts, model=model) for concepts in tqdm(generated_problem_concepts)]
+        # embeddings_generated = [np.hstack(description_embedding, client.generate_embedding(concepts, model=model)) for concepts, description_embedding in tqdm(zip(generated_problem_concepts, description_embeddings_generated))]
+        concept_embeddings = [client.generate_embedding(concepts, model=model) for concepts in tqdm(generated_problem_concepts)]
+
+        description_embeddings_generated = np.array(description_embeddings_generated)
+        concept_embeddings = np.array(concept_embeddings)
+
+        embeddings_generated = np.hstack([description_embeddings_generated, concept_embeddings])
     else:
         embeddings_original = description_embeddings_original
         embeddings_generated = description_embeddings_generated
     print("finished generating embeddings")
 
 
-    embeddings = np.array(embeddings_original + embeddings_generated)
+    embeddings = np.vstack([embeddings_original, embeddings_generated])
     print(embeddings.shape)
 
     # Instantialte tsne, specify cosine metric

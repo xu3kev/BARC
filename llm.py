@@ -60,6 +60,7 @@ class LLMClient:
         "gpt-3.5-turbo-0123": (0.50, 1.50),
         "gpt-3.5-turbo": (0.50, 1.50),
         "text-embedding-ada-002": (0.10, 0.10),
+        "deepseek/deepseek-coder": (0.14, 0.28),
     }
 
     def __init__(self, system_content=None, provider=Provider.OPENAI, cache_dir='cache', key=None):
