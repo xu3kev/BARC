@@ -2,8 +2,11 @@
 # LORA_DIR = "data/barc-codestral-sft-qlora-v0.0.3-epoch3"
 
 # BASE_MODEL = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-BASE_MODEL = "./data/barc-llama3.1-8b-instruct-fft-sft-induction_transduction_balance_lr1e-5"
-BASE_MODEL = "./data/barc-llama3.1-8b-instruct-fft-sft-induction_transduction_fixed_balance_lr1e-5_epoch3/checkpoint-1086"
+# BASE_MODEL = "./data/barc-llama3.1-8b-instruct-fft-sft-induction_transduction_balance_lr1e-5"
+# BASE_MODEL = "./data/barc-llama3.1-8b-instruct-fft-sft-induction_transduction_fixed_balance_lr1e-5_epoch3/checkpoint-1086"
+# BASE_MODEL = "barc0/barc-llama3.1-8b-instruct-fft-sft-induction-transduction-fixed-balance-checkpoint-1086"
+# BASE_MODEL = "./data/barc-llama3.1-8b-instruct-fft-sft-transduction_lr1e-5_epoch2/checkpoint-266"
+BASE_MODEL = "./data/barc-llama3.1-8b-instruct-fft-sft-transduction_lr1e-5_epoch2"
 # LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-qlora-v0.0.3"
 # LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-qlora-v0.0.2-v3-nopacking"
 # LORA_DIR = "data/barc-llama3.1-8b-instruct-sft-lora-data-mix-v0.0.1"
@@ -14,8 +17,8 @@ BASE_MODEL = "./data/barc-llama3.1-8b-instruct-fft-sft-induction_transduction_fi
 LORA_DIR = None
 
 
-BATCH_SIZE = 1
-num_of_samples_per_problem = 1
+BATCH_SIZE = 16
+num_of_samples_per_problem = 16
 TENSOR_PARALLEL = 1
 
 
@@ -98,8 +101,10 @@ for d in tqdm(data):
 
     tmp_batch_size = BATCH_SIZE
     print(f"batch size: {tmp_batch_size}")
-    sampling_params = SamplingParams(temperature=0, max_tokens=1536,
-                                     n=tmp_batch_size)
+    # sampling_params = SamplingParams(temperature=0, max_tokens=1100,
+    #                                  n=tmp_batch_size, best_of=16, use_beam_search=True)
+    sampling_params = SamplingParams(temperature=0.7, max_tokens=1100,
+                                        n=tmp_batch_size)
     aggregate_outputs = []
     for i in range(num_of_samples_per_problem // tmp_batch_size):
         outputs = llm.generate(
@@ -116,6 +121,7 @@ for d in tqdm(data):
 
     # Print the outputs.
     responses = []
+    generated_texts = []
     for outputs in aggregate_outputs:
         for output in outputs:
             prompt = output.prompt
@@ -124,15 +130,21 @@ for d in tqdm(data):
                 generated_text = output.outputs[i].text
                 # print(f"Generated text: {generated_text!r}\n")
                 responses.append(generated_text)
+                generated_texts.append(generated_text)
 
     all_responses.append({"uid": d["uid"], "prompt":inputs , "responses": responses, "base_model": BASE_MODEL, "lora_dir": LORA_DIR})
 
-    print(generated_text)
+    print("====generated_texts====")
+    print(generated_texts[0])
+    print("---------")
+    if len(generated_texts) > 1:
+        print(generated_texts[1])
     print("====answer====")
     print(d['answer'])
     # parse output and compare to answer
-    if "```" in generated_text:
-        parsed_generated_text = generated_text.split("```")[0].strip()
+    top_generated_text = generated_texts[0]
+    if "```" in top_generated_text:
+        parsed_generated_text = top_generated_text.split("```")[0].strip()
         if parsed_generated_text == d['answer'].strip():
             print("Correct!")
             correct_counter += 1
