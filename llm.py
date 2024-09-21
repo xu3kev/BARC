@@ -69,8 +69,11 @@ class LLMClient:
         assert self.api_key is not None, f"API key not found for provider {self.provider}"
         self.system_content = system_content if system_content is not None else "You will be provided a few code examples on color grid input generator and transformation. You will be creative and come up with similar and interesting problems."
         self.client = self._initialize_client()
-        self.cache = dc.Cache(cache_dir)
-        self.usage_cache = dc.Cache(cache_dir + "_usage")
+        if cache_dir is None:
+            self.cache, self.usage_cache = None, None
+        else:
+            self.cache = dc.Cache(cache_dir)
+            self.usage_cache = dc.Cache(cache_dir + "_usage")
         self.total_input_tokens = {}
         self.total_output_tokens = {}
 
@@ -110,13 +113,18 @@ class LLMClient:
     def update_usage(self, engine: str, usage: dict[str, int]):
         self.total_input_tokens[engine] = self.total_input_tokens.get(engine, 0) + usage.prompt_tokens
         self.total_output_tokens[engine] = self.total_output_tokens.get(engine, 0) + usage.total_tokens - usage.prompt_tokens
-        self.add_usage_to_cache(engine, usage)
+        if self.usage_cache is not None:
+            self.add_usage_to_cache(engine, usage)
 
     def show_global_token_usage(self):
         for engine in self.model_cost.keys():
-            usage = self.get_usage_from_cache(engine)
-            i = usage["input_tokens"]
-            o = usage["output_tokens"]
+            if self.usage_cache is None:
+                print("WARNING: Usage cache is not enabled, token usage may not be accurate")
+                i, o = self.total_input_tokens[engine], self.total_output_tokens[engine]
+            else:
+                usage = self.get_usage_from_cache(engine)
+                i = usage["input_tokens"]
+                o = usage["output_tokens"]
             # dollars per million tokens
             i_cost, o_cost = self.model_cost.get(engine, (0.0, 0.0))
             total_cost = i_cost*i/1e6 + o_cost*o/1e6
@@ -220,7 +228,7 @@ class LLMClient:
 
     def generate(self, prompt, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1, ignore_cache_samples=False):
         model = self.check_model_name(model)
-        if not ignore_cache_samples:
+        if not ignore_cache_samples and self.cache is not None:
             cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
         else:
             cached_samples = []
@@ -233,7 +241,8 @@ class LLMClient:
                 try:
                     response = self.send_request(prompt, model, temperature, max_tokens, top_p, remaining_samples)
                     new_samples = [c.message.content for c in response.choices]
-                    self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
+                    if self.cache is not None:
+                        self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
                     self.update_usage(model.value, response.usage)
                     actually_got_samples = True
                 except Exception as e:
@@ -252,6 +261,9 @@ class LLMClient:
                         print("Error, going to try again in 1 second", e)
                         time.sleep(1)
 
+        if self.cache is None:
+            return new_samples
+
         # WARN neccessary to get the samples from cache again as it might have been updated
         cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
 
@@ -263,7 +275,7 @@ class LLMClient:
     
     def generate_embedding(self, input, model=None):
         model = self.check_model_name(model)
-        cached_embedding = self.get_embedding_from_cache(input, model)
+        cached_embedding = self.get_embedding_from_cache(input, model) if self.cache is not None else None
 
         # If the embedding is not cached, generate it
         if cached_embedding is None:
@@ -273,7 +285,8 @@ class LLMClient:
                 try:
                     response = self.send_embedding_request(input, model)
                     embedding = response.data[0].embedding
-                    self.add_embedding_to_cache(input, model, embedding)
+                    if self.cache is not None:
+                        self.add_embedding_to_cache(input, model, embedding)
                     self.update_usage(model.value, response.usage)
                     actually_got_embedding = True
                 except Exception as e:
@@ -290,14 +303,14 @@ class LLMClient:
                     else:
                         print("Error, going to try again in 1 second", e)
                         time.sleep(1)
-                
+        
+        if self.cache is None:
+            return embedding
 
         # WARN neccessary to get the samples from cache again as it might have been updated
         cached_embedding = self.get_embedding_from_cache(input, model)
 
         return cached_embedding
-
-
 
     def generate_parallel(self, prompts, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1, num_workers=8):
         """use concurrent futures to generate samples in parallel"""

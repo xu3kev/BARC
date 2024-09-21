@@ -124,6 +124,7 @@ def main():
     parser.add_argument("--nohtml", action="store_true", help="don't generate html", default=False)
     parser.add_argument("--use_concept_embeddings", "-uc", action="store_true", help="use concept embeddings in addition to description embeddings", default=False)
     parser.add_argument("--ignore_cache_samples", "-ics", action="store_true", help="ignore cache for samples", default=False)
+    parser.add_argument("--nocache", action="store_true", help="don't touch the cache", default=False)
 
     arguments = parser.parse_args()
 
@@ -155,7 +156,7 @@ def main():
     current_file_dir = os.path.dirname(os.path.realpath(__file__))
     
     # generate embedding for the problem descriptions
-    client = LLMClient(provider=embedding_provider, cache_dir=f"{current_file_dir}/cache")
+    client = LLMClient(provider=embedding_provider, cache_dir=f"{current_file_dir}/cache" if not arguments.nocache else None)
     problem_description_embeddings = [client.generate_embedding(description, model=embedding_model) for description in tqdm(problem_descriptions)]
     if not arguments.use_concept_embeddings:
         problem_embeddings = problem_description_embeddings
@@ -211,7 +212,7 @@ def main():
     client.show_token_usage()
     client.show_global_token_usage()
 
-    client = LLMClient(provider=prompt_provider, cache_dir=f"{current_file_dir}/cache")
+    client = LLMClient(provider=prompt_provider, cache_dir=f"{current_file_dir}/cache" if not arguments.nocache else None)
     samples_and_seeds = []
     if arguments.sample_parallel == 1:
         for prompt, seed in tqdm(prompts_and_seeds):
