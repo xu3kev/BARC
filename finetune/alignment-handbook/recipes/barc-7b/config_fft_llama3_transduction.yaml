@@ -58,6 +58,7 @@ report_to:
 - tensorboard
 - wandb
 save_strategy: "epoch"
+save_only_model: true
 # save_steps: 100
 save_total_limit: 2
 seed: 42
