@@ -329,7 +329,7 @@ def main():
         train_data_induction.append(convert_chat_format_induction(question, answer))
 
         question = make_output_prompt_transduction(problem)
-        answer =  answer = f"The output grid for the test input grid is:\n\n```\n{grid_to_input(problem.test_pairs[0].y, False)}\n```"
+        answer =  answer = f"The output grid for the test input grid is:\n\n```\n{grid_to_input(problem.test_pairs[0].y, False).strip()}\n```"
         answer = convert_color_name(answer, COLOR_REPLACEMENTS)
         question = convert_color_name(question, COLOR_REPLACEMENTS)
 
