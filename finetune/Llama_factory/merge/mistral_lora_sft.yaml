@@ -1,0 +1,13 @@
+### Note: DO NOT use quantized model or quantization_bit when merging lora adapters
+
+### model
+model_name_or_path: mistralai/Mistral-7B-Instruct-v0.3
+adapter_name_or_path: /home/kh844/Fine-tune/LLaMA-Factory/sub/saves/Mistral-7B-Instruct-v0.3/
+template: mistral
+finetuning_type: lora
+
+### export
+export_dir: models/Mistral-7B-Instruct-v0.3_lora_sft_string
+export_size: 2
+export_device: cpu
+export_legacy_format: false
