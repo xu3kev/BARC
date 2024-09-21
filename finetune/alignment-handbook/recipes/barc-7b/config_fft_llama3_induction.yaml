@@ -13,11 +13,15 @@ chat_template: "{{- bos_token }}\n{%- if custom_tools is defined %}\n    {%- set
 packing: false
 
 dataset_mixer:
+  # barc0/transduction_gpt-4_description_20000_with_gpt-4o-mini_codegen_messages_format_0.3: 1
+  # barc0/transduction_gpt-4_description_20000_with_llama_codegen_messages_format_0.3: 1
+  barc0/induction_gpt-4_description_20000_with_gpt-4o-mini_codegen_messages_format_0.3: 1
+  barc0/induction_gpt-4_description_20000_with_llama_codegen_messages_format_0.3: 1
   # barc0/gpt-4_description_20000_with_llama_codegen_messages_format: 1
   # barc0/gpt-4_description_20000_with_gpt-4o-mini_codegen_messages_format: 1
-  barc0/gpt-4_description_20000_with_llama_codegen_messages_format_0.2: 1
-  barc0/gpt-4_description_20000_with_gpt-4o-mini_codegen_messages_format_0.2: 1
-  barc0/transduction_data: 0.2
+  # barc0/gpt-4_description_20000_with_llama_codegen_messages_format_0.2: 1
+  # barc0/gpt-4_description_20000_with_gpt-4o-mini_codegen_messages_format_0.2: 1
+  # barc0/transduction_data: 0.2
   # barc0/gpt-4_description_with_llama_codegen_messages_format: 1
   # barc0/gpt-4o-mini_description_with_gpt-4o-mini_codegen_messages_format: 1
   # barc0/gpt-4o-mini_description_with_llama_codegen_messages_format: 1
@@ -37,9 +41,9 @@ gradient_accumulation_steps: 2
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-hub_model_id: barc-7b-sft-qlora
+hub_model_id: barc0/barc-llama3.1-8b-instruct-fft-sft-induction35k_lr1e-5_epoch2
 hub_strategy: every_save
-learning_rate: 4.0e-05
+learning_rate: 1.0e-05
 log_level: info
 logging_steps: 1
 logging_strategy: steps
@@ -47,11 +51,11 @@ lr_scheduler_type: cosine
 max_seq_length: 8192
 max_steps: -1
 num_train_epochs: 2
-output_dir: data/barc-llama3.1-8b-instruct-fft-sft-induction_transduction_fixed_balance_lr4e-5_epoch2
+output_dir: data/barc-llama3.1-8b-instruct-fft-sft-induction_lr1e-5_epoch2
 overwrite_output_dir: true
 per_device_eval_batch_size: 4
 per_device_train_batch_size: 8
-push_to_hub: false
+push_to_hub: true
 report_to:
 - tensorboard
 - wandb
