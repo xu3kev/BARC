@@ -144,7 +144,7 @@ def main():
         problem_answers = [json.loads(line) for line in f]
 
     os.makedirs("results", exist_ok=True)
-    saving_file = answer_file.replace(".jsonl", "_exec_results.jsonl")
+    saving_file = answer_file.replace(".jsonl", "_exec_results_v3.jsonl")
     # get just the filename
     import pathlib
     saving_file = pathlib.Path(saving_file).name 
@@ -171,6 +171,7 @@ def main():
         pass_or_not = False
         train_verdicts = []
         train_test_verdicts = []
+        verdicts_per_example_per_sample = []
         all_output_grids = []
 
         # SINGLE THREAD
@@ -203,12 +204,15 @@ def main():
                 icon = "[+]" if train_verdict else "[ ]"
                 print(f"    {icon} Code {idx}: {train_test_verdict}, max_ratio: {max_ratio}, min_ratio: {min_ratio}")
                 all_output_grids.append(None)
+                verdicts_per_example = [verdict for verdict, _ in result]
+                verdicts_per_example_per_sample.append(verdicts_per_example)
 
 
 
         problem_answers[problem_idx]["train_verdicts"] = train_verdicts
         problem_answers[problem_idx]["train_test_verdicts"] = train_test_verdicts
         problem_answers[problem_idx]["output_grids"] = [] # all_output_grids
+        problem_answers[problem_idx]["verdicts_per_examples"] = verdicts_per_example_per_sample
         # print(f"Train verdicts: {train_verdicts}, sum: {sum(train_verdicts)}")
         # print(f"Train test verdicts: {train_test_verdicts}, sum: {sum(train_test_verdicts)}")
 
