@@ -22,7 +22,7 @@ def main(input_grid):
     # find which row is fully colored with the color
     y = np.where(np.all(input_grid == color, axis=0))[0][0]
 
-    # shift the row and column down/left by H
+    # shift the column and row down/left by H
     x -= H
     y += H
 
@@ -37,8 +37,8 @@ def generate_input():
     # create a 10x10 black grid
     grid = np.full((10, 10), Color.BLACK)
 
-    # choose a random row/column and color for the cross, and create it
-    # the row/column should be at least 1 pixel away from the bottom left.
+    # choose a random column/row and color for the cross, and create it
+    # the column/row should be at least 1 pixel away from the bottom left.
     x = np.random.randint(1, 10)
     y = np.random.randint(9)
     color = np.random.choice(Color.NOT_BLACK)
@@ -46,7 +46,7 @@ def generate_input():
     grid[:, y] = color
 
     # choose a random number of grey pixels to place in the rightmost column
-    # it should be less than the row and column numbers
+    # it should be less than the column and row numbers
     H = np.random.randint(1, min(x, y))
 
     # color the rightmost column's top H pixels grey
