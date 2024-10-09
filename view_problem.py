@@ -1,6 +1,6 @@
 import sys
 import os
-from arc import train_problems
+from arc import train_problems, validation_problems
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import numpy as np
@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
     problem_id = sys.argv[1]
 
-    problem = [p for p in train_problems if p.uid == problem_id]
+    problem = [p for p in train_problems+validation_problems if p.uid == problem_id]
     assert len(problem) == 1, f"Problem {problem_id} not found"
 
     n_pairs = len(problem[0].train_pairs) + len(problem[0].test_pairs)
