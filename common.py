@@ -84,7 +84,7 @@ def _flood_fill(grid, x, y, color, old_color, connectivity):
 
 def draw_line(grid, x, y, end_x=None, end_y=None, length=None, direction=None, color=None, stop_at_color=[]):
     """
-    Draws a line starting at (x, y) extending to (end_x, end_y) or of the specified length in the specified direction 
+    Draws a line starting at (x, y) extending to (end_x, end_y) or of the specified length in the specified direction
     Direction should be a vector with elements -1, 0, or 1.
     If length is None, then the line will continue until it hits the edge of the grid.
 
@@ -104,7 +104,7 @@ def draw_line(grid, x, y, end_x=None, end_y=None, length=None, direction=None, c
 
     if length is None:
         length = max(grid.shape) * 2
-    
+
     dx, dy = direction
     if abs(dx) > 0: dx = dx // abs(dx)
     if abs(dy) > 0: dy = dy // abs(dy)
@@ -260,7 +260,7 @@ def object_position(obj, background=Color.BLACK, anchor="upper left"):
     anchor = anchor.lower().replace(" ", "") # robustness to mistakes by llm
 
     x, y, w, h = bounding_box(obj, background=background)
-    
+
     if anchor == "upperleft":
         answer_x, answer_y = x, y
     elif anchor == "upperright":
@@ -281,7 +281,7 @@ def object_position(obj, background=Color.BLACK, anchor="upper left"):
         answer_x, answer_y = x + w - 1, y + (h-1) / 2
     else:
         assert False, "Invalid anchor"
-    
+
     if abs(answer_x - int(answer_x)) < 1e-6:
         answer_x = int(answer_x)
     if abs(answer_y - int(answer_y)) < 1e-6:
@@ -436,10 +436,10 @@ def generate_position_has_interval(max_len, position_num, if_padding=False):
         position_list.insert(np.random.randint(0, len(position_list)), 0)
 
     position_list = np.array(position_list)
-    
+
     return np.argwhere(position_list == 1).flatten()
 
-    
+
 
 
 def random_free_location_for_sprite(
@@ -463,6 +463,8 @@ def random_free_location_for_sprite(
     x, y = random_free_location_for_sprite(grid, sprite, padding=1, padding_connectivity=8, border_size=1, background=Color.BLACK) # find the location, using generous padding
     assert not collision(object1=grid, object2=sprite, x2=x, y2=y)
     blit_sprite(grid, sprite, x, y)
+
+    If no free location can be found, raises a ValueError.
     """
     n, m = grid.shape
 
@@ -545,7 +547,7 @@ def object_interior(grid, background=Color.BLACK):
     for j in range(m):
         if grid[0, j] == background: flood_fill(mask, 0, j, 42)
         if grid[n-1, j] == background: flood_fill(mask, n-1, j, 42)
-    
+
     return mask != 42
 
 def object_boundary(grid, background=Color.BLACK):
@@ -616,7 +618,7 @@ class Symmetry:
     def apply(self, x, y, iters=1):
         """
         Apply the symmetry transformation to the point (x, y) `iters` times.
-        Returns the transformed point (x',y')        
+        Returns the transformed point (x',y')
         """
 
 def orbit(grid, x, y, symmetries):
@@ -647,7 +649,7 @@ def orbit(grid, x, y, symmetries):
                 break
         else:
             all_possible.append((new_x, new_y))
-    
+
     return list(set(all_possible))
 
 
@@ -671,7 +673,7 @@ def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
     class TranslationalSymmetry(Symmetry):
         def __init__(self, translate_x, translate_y):
             self.translate_x, self.translate_y = translate_x, translate_y
-        
+
         def apply(self, x, y, iters=1):
             x = x + iters * self.translate_x
             y = y + iters * self.translate_y
@@ -684,10 +686,10 @@ def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
             if isinstance(y, float):
                 y = int(round(y))
             return x, y
-        
+
         def __repr__(self):
             return f"TranslationalSymmetry(translate_x={self.translate_x}, translate_y={self.translate_y})"
-        
+
         def __str__(self):
             return f"TranslationalSymmetry(translate_x={self.translate_x}, translate_y={self.translate_y})"
 
@@ -722,7 +724,7 @@ def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
         # Take the best xy, breaking ties by preferring smaller translations
         best_xy = max(xy_possibilities, key=lambda xy: (xy[1], -xy[0].translate_x - xy[0].translate_y))[0]
         detections.append(best_xy)
-    
+
     return detections
 
 def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]):
@@ -736,14 +738,14 @@ def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]):
         for sym in symmetries:
             symmetric_x, symmetric_y = sym.apply(x, y)
             assert grid[symmetric_x, symmetric_y] == grid[x, y] or grid[symmetric_x, symmetric_y] == Color.BLACK
-    
+
     If the grid has both horizontal and vertical mirror symmetries, the returned list will contain two elements.
     """
 
     class MirrorSymmetry():
         def __init__(self, mirror_x, mirror_y):
             self.mirror_x, self.mirror_y = mirror_x, mirror_y
-        
+
         def apply(self, x, y, iters=1):
             if self.mirror_x is not None:
                 x = 2*self.mirror_x - x
@@ -758,10 +760,10 @@ def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]):
             if isinstance(y, float):
                 y = int(round(y))
             return x, y
-    
+
         def __repr__(self):
             return f"MirrorSymmetry(mirror_x={self.mirror_x}, mirror_y={self.mirror_y})"
-        
+
         def __str__(self):
             return f"MirrorSymmetry(mirror_x={self.mirror_x}, mirror_y={self.mirror_y})"
 
@@ -795,9 +797,9 @@ def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]):
             best_score = score
         elif score == best_score:
             best_symmetries.append(sym)
-    
+
     return best_symmetries
-            
+
 
 def detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK]):
     """
@@ -817,17 +819,17 @@ def detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK]):
     class RotationalSymmetry(Symmetry):
         def __init__(self, center_x, center_y):
             self.center_x, self.center_y = center_x, center_y
-        
+
         def apply(self, x, y, iters=1):
 
             x, y = x - self.center_x, y - self.center_y
-            
+
             for _ in range(iters):
                 if iters >= 0:
                     x, y = y, -x
                 else:
                     x, y = -y, x
-            
+
             x, y = x + self.center_x, y + self.center_y
 
             if isinstance(x, np.ndarray):
@@ -838,7 +840,7 @@ def detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK]):
                 x = int(round(x))
             if isinstance(y, float):
                 y = int(round(y))
-            
+
             return x, y
 
     # Find the center of the grid
@@ -864,7 +866,7 @@ def detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK]):
 def _score_symmetry(grid, symmetry, ignore_colors):
     """
     internal function not used by LLM
-    
+
     Given a grid, scores how well the grid satisfies the symmetry.
 
     Returns:
@@ -1210,7 +1212,7 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
         density = 1
     # small sprites require higher density in order to have a high probability of reaching all of the sides
     elif n == 2 or m == 2:
-        density = max(density, 0.6)  
+        density = max(density, 0.6)
     elif n == 3 or m == 3:
         density = max(density, 0.5)
     elif density == 1:
@@ -1264,7 +1266,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
             objects = [obj for obj in objects if all((color in colors) or color == background for color in obj.flatten())]
         if predicate:
             objects = [obj for obj in objects if predicate(crop(obj, background=background))]
-    
+
     if allowed_dimensions:
         objects = [obj for obj in objects if obj.shape in allowed_dimensions]
 
@@ -1284,7 +1286,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                             scan_objects.append(candidate_object)
         print("scanning produced", len(scan_objects), "objects")
         objects.extend(scan_objects)
-    
+
     if not can_overlap:
         import time
         start = time.time()
@@ -1305,7 +1307,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                         overlap_matrix[j, i] = overlap_matrix[i, j]
         print("time to compute overlaps", time.time() - start)
         start= time.time()
-                
+
         # Pick a subset of objects that don't overlap and which cover as many pixels as possible
         # First, we definitely pick everything that doesn't have any overlaps
         keep_objects = [obj for i, obj in enumerate(objects) if not np.any(overlap_matrix[i])]
@@ -1321,18 +1323,18 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
 
         # Now we just do a brute force search recursively
         def pick_objects(remaining_indices, current_indices, current_mask):
-            nonlocal overlap_matrix 
-            
+            nonlocal overlap_matrix
+
             if not remaining_indices:
                 solution = [objects[i] for i in current_indices]
                 solution_goodness = np.sum(current_mask)
                 return solution, solution_goodness
-            
+
             first_index, *rest = remaining_indices
             # Does that object have any overlap with the current objects? If so don't pick it
             if any( overlap_matrix[i, first_index] for i in current_indices):
                 return pick_objects(rest, current_indices, current_mask)
-            
+
             # Try picking it
             with_index, with_goodness = pick_objects(rest, current_indices + [first_index], current_mask | (objects[first_index] != background))
 
@@ -1347,7 +1349,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                 return with_index, with_goodness
             else:
                 return without_index, without_goodness
-        
+
         solution, _ = pick_objects(remaining_indices, [], np.zeros_like(grid, dtype=bool))
         print("time to pick objects", time.time() - start)
 
