@@ -90,13 +90,19 @@ def draw_line(grid, x, y, end_x=None, end_y=None, length=None, direction=None, c
 
     stop_at_color: optional list of colors that the line should stop at. If the line hits a pixel of one of these colors, it will stop.
 
+    Returns the endpoint of the line.
+
     Example:
     # blue diagonal line from (0, 0) to (2, 2)
-    draw_line(grid, 0, 0, length=3, color=blue, direction=(1, 1))
+    stop_x, stop_y = draw_line(grid, 0, 0, length=3, color=blue, direction=(1, 1))
     draw_line(grid, 0, 0, end_x=2, end_y=2, color=blue)
+    assert (stop_x, stop_y) == (2, 2)
     """
 
     assert (end_x is None) == (end_y is None), "draw_line: Either both or neither of end_x and end_y must be specified."
+
+    assert x ==int(x) and y == int(y), "draw_line: x and y must be integers."
+    x, y = int(x), int(y)
 
     if end_x is not None and end_y is not None:
         length = max(abs(end_x - x), abs(end_y - y)) + 1
@@ -109,6 +115,8 @@ def draw_line(grid, x, y, end_x=None, end_y=None, length=None, direction=None, c
     if abs(dx) > 0: dx = dx // abs(dx)
     if abs(dy) > 0: dy = dy // abs(dy)
 
+    stop_x, stop_y = x, y
+
     for i in range(length):
         new_x = x + i * dx
         new_y = y + i * dy
@@ -116,8 +124,9 @@ def draw_line(grid, x, y, end_x=None, end_y=None, length=None, direction=None, c
             if grid[new_x, new_y] in stop_at_color:
                 break
             grid[new_x, new_y] = color
+            stop_x, stop_y = new_x, new_y
 
-    return grid
+    return stop_x, stop_y
 
 
 def find_connected_components(
