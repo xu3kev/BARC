@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# puzzle pieces
+# puzzle pieces, rotation
 
 # description:
 # In the input you will see a red object with holes in it, and several multicolored 3x3 "puzzle pieces"

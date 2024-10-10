@@ -180,6 +180,7 @@ def scale_pattern(pattern, scale_factor):
     """
     Scales the pattern by the specified factor.
     """
+    print("scale_pattern: DEPRECATED, switch to scale_sprite")
     n, m = pattern.shape
     new_n, new_m = n * scale_factor, m * scale_factor
     new_pattern = np.zeros((new_n, new_m), dtype=pattern.dtype)
@@ -187,6 +188,19 @@ def scale_pattern(pattern, scale_factor):
         for j in range(new_m):
             new_pattern[i, j] = pattern[i // scale_factor, j // scale_factor]
     return new_pattern
+
+def scale_sprite(sprite, factor):
+    """
+    Scales the sprite by the specified factor.
+
+    Example usage:
+    scaled_sprite = scale_sprite(sprite, factor=3)
+    original_width, original_height = sprite.shape
+    scaled_width, scaled_height = scaled_sprite.shape
+    assert scaled_width == original_width * 3 and scaled_height == original_height * 3
+    """
+    return np.kron(sprite, np.ones((factor, factor), dtype=sprite.dtype))
+    
 
 def blit(grid, sprite, x=0, y=0, background=None):
     """

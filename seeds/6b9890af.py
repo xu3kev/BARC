@@ -4,32 +4,34 @@ import numpy as np
 from typing import *
 
 # concepts:
-# object detection, cropping, scaling, 
+# object detection, scaling
 
 # description:
-# In the input you will see a 3x3 pattern square and a red square n times larger than the pattern square.
-# To make the output, you should scale the pattern square to the size of the red square and place it in the red square.
+# In the input you will see a 3x3 object and a red square n times larger than the 3x3 object.
+# To make the output, you should scale the 3x3 object to the size of the red square and place it in the red square.
+# Return just the red square (with the rescaled object put into it)
 
 def main(input_grid):
-    # Detect the red frame squre and the 3x3 pattern square
-    find_grid = detect_objects(grid=input_grid, monochromatic=True, connectivity=8)
+    # Detect the red frame sqaure and the 3x3 pattern square
+    objects = detect_objects(input_grid, monochromatic=True, connectivity=8)
     
     # Extract the object, seperate them into the red frame square and the 3x3 pattern square
-    for obj in find_grid:
-        cropped_obj = crop(grid=obj, background=Color.BLACK)
-        if np.any(cropped_obj == Color.RED):
-            bounding_box_obj = cropped_obj
+    for obj in objects:
+        sprite = crop(obj, background=Color.BLACK)
+        if object_colors(sprite, background=Color.BLACK) == {Color.RED}:
+            bounding_box_sprite = sprite
         else:
-            inner_obj = cropped_obj
+            inner_sprite = sprite
     
-    # Calculate the scale of the pattern square
-    scale = len(bounding_box_obj - 2) // len(inner_obj)
+    # Calculate the scaling factor.
+    # You need to subtract 2 because the red frame square has 1 pixel border on each side, and there are 2 sides
+    scale = (len(bounding_box_sprite) - 2) // len(inner_sprite)
 
-    # Scale the pattern square scale times larger
-    scaled_inner_object = scale_pattern(pattern=inner_obj, scale_factor=scale)
+    # Scale the small thing
+    scaled_inner_sprite = scale_sprite(inner_sprite, scale_factor=scale)
 
-    # Place the scaled pattern square in the red frame square
-    output_grid = blit_sprite(x=1, y=1, grid=bounding_box_obj, sprite=scaled_inner_object, background=Color.BLACK)
+    # Place the scaled sprite in the red frame
+    output_grid = blit_sprite(x=1, y=1, grid=bounding_box_sprite, sprite=scaled_inner_sprite, background=Color.BLACK)
     return output_grid
 
 def generate_input():
@@ -38,24 +40,24 @@ def generate_input():
     grid = np.zeros((n, m), dtype=int)    
 
     # Set the pattern size and scaling range
-    pattern_size = 3
-    availabe_scale = range(1, 5)
-    scale = np.random.choice(availabe_scale)
+    small_object_size = 3
+    availabe_scales = range(1, 5)
+    scale = np.random.choice(availabe_scales)
 
     # Generate the red square frame scale times larger than the pattern square and randomly place it
-    pattern_square = np.full((scale * pattern_size + 2, scale * pattern_size + 2), Color.RED)
-    pattern_square[1:-1, 1:-1] = Color.BLACK
-    x_square, y_square = random_free_location_for_sprite(grid, pattern_square)
-    grid = blit_sprite(x=x_square, y=y_square, grid=grid, sprite=pattern_square, background=Color.BLACK)
+    big_red_rectangle = np.full((scale * small_object_size + 2, scale * small_object_size + 2), Color.RED)
+    big_red_rectangle[1:-1, 1:-1] = Color.BLACK
+    x_square, y_square = random_free_location_for_sprite(grid, big_red_rectangle)
+    grid = blit_sprite(x=x_square, y=y_square, grid=grid, sprite=big_red_rectangle, background=Color.BLACK)
 
     # Generate the random pattern square with pattern_size
     availabe_color = [c for c in Color.NOT_BLACK if c != Color.RED]
     random_color = np.random.choice(availabe_color)
 
     # Randomly place the pattern square in the area without the red square
-    pattern = random_sprite(n=pattern_size, m=pattern_size, color_palette=[random_color], density=0.5)
-    x_pos, y_pos = random_free_location_for_sprite(grid, pattern)
-    grid = blit_sprite(x=x_pos, y=y_pos, grid=grid, sprite=pattern, background=Color.BLACK)
+    sprite = random_sprite(n=small_object_size, m=small_object_size, color_palette=[random_color], density=0.5)
+    x, y = random_free_location_for_sprite(grid, sprite)
+    grid = blit_sprite(x, y, grid, sprite, background=Color.BLACK)
 
     return grid
 
