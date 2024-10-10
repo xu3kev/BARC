@@ -98,6 +98,9 @@ def draw_line(grid, x, y, end_x=None, end_y=None, length=None, direction=None, c
 
     assert (end_x is None) == (end_y is None), "draw_line: Either both or neither of end_x and end_y must be specified."
 
+    assert x ==int(x) and y == int(y), "draw_line: x and y must be integers."
+    x, y = int(x), int(y)
+
     if end_x is not None and end_y is not None:
         length = max(abs(end_x - x), abs(end_y - y)) + 1
         direction = (end_x - x, end_y - y)
@@ -287,6 +290,16 @@ def object_position(obj, background=Color.BLACK, anchor="upper left"):
     if abs(answer_y - int(answer_y)) < 1e-6:
         answer_y = int(answer_y)
     return answer_x, answer_y
+
+
+def object_colors(obj, background=Color.BLACK):
+    """
+    Returns a list of colors in the object.
+
+    Example usage:
+    colors = object_colors(obj, background=background_color)
+    """
+    return list(set(obj.flatten()) - {background})
 
 
 def crop(grid, background=Color.BLACK):

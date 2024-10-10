@@ -288,6 +288,15 @@ def object_position(obj, background=Color.BLACK, anchor="upper left"):
         answer_y = int(answer_y)
     return answer_x, answer_y
 
+def object_colors(obj, background=Color.BLACK):
+    """
+    Returns a list of colors in the object.
+
+    Example usage:
+    colors = object_colors(obj, background=background_color)
+    """
+    return list(set(obj.flatten()) - {background})
+
 
 def crop(grid, background=Color.BLACK):
     """
