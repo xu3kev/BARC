@@ -1037,7 +1037,7 @@ def visualize(input_generator, transform, n_examples=5, n_attempts=100):
         print(failures[0])
 
 
-def apply_symmetry(sprite, symmetry_type):
+def apply_symmetry(sprite, symmetry_type, background=Color.BLACK):
     """
     internal function not used by LLM
     Apply the specified symmetry within the bounds of the sprite.
@@ -1047,13 +1047,13 @@ def apply_symmetry(sprite, symmetry_type):
         for y in range(m):
             for x in range(n // 2):
                 sprite[x, y] = sprite[n - 1 - x, y] = (
-                    sprite[x, y] or sprite[n - 1 - x, y]
+                    sprite[x, y] if sprite[x, y] != background else sprite[n - 1 - x, y]
                 )
     elif symmetry_type == "vertical":
         for x in range(n):
             for y in range(m // 2):
                 sprite[x, y] = sprite[x, m - 1 - y] = (
-                    sprite[x, y] or sprite[x, m - 1 - y]
+                    sprite[x, y] if sprite[x, y] != background else sprite[x, m - 1 - y]
                 )
     else:
         raise ValueError(f"Invalid symmetry type {symmetry_type}.")
@@ -1087,7 +1087,6 @@ def is_contiguous(bitmask, background=Color.BLACK, connectivity=4):
     Returns True/False
     """
     from scipy.ndimage import label
-
     if connectivity == 4:
         structure = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
     elif connectivity == 8:
@@ -1096,6 +1095,7 @@ def is_contiguous(bitmask, background=Color.BLACK, connectivity=4):
         raise ValueError("Connectivity must be 4 or 8.")
 
     labeled, n_objects = label(bitmask != background, structure)
+
     return n_objects == 1
 
 
@@ -1164,7 +1164,7 @@ def generate_sprite(
             x, y = new_x, new_y
 
     if symmetry_type in ["horizontal", "vertical"]:
-        grid = apply_symmetry(grid, symmetry_type)
+        grid = apply_symmetry(grid, symmetry_type, background)
     elif symmetry_type == "radial":
         # this requires resizing
         output = np.full((original_length, original_length), background)
@@ -1177,10 +1177,10 @@ def generate_sprite(
         # diagonal symmetry goes both ways, flip a coin to decide which way
         if diagonal_orientation:
             grid = np.flipud(grid)
-            grid = apply_diagonal_symmetry(grid)
+            grid = apply_diagonal_symmetry(grid, background)
             grid = np.flipud(grid)
         else:
-            grid = apply_diagonal_symmetry(grid)
+            grid = apply_diagonal_symmetry(grid, background)
 
     return grid
 
@@ -1255,6 +1255,7 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
             and np.sum(sprite[:, -1]!=background) > 0
         ):
             return sprite
+
 
 def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochromatic=False, connectivity=None, allowed_dimensions=None, colors=None, can_overlap=False):
     """
