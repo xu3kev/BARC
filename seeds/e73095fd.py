@@ -19,28 +19,30 @@ def main(input_grid):
 
     # for each object, fill it in if it is a rectangle
     for obj in objects:
-        # to check if the object is a rectangle, we can check if the cropped object is entirely black
+        # to check if the object is a rectangle,
+        # we can check if the cropped object is entirely black
         sprite = crop(obj, background=Color.GREY)
         is_rectangle = np.all(sprite == Color.BLACK)
 
         if is_rectangle:
             # we also need to make sure the rectangle isn't caused from an emanating line.
-            # to do so, make sure any grey pixels within 1 pixel of the grey border are not "extremal", aka dont have an x or y value equal to the grey pixel border's x/y value.
-            x, y, w, h = bounding_box(obj, background=Color.GREY)
-            # add a 1 pixel border for the grey border that's already there
-            x -= 1
-            y -= 1
-            w += 2
-            h += 2
-            pixels_to_check = []
-            for direction in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
-                bordering_pixels = find_bordering_pixels_in_direction(x, y, w, h, direction=direction)
-                # only need to check the extreme values
-                pixels_to_check += [bordering_pixels[0], bordering_pixels[-1]]
+            # to do so, check for grey pixels around the border of the grey
+            # border adjacent to a corner (aka the x/y value is one less than the max)
+            border = object_neighbors(obj, background=Color.GREY, connectivity=8)
+            # to get the border of the border, make a copy,
+            # add yellow where the border is,
+            # then find the border of this new object
+            obj2 = obj.copy()
+            obj2[border] = Color.YELLOW
+            border2 = object_neighbors(obj2, background=Color.GREY, connectivity=8)
+            x, y, w, h = bounding_box(obj2, background=Color.GREY)
 
-            # only need to check in bounds pixels
-            pixels_to_check = [(x, y) for (x, y) in pixels_to_check
-                                if 0 <= x < input_grid.shape[0] and 0 <= y < input_grid.shape[1]]
+            pixels_to_check = [
+                (x2, y2) for x2 in range(obj.shape[0]) for y2 in range(obj.shape[1])
+                if (border2[x2, y2]
+                    # check if pixel is adjacent to a corner
+                    and (x2 in [x, x + w-1] or y2 in [y, y + h-1]))
+            ]
 
             if not any(input_grid[x, y] == Color.GREY for x, y in pixels_to_check):
                 # good rectangle!
@@ -57,6 +59,7 @@ def generate_input():
     # to make it possible to place rectangles that go offscreen,
     n = np.random.randint(10, 21)
     m = np.random.randint(10, 21)
+    n, m = 8, 8
     # add a pixel of padding, which we will remove later
     n += 1
     m += 1
@@ -65,7 +68,8 @@ def generate_input():
     # add 2-4 grey rectangles with hollow insides
     # each rectangle can be 3-7x3-7
     # if we can't find a space, just stop adding new rectangles
-    num_rectangles = np.random.randint(2, 5)
+    # num_rectangles = np.random.randint(2, 5)
+    num_rectangles = 1
 
     # store the rectangles so we can add lines to them later
     rectangles = []
@@ -87,7 +91,8 @@ def generate_input():
     # now draw 1-3 lines emanating from the rectangles
     # a line from another rectangle might emanate into the rectangle, so check for existing lines before adding one
     for rectangle, (x, y) in rectangles:
-        num_lines = np.random.randint(1, 4)
+        # num_lines = np.random.randint(1, 4)
+        num_lines = 0
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
         indices = np.random.choice(len(directions), num_lines, replace=False)
         directions = [directions[i] for i in indices]
@@ -95,9 +100,9 @@ def generate_input():
         for direction in directions:
             # if there's already a line here, don't draw another one
             # to check, look for grey pixel within 1 pixel of the rectangle
-            w, l = rectangle.shape
+            w, h = rectangle.shape
 
-            bordering_pixels = find_bordering_pixels_in_direction(x, y, w, l, direction)
+            bordering_pixels = find_bordering_pixels_in_direction(x, y, w, h, direction)
             bordering_pixels = np.array([(x, y) for x, y in bordering_pixels if 0 <= x < n and 0 <= y < m])
             if len(bordering_pixels) == 0:
                 continue
@@ -122,14 +127,15 @@ def generate_input():
     return grid
 
 
-def find_bordering_pixels_in_direction(x, y, w, l, direction):
+
+def find_bordering_pixels_in_direction(x, y, w, h, direction):
     dx, dy = direction
     if dx == 1:  # right
-        bordering_pixels = [(x + w, y + i) for i in range(l)]
+        bordering_pixels = [(x + w, y + i) for i in range(h)]
     elif dx == -1:  # left
-        bordering_pixels = [(x - 1, y + i) for i in range(l)]
+        bordering_pixels = [(x - 1, y + i) for i in range(h)]
     elif dy == 1:  # down
-        bordering_pixels = [(x + i, y + l) for i in range(w)]
+        bordering_pixels = [(x + i, y + h) for i in range(w)]
     elif dy == -1:  # up
         bordering_pixels = [(x + i, y - 1) for i in range(w)]
 
