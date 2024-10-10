@@ -44,9 +44,12 @@ def main(input_grid):
         
         # Filter placement solutions to only those where the red pixels of the piece fit into the holes of the red object
         def valid_solution(x, y, sprite):
-            red_pixels = np.argwhere(sprite == Color.RED)
-            translated_red_pixels = [ (x + dx, y + dy) for dx, dy in red_pixels ]
-            return all( output_grid[red_x, red_y] == Color.BLACK for red_x, red_y in translated_red_pixels )
+            # Make a canvas to try putting down the sprite
+            test_canvas = np.full_like(output_grid, Color.BLACK)
+            blit_sprite(test_canvas, sprite, x, y)
+            # Check if every red pixel in the placed test object is also red in the red object
+            red_pixels = [ (x, y) for x, y in np.argwhere(test_canvas == Color.RED) ]
+            return all( output_grid[red_x, red_y] == Color.BLACK for red_x, red_y in red_pixels )
                 
         possible_solutions = [ solution for solution in possible_solutions if valid_solution(*solution) ]
         if len(possible_solutions) == 0:
