@@ -259,6 +259,23 @@ def bounding_box(grid, background=Color.BLACK):
 
     return x_min, y_min, x_max - x_min + 1, y_max - y_min + 1
 
+def bounding_box_mask(grid, background=Color.BLACK):
+    """
+    Find the bounding box of the non-background pixels in the grid.
+    Returns a mask of the bounding box.
+
+    Example usage:
+    objects = find_connected_components(input_grid, monochromatic=True, background=Color.BLACK, connectivity=8)
+    teal_object = [ obj for obj in objects if np.any(obj == Color.TEAL) ][0]
+    teal_bounding_box_mask = bounding_box_mask(teal_object)
+    # teal_bounding_box_mask[x, y] is true if and only if (x, y) is in the bounding box of the teal object
+    """
+    mask = np.zeros_like(grid, dtype=bool)
+    x, y, w, h = bounding_box(grid, background=background)
+    mask[x : x + w, y : y + h] = True
+
+    return mask
+
 def object_position(obj, background=Color.BLACK, anchor="upper left"):
     """
     (x,y) position of the provided object. By default, the upper left corner.
