@@ -18,10 +18,10 @@ def main(input_grid):
 
     # for each object, draw a green rectangle below it of shape 2xL, where L is the number of colors in the square
     for obj in objects:
-        obj_x, obj_y, _, _ = bounding_box(obj, background=Color.BLACK)
+        obj_x, obj_y, obj_width, obj_height = bounding_box(obj, background=Color.BLACK)
         num_colors = len(np.unique(obj[obj != Color.BLACK]))
-        green_rectangle = np.full((2, num_colors), Color.GREEN)
-        output_grid = blit_sprite(output_grid, green_rectangle, obj_x, obj_y + 2, background=Color.BLACK)
+        green_rectangle = np.full((obj_width, num_colors), Color.GREEN)
+        blit_sprite(output_grid, green_rectangle, obj_x, obj_y + obj_height, background=Color.BLACK)
 
     return output_grid
 
