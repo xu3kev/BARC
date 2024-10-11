@@ -18,20 +18,23 @@ def main(input_grid):
     # Extract the object, seperate them into the red frame square and the 3x3 pattern square
     for obj in objects:
         sprite = crop(obj, background=Color.BLACK)
-        if object_colors(sprite, background=Color.BLACK) == {Color.RED}:
-            bounding_box_sprite = sprite
+        if Color.RED in object_colors(sprite, background=Color.BLACK):
+            outer_sprite = sprite
         else:
             inner_sprite = sprite
     
     # Calculate the scaling factor.
     # You need to subtract 2 because the red frame square has 1 pixel border on each side, and there are 2 sides
-    scale = (len(bounding_box_sprite) - 2) // len(inner_sprite)
+    scale = (len(outer_sprite) - 2) // len(inner_sprite)
 
     # Scale the small thing
-    scaled_inner_sprite = scale_sprite(inner_sprite, scale_factor=scale)
+    scaled_inner_sprite = scale_sprite(inner_sprite, factor=scale)
 
-    # Place the scaled sprite in the red frame
-    output_grid = blit_sprite(x=1, y=1, grid=bounding_box_sprite, sprite=scaled_inner_sprite, background=Color.BLACK)
+    # Put them all down on a new output grid
+    output_grid = np.full(outer_sprite.shape, Color.BLACK)
+    blit_sprite(output_grid, outer_sprite, x=0, y=0, background=Color.BLACK)
+    blit_sprite(output_grid, scaled_inner_sprite, x=1, y=1, background=Color.BLACK)
+
     return output_grid
 
 def generate_input():
