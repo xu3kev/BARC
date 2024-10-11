@@ -8,18 +8,16 @@ from typing import *
 
 # description:
 # In the input you will see a single blue pixel on a black background
-# To make the output, shoot the blue pixel diagonally up and to the right, having it reflect and bounce off the walls until it exits at the top of the grid
+# To make the output, shoot the blue pixel diagonally up and to the right, having it reflect and bounce off the walls until it exits at the top of the grid. Finally, change the background color to teal.
 
 def main(input_grid):
     # Plan:
     # 1. Detect the pixel
     # 2. Shoot each line of the reflection one-by-one, bouncing (changing horizontal direction) when it hits a (horizontal) wall/edge of canvas
+    # 3. Change the background color to teal
 
     # 1. Find the location of the pixel
-    objects = find_connected_components(input_grid, connectivity=4, background=Color.BLACK)
-    assert len(objects) == 1, "There should be exactly one blue pixel"
-    blue_pixel = list(objects)[0]
-    blue_pixel_x, blue_pixel_y = object_position(blue_pixel, background=Color.BLACK, anchor='center')
+    blue_pixel_x, blue_pixel_y = np.argwhere(input_grid == Color.BLUE)[0]
 
     # 2. do the bounce which requires keeping track of the direction of the ray we are shooting, as well as the tip of the ray
     # initially we are shooting diagonally up and to the right (dx=1, dy=-1)
@@ -34,6 +32,10 @@ def main(input_grid):
             break
         blue_pixel_x, blue_pixel_y = stop_x, stop_y
         direction = (-direction[0], direction[1])
+    
+    old_background = Color.BLACK
+    new_background = Color.TEAL
+    input_grid[input_grid == old_background] = new_background
     
     return input_grid
 
