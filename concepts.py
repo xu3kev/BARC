@@ -87,7 +87,7 @@ def all_descriptions():
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description = "")
-    parser.add_argument("thing_to_print", default="concepts", choices=["concepts", "description"])
+    parser.add_argument("--thing_to_print", default="concepts", choices=["concepts", "description"])
     arguments = parser.parse_args()
 
     if arguments.thing_to_print == "concepts":

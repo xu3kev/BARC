@@ -7,6 +7,7 @@ import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 import time
+import tiktoken
 
 
 class Provider(Enum):
@@ -22,6 +23,7 @@ class OpenAIModels(Enum):
     GPT_4O = 'gpt-4o'
     GPT_35_TURBO = 'gpt-3.5-turbo'
     GPT_4O_MINI = 'gpt-4o-mini'
+    TEXT_EMBEDDING_ADA_002 = "text-embedding-ada-002"
 
 class GroqModels(Enum):
     LLAMA3_70B_8192 = 'llama3-70b-8192'
@@ -47,6 +49,20 @@ class LLMClient:
         Provider.OPENROUTER: OpenRouterModels
     }
 
+    model_cost = {
+        "gpt-4": (30, 60),
+        "gpt-4-turbo": (10, 30),
+        "gpt-4-turbo-preview": (10, 30),
+        "gpt-4-turbo-2024-04-09": (10, 30),
+        "gpt-4o": (5, 15),
+        "gpt-4o-mini": (0.15, 0.60),
+        "gpt-4o-2024-05-13": (5, 15),
+        "gpt-3.5-turbo-0123": (0.50, 1.50),
+        "gpt-3.5-turbo": (0.50, 1.50),
+        "text-embedding-ada-002": (0.10, 0.10),
+        "deepseek/deepseek-coder": (0.14, 0.28),
+    }
+
     def __init__(self, system_content=None, provider=Provider.OPENAI, cache_dir='cache', key=None):
         self.provider = provider
         self.api_key = key or self._get_api_key()
@@ -54,6 +70,9 @@ class LLMClient:
         self.system_content = system_content if system_content is not None else "You will be provided a few code examples on color grid input generator and transformation. You will be creative and come up with similar and interesting problems."
         self.client = self._initialize_client()
         self.cache = dc.Cache(cache_dir)
+        self.usage_cache = dc.Cache(cache_dir + "_usage")
+        self.total_input_tokens = {}
+        self.total_output_tokens = {}
 
     def _get_api_key(self):
         if self.provider == Provider.GROQ:
@@ -82,6 +101,65 @@ class LLMClient:
         # Create a unique hash for the given parameters
         hash_input = f"{prompt}-{model}-{temperature}-{max_tokens}-{self.system_content}-{top_p}".encode()
         return hashlib.md5(hash_input).hexdigest()
+    
+    def _hash_embedding(self, input, model):
+        # Create a unique hash for the given parameters
+        hash_input = f"{input}-{model}-{self.system_content}".encode()
+        return hashlib.md5(hash_input).hexdigest()
+    
+    def update_usage(self, engine: str, usage: dict[str, int]):
+        self.total_input_tokens[engine] = self.total_input_tokens.get(engine, 0) + usage.prompt_tokens
+        self.total_output_tokens[engine] = self.total_output_tokens.get(engine, 0) + usage.total_tokens - usage.prompt_tokens
+        self.add_usage_to_cache(engine, usage)
+
+    def show_global_token_usage(self):
+        for engine in self.model_cost.keys():
+            usage = self.get_usage_from_cache(engine)
+            i = usage["input_tokens"]
+            o = usage["output_tokens"]
+            # dollars per million tokens
+            i_cost, o_cost = self.model_cost.get(engine, (0.0, 0.0))
+            total_cost = i_cost*i/1e6 + o_cost*o/1e6
+
+            print(f"{engine}: {i} input tokens (${i_cost:.02f}/1m tokens), {o} output tokens (${o_cost:.02f}/1m tokens)")
+            print(" "*len(engine), f" total cost: ${total_cost:.02f}")
+
+    def show_token_usage(self):
+        for engine in self.total_input_tokens:
+            i = self.total_input_tokens[engine]
+            o = self.total_output_tokens[engine]
+            # dollars per million tokens
+            i_cost, o_cost = self.model_cost.get(engine, (0.0, 0.0))
+            total_cost = i_cost*i/1e6 + o_cost*o/1e6
+
+            print(f"{engine}: {i} input tokens (${i_cost:.02f}/1m tokens), {o} output tokens (${o_cost:.02f}/1m tokens)")
+            print(" "*len(engine), f" total cost: ${total_cost:.02f}")
+
+    def total_cost(self):
+        total_cost = 0
+        for engine in self.total_input_tokens:
+            i = self.total_input_tokens[engine]
+            o = self.total_output_tokens[engine]
+            i_cost, o_cost = self.model_cost.get(engine, (0.0, 0.0))
+            total_cost += i_cost*i/1000 + o_cost*o/1000
+        return total_cost
+
+    def n_tokens_in_prompt(self, prompt, engine):
+        encoding = tiktoken.encoding_for_model(engine)
+        if isinstance(prompt, str): prompt = [prompt]
+        return sum( len(encoding.encode(p)) for p in prompt )
+
+    def get_token_usage(self, engine):
+        i = self.total_input_tokens.get(engine, 0)
+        o = self.total_output_tokens.get(engine, 0)
+        return i, o
+    
+    def add_usage_to_cache(self, engine, usage):
+        cur = self.usage_cache.get(engine, {"input_tokens": 0, "output_tokens": 0})
+        self.usage_cache[engine] = {"input_tokens": cur["input_tokens"] + usage.prompt_tokens, "output_tokens": cur["output_tokens"] + usage.total_tokens - usage.prompt_tokens}
+
+    def get_usage_from_cache(self, model):
+        return self.usage_cache.get(model, {"input_tokens": 0, "output_tokens": 0})
 
     def send_request(self, prompt, model, temperature, max_tokens, top_p, num_samples):
         response = self.client.chat.completions.create(
@@ -102,6 +180,14 @@ class LLMClient:
             n=num_samples
         )
         return response
+    
+    def send_embedding_request(self, input, model):
+        response = self.client.embeddings.create(
+            model=model.value,
+            input=input,
+            encoding_format="float"
+        )
+        return response
 
     def check_model_name(self, model):
         model_enum = self.AVAILABLE_MODELS[self.provider]
@@ -116,17 +202,28 @@ class LLMClient:
         # Create a unique hash for the prompt and parameters (excluding num_samples)
         cache_key = self._hash_prompt(prompt, model.value, temperature, max_tokens, top_p)
         return self.cache.get(cache_key, [])
+    
+    def get_embedding_from_cache(self, input, model):
+        # Create a unique hash for the prompt and parameters (excluding num_samples)
+        cache_key = self._hash_embedding(input, model.value)
+        return self.cache.get(cache_key, None)
 
     def add_samples_to_cache(self, prompt, model, temperature, max_tokens, top_p, samples):
         cache_key = self._hash_prompt(prompt, model.value, temperature, max_tokens, top_p)
         cached_samples = self.cache.get(cache_key, [])
         cached_samples.extend(samples)
         self.cache[cache_key] = cached_samples
+    
+    def add_embedding_to_cache(self, input, model, embedding):
+        cache_key = self._hash_embedding(input, model.value)
+        self.cache[cache_key] = embedding
 
-    def generate(self, prompt, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1):
+    def generate(self, prompt, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1, ignore_cache_samples=False):
         model = self.check_model_name(model)
-        cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
-
+        if not ignore_cache_samples:
+            cached_samples = self.get_samples_from_cache(prompt, model, temperature, max_tokens, top_p)
+        else:
+            cached_samples = []
         # If the number of cached samples is less than requested, generate more samples
         if len(cached_samples) < num_samples:
             remaining_samples = num_samples - len(cached_samples)
@@ -137,6 +234,7 @@ class LLMClient:
                     response = self.send_request(prompt, model, temperature, max_tokens, top_p, remaining_samples)
                     new_samples = [c.message.content for c in response.choices]
                     self.add_samples_to_cache(prompt, model, temperature, max_tokens, top_p, new_samples)
+                    self.update_usage(model.value, response.usage)
                     actually_got_samples = True
                 except Exception as e:
                     if "Rate limit reached for model" in str(e):
@@ -146,6 +244,10 @@ class LLMClient:
                         print("Rate limit reached, backoff for", backoff_timer, "seconds")
                         time.sleep(backoff_timer)
                         backoff_timer *= 2
+                    elif "Bad Request" in str(e):
+                        print("Bad Request, skipping")
+                        print(e)
+                        break
                     else:
                         print("Error, going to try again in 1 second", e)
                         time.sleep(1)
@@ -158,16 +260,63 @@ class LLMClient:
             return random.sample(cached_samples, num_samples)
 
         return cached_samples[:num_samples]
+    
+    def generate_embedding(self, input, model=None):
+        model = self.check_model_name(model)
+        cached_embedding = self.get_embedding_from_cache(input, model)
+
+        # If the embedding is not cached, generate it
+        if cached_embedding is None:
+            actually_got_embedding = False
+            backoff_timer = 1
+            while not actually_got_embedding:
+                try:
+                    response = self.send_embedding_request(input, model)
+                    embedding = response.data[0].embedding
+                    self.add_embedding_to_cache(input, model, embedding)
+                    self.update_usage(model.value, response.usage)
+                    actually_got_embedding = True
+                except Exception as e:
+                    if "Rate limit reached for model" in str(e):
+                        if backoff_timer > 120:
+                            print("Request too big, skipping")
+                            break
+                        print("Rate limit reached, backoff for", backoff_timer, "seconds")
+                        time.sleep(backoff_timer)
+                        backoff_timer *= 2
+                    elif "Bad Request" in str(e):
+                        print("Bad Request, skipping")
+                        break
+                    else:
+                        print("Error, going to try again in 1 second", e)
+                        time.sleep(1)
+                
+
+        # WARN neccessary to get the samples from cache again as it might have been updated
+        cached_embedding = self.get_embedding_from_cache(input, model)
+
+        return cached_embedding
+
+
 
     def generate_parallel(self, prompts, num_samples, model=None, temperature=0.7, max_tokens=800, top_p=1, num_workers=8):
         """use concurrent futures to generate samples in parallel"""
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            futures = [executor.submit(self.generate, prompt, num_samples, model, temperature, max_tokens, top_p) for prompt in prompts]
+            results = []
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Generating samples"):
+                results.append(future.result())
+            return results
+        
+    def generate_embedding_parallel(self, inputs, model=None, num_workers=8):
+        """use concurrent futures to generate samples in parallel"""
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
             future_to_index = {
-                executor.submit(self.generate, prompt, num_samples, model, temperature, max_tokens, top_p): i
-                for i, prompt in enumerate(prompts)
+                executor.submit(self.generate_embedding, input, model): i
+                for i, input in enumerate(inputs)
             }
-            results = [None] * len(prompts)  # Pre-allocate the results list
-            for future in tqdm(as_completed(future_to_index), total=len(future_to_index), desc="Generating samples"):
+            results = [None] * len(inputs) # Pre-allocate the results list
+            for future in tqdm(as_completed(future_to_index), total=len(future_to_index), desc="Generating embeddings"):
                 index = future_to_index[future]
                 results[index] = future.result()
             return results
