@@ -14,8 +14,8 @@ def main(input_grid):
     # Plan:
     # 1. Detect the objects
     # 2. Determine the orientation of the teal line, and its endpoints
-    # 2. Shoot a green line outward until it hits the red rectangle
-    # 3. Reflect the green line off the red rectangle, continuing in green
+    # 3. Shoot a green line outward until it hits the red rectangle
+    # 4. Reflect the green line off the red rectangle, continuing in green
 
     teal_line = detect_objects(input_grid, colors=[Color.TEAL], monochromatic=True, connectivity=8)
     assert len(teal_line) == 1, "There should be exactly one teal line"
@@ -42,16 +42,16 @@ def main(input_grid):
 
             # reflection geometry depends on if we hit the red rectangle on our left/right/up/down
             # did we hit the red rectangle on our right? 
-            if stop_x+1 < output_grid.shape[0] and output_grid[stop_x+1, stop_y] == Color.RED:
+            if stop_x+1 < output_grid.shape[0] and output_grid[stop_x+1, stop_y] != Color.BLACK:
                 dx = -dx
             # did we hit the red rectangle on our left?
-            elif stop_x-1 >= 0 and output_grid[stop_x-1, stop_y] == Color.RED:
+            elif stop_x-1 >= 0 and output_grid[stop_x-1, stop_y] != Color.BLACK:
                 dx = -dx
             # did we hit the red rectangle on our bottom?
-            elif stop_y+1 < output_grid.shape[1] and output_grid[stop_x, stop_y+1] == Color.RED:
+            elif stop_y+1 < output_grid.shape[1] and output_grid[stop_x, stop_y+1] != Color.BLACK:
                 dy = -dy
             # did we hit the red rectangle on our top?
-            elif stop_y-1 >= 0 and output_grid[stop_x, stop_y-1] == Color.RED:
+            elif stop_y-1 >= 0 and output_grid[stop_x, stop_y-1] != Color.BLACK:
                 dy = -dy
             else:
                 # didn't do any reflections, so stop
