@@ -8,6 +8,16 @@ from arc import train_problems, validation_problems
 import argparse
 import os
 
+from arc.read import parse_dir
+def get_concept_arc_problems():
+    problems = []
+    for problem_directory in os.listdir("ConceptARC"):
+        problems.extend(parse_dir("ConceptARC/"+problem_directory))
+    
+    return problems
+
+concept_arc_problems = get_concept_arc_problems()
+
 TRANSPOSE = False
 
 MULTI_EXECUTE = True
@@ -18,6 +28,7 @@ class GridComparisonResult(Enum):
     CONTENT_MISMATCH = 2
     TYPE_MISMATCH = 3
     ERROR = 4
+    NON_2D_ARRAY = 5
 
 def compare_grids(output_grid, expected_output_grid):
     if isinstance(output_grid, str):
@@ -25,6 +36,9 @@ def compare_grids(output_grid, expected_output_grid):
     
     if not isinstance(output_grid, np.ndarray):
         return GridComparisonResult.TYPE_MISMATCH, 0.0
+    
+    if len(output_grid.shape) != 2:
+        return GridComparisonResult.NON_2D_ARRAY, 0.0
     
     if output_grid.shape != expected_output_grid.shape:
         return GridComparisonResult.SHAPE_MISMATCH, 0.0
@@ -119,17 +133,25 @@ def multi_validate(arc_problem, codes):
                 comparison_result, ratio = compare_grids(output_grid, pairs[pair_idx].y)
             except:
                 breakpoint()
-            results[code_idx].append((comparison_result == GridComparisonResult.EQUAL, ratio))
+            if comparison_result == GridComparisonResult.EQUAL:
+                results[code_idx].append((comparison_result == GridComparisonResult.EQUAL, ratio))
+            elif comparison_result == GridComparisonResult.SHAPE_MISMATCH:
+                results[code_idx].append((comparison_result == GridComparisonResult.EQUAL, ratio))
+            elif comparison_result == GridComparisonResult.CONTENT_MISMATCH:
+                results[code_idx].append((comparison_result == GridComparisonResult.EQUAL, ratio))
+            else:
+                results[code_idx].append((None, 0.0))
 
         assert len(results) == len(codes)
 
     return results
 
 def get_arc_problem(uid):
-    for problem in train_problems + validation_problems:
+    for problem in train_problems + validation_problems + concept_arc_problems:
         if problem.uid == uid:
             return problem
-    return None
+    assert False, f"Problem {uid} not found"
+    # return None
 
 def main():
     # answer_file = "answers_ft_gpt-4o-mini-2024-07-18_ellislab_llama2000-seeds_9qjZpfTA_train.jsonl"
@@ -144,7 +166,7 @@ def main():
         problem_answers = [json.loads(line) for line in f]
 
     os.makedirs("results", exist_ok=True)
-    saving_file = answer_file.replace(".jsonl", "_exec_results_v3.jsonl")
+    saving_file = answer_file.replace(".jsonl", "_exec_results_v4.jsonl")
     # get just the filename
     import pathlib
     saving_file = pathlib.Path(saving_file).name 
