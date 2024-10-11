@@ -25,7 +25,7 @@ def main(input_grid):
     direction = (1, -1)
 
     # loop until we fall out of the canvas
-    while 0 <= blue_pixel_y < input_grid.shape[1] and 0 <= blue_pixel_x < input_grid.shape[0]:
+    while 0 <= blue_pixel_x < input_grid.shape[0] and 0 <= blue_pixel_y < input_grid.shape[1]:
         stop_x, stop_y = draw_line(input_grid, blue_pixel_x, blue_pixel_y, direction=direction, color=Color.BLUE)
         # Terminate if we failed to make progress
         if stop_x == blue_pixel_x and stop_y == blue_pixel_y:
