@@ -4,11 +4,11 @@ import numpy as np
 from typing import *
 
 # concepts:
-# filling
+# filling, topology
 
 # description:
 # The input is a black 12x12 grid containing a few grey squares. Each square has a "hole" in it, a contiguous black region of pixels.
-# To create the output, fill in the hole of each grey object if the hole is a square. Otherwise, leave the hole as is.
+# To create the output, fill in the hole of each grey object with red if the hole is a square. Otherwise, leave the hole as is.
 
 def main(input_grid):
     # get the grey squares
@@ -20,16 +20,21 @@ def main(input_grid):
     # for each grey square, fill in the hole if it is a square
     for obj in objects:
         # to check if the grey object contains a square hole, we can check if the bounding box of the hole is a square.
-        # To do so, first crop the object, then find the object inside, using grey as background.
-        sprite = crop(obj)
-        hole_sprite = crop(sprite, background=Color.GREY)
-        # sprite is square if it is entirely black and has the same width and height
-        is_square = np.all(hole_sprite == Color.BLACK) and (hole_sprite.shape[0] == hole_sprite.shape[1])
-        if is_square:
-            sprite[sprite == Color.BLACK] = Color.RED
+        # To do so, first crop the object, then find the black hole inside
+        sprite = crop(obj, background=Color.BLACK)
+        hole_mask = (sprite == Color.BLACK) & (object_interior(sprite, background=Color.BLACK))
+
+        # check if the mask is square
+        def is_square(thing):
+            """thing can be a mask or a sprite or an object"""
+            thing = crop(thing)
+            return np.sum(thing != Color.BLACK) == thing.shape[0] * thing.shape[1] and thing.shape[0] == thing.shape[1]
+        
+        if is_square(hole_mask):
+            sprite[hole_mask] = Color.RED
 
         # get location of object so we can blit the possibly edited sprite back into the grid
-        x, y, _, _ = bounding_box(obj)
+        x, y = object_position(obj, background=Color.BLACK)
         blit_sprite(output_grid, sprite, x, y)
 
     return output_grid
