@@ -17,8 +17,8 @@ def main(input_grid):
 
     w, h = input_grid.shape
 
-    # Identify the translational symmetries
-    translations = detect_translational_symmetry(input_grid, ignore_colors=[Color.BLACK])
+    # Identify the translational symmetries. Note that there is no background color for this problem.
+    translations = detect_translational_symmetry(input_grid, ignore_colors=[Color.BLACK], background=None)
     assert len(translations) > 0, "No translational symmetry found"
 
     # Reconstruct the occluded black pixels by replacing them with colors found in the orbit of the symmetries
