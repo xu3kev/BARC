@@ -6,82 +6,67 @@ from typing import *
 # counting, color
 
 # description:
-# In the input you will see a grid with several squares separated by lines of the same color.
-# Each square has several pixels of the same color.
-# To make the output, fill the square with the most colored pixels with its color,
-# fill the other squares with black.
+# In the input you will see grey horizontal and vertical bars rectangular regions. Each rectangular region is black with some colored pixels added.
+# To make the output, fill the rectangular region with the most colored pixels. Fill it with is color. Fill the other rectangular regions with black.   
 
 def main(input_grid: np.ndarray) -> np.ndarray:
     # Create a copy of the input grid to avoid modifying the original
     output_grid = np.copy(input_grid)  
 
-    # Get all the squares seperated by lines in the grid
-    line_color = Color.GRAY
-    squares = find_connected_components(grid=output_grid, background=line_color, monochromatic=False, connectivity=4)
+    # Get all the rectangular regions seperated by horizontal and vertical dividers
+    divider_color = Color.GRAY
+    regions = find_connected_components(grid=output_grid, background=divider_color, monochromatic=False, connectivity=4)
 
-    # Get all squares' bounding box and cropped pattern
-    cropped_squares  = []
-    max_num_pixels = 0
-    for obj in squares:
-        x, y, width, height = bounding_box(grid=obj, background=line_color)
-        square = crop(grid=obj, background=line_color)
-        cropped_squares.append({'x': x, 'y': y, 'len': width, 'pattern': square, 'num_pixels': np.sum(square != Color.BLACK)})
-        max_num_pixels = max(max_num_pixels, np.sum(square != Color.BLACK))
-    # Sort the squares by their position
-    cropped_squares = sorted(cropped_squares, key=lambda x: (x['x'], x['y']))
+    # Find the region with the most colored pixels inside of it
+    num_colored_pixels = [ np.sum(region != divider_color & region != Color.BLACK) for region in regions ]
+    max_colored_pixels = max(num_colored_pixels)
 
-    # Calculate colored pixels' number in each square
-    # Fill the square with most colored pixels with its color
-    # Fill the other squares with black
-    for square in cropped_squares:
-        x, y = square['x'], square['y']
-        square_pattern = square['pattern']
-
-        if square['num_pixels'] == max_num_pixels:
-            # Fill the square with the color of the pattern
-            square_color = np.unique(square_pattern)[1]
-            filled_square = np.full_like(square_pattern, fill_value=square_color)    
-            output_grid = blit_sprite(grid=output_grid, sprite=filled_square, x=x, y=y, background=line_color)
+    # Fill the region with the most colored pixels with its color
+    # Fill the other regions with black
+    for region_obj in regions:
+        # Figure out if it is one of the max colored regions to determine what the target color is that we are going to fill with
+        num_colored_pixels_in_this_region = np.sum(region_obj != divider_color & region_obj != Color.BLACK)
+        if num_colored_pixels_in_this_region == max_colored_pixels:
+            colors = [ color for color in object_colors(region_obj, background=divider_color) if color != Color.BLACK ]
+            assert len(colors) == 1, "Each region should have only one color"
+            target_color = colors[0]
         else:
-            # Fill the square with black
-            black_square = np.full_like(square_pattern, fill_value=Color.BLACK)
-            output_grid = blit_sprite(grid=output_grid, sprite=black_square, x=x, y=y, background=line_color)
+            target_color = Color.BLACK
+
+        # Fill the region with the target color
+        output_grid[region_obj != divider_color] = target_color
 
     return output_grid
 
 def generate_input() -> np.ndarray:
     # Define the base cofiguration of the grid seperated by chessboard lines
     # Randomly select the size of the squares, create a 3x3 grid of squares
-    square_len = np.random.choice([5, 7, 9])
-    pattern_len = square_len - 2
-    square_num = 3
+    region_len = np.random.choice([5, 7, 9])
+    interior_len = region_len - 2
+    region_num = 3
 
     # Size of the grid is grid length plus line length
-    n, m = square_len * square_num + square_num - 1, square_len * square_num + square_num - 1
+    n, m = region_len * region_num + region_num - 1, region_len * region_num + region_num - 1
     grid = np.zeros((n, m), dtype=int)
 
-    # Select two colors for the lines and the pattern
-    colors = Color.NOT_BLACK.copy()
-    line_color = Color.GRAY 
-    colors.remove(line_color)
-    pattern_color = random.choice(colors) 
+    # Select two distinct colors for the lines and the pattern
+    divider_color, interior_color = np.random.choice(Color.NOT_BLACK, 2, replace=False) 
 
-    # Fill specific rows and columns with the line color
-    for i in range(square_len, n, square_len + 1):
-        draw_line(grid=grid, x=i, y=0, color=line_color, direction=(0, 1))
-        draw_line(grid=grid, x=0, y=i, color=line_color, direction=(1, 0))
-
+    # Fill rows and columns with the divider color
+    for i in range(region_len, n, region_len + 1):
+        draw_line(grid=grid, x=i, y=0, color=divider_color, direction=(0, 1))
+        draw_line(grid=grid, x=0, y=i, color=divider_color, direction=(1, 0))
 
     # Add different density of pixels to each square
-    for i in range(0, n, square_len + 1):
-        for j in range(0, m, square_len + 1):
+    for x in range(0, n, region_len + 1):
+        for y in range(0, m, region_len + 1):
             # Randomly select the density of the square
-            square_background = np.zeros((square_len, square_len), dtype=int)
-            density = np.random.randint(1, pattern_len * pattern_len) / (pattern_len * pattern_len)
+            square_background = np.zeros((region_len, region_len), dtype=int)
+            density = np.random.randint(1, interior_len * interior_len) / (interior_len * interior_len)
 
             # Randomly scatter the color in the square
-            square_background = random_scatter_points(grid=square_background, color=pattern_color, density=density)
-            grid = blit_sprite(grid=grid, sprite=square_background, x=i, y=j)
+            square_background = random_scatter_points(grid=square_background, color=interior_color, density=density)
+            grid = blit_sprite(grid, square_background, x, y)
         
     return grid
 
