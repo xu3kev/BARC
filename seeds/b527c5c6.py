@@ -35,35 +35,35 @@ def main(input_grid):
 
         # If one the left border, extend the line to the left
         if red_x == 0:
-            output_grid = draw_line(grid=output_grid, x=rela_x, y=rela_y, direction=(-1, 0), color=indicator_color)
+            draw_line(grid=output_grid, x=rela_x, y=rela_y, direction=(-1, 0), color=indicator_color)
             # Extend green line to the left with same size of width - 1
             for i in range(1, width):
-                output_grid = draw_line(grid=output_grid, x=rela_x, y=rela_y - i, direction=(-1, 0), color=rectangle_color)
-                output_grid = draw_line(grid=output_grid, x=rela_x, y=rela_y + i, direction=(-1, 0), color=rectangle_color)
+                draw_line(grid=output_grid, x=rela_x, y=rela_y - i, direction=(-1, 0), color=rectangle_color)
+                draw_line(grid=output_grid, x=rela_x, y=rela_y + i, direction=(-1, 0), color=rectangle_color)
 
         # If one the right border, extend the line to the right
         if red_x == width - 1:
-            output_grid = draw_line(grid=output_grid, x=rela_x, y=rela_y, direction=(1, 0), color=indicator_color)
+            draw_line(grid=output_grid, x=rela_x, y=rela_y, direction=(1, 0), color=indicator_color)
             # Extend green line to the right with same size of width - 1
             for i in range(1, width):
-                output_grid = draw_line(grid=output_grid, x=rela_x, y=rela_y - i, direction=(1, 0), color=rectangle_color)
-                output_grid = draw_line(grid=output_grid, x=rela_x, y=rela_y + i, direction=(1, 0), color=rectangle_color)
+                draw_line(grid=output_grid, x=rela_x, y=rela_y - i, direction=(1, 0), color=rectangle_color)
+                draw_line(grid=output_grid, x=rela_x, y=rela_y + i, direction=(1, 0), color=rectangle_color)
         
         # If one the top border, extend the line to the top
         if red_y == 0:
-            output_grid = draw_line(grid=output_grid, x=rela_x, y=rela_y, direction=(0, -1), color=indicator_color)
+            draw_line(grid=output_grid, x=rela_x, y=rela_y, direction=(0, -1), color=indicator_color)
             # Extend green line to the top with same size of height - 1
             for i in range(1, height):
-                output_grid = draw_line(grid=output_grid, x=rela_x - i, y=rela_y, direction=(0, -1), color=rectangle_color)
-                output_grid = draw_line(grid=output_grid, x=rela_x + i, y=rela_y, direction=(0, -1), color=rectangle_color)
+                draw_line(grid=output_grid, x=rela_x - i, y=rela_y, direction=(0, -1), color=rectangle_color)
+                draw_line(grid=output_grid, x=rela_x + i, y=rela_y, direction=(0, -1), color=rectangle_color)
         
         # If one the bottom border, extend the line to the bottom
         if red_y == height - 1:
-            output_grid = draw_line(grid=output_grid, x=rela_x, y=rela_y, direction=(0, 1), color=indicator_color)
+            draw_line(grid=output_grid, x=rela_x, y=rela_y, direction=(0, 1), color=indicator_color)
             # Extend green line to the bottom with same size of height - 1
             for i in range(1, height):
-                output_grid = draw_line(grid=output_grid, x=rela_x - i, y=rela_y, direction=(0, 1), color=rectangle_color)
-                output_grid = draw_line(grid=output_grid, x=rela_x + i, y=rela_y, direction=(0, 1), color=rectangle_color)
+                draw_line(grid=output_grid, x=rela_x - i, y=rela_y, direction=(0, 1), color=rectangle_color)
+                draw_line(grid=output_grid, x=rela_x + i, y=rela_y, direction=(0, 1), color=rectangle_color)
 
     return output_grid
 
