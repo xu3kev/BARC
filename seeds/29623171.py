@@ -3,7 +3,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# counting, color
+# counting, dividers, filling
 
 # description:
 # In the input you will see grey horizontal and vertical bars that divide rectangular regions. Each rectangular region is black with some colored pixels added.

@@ -784,6 +784,48 @@ def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK], background=
 
     return detections
 
+class MirrorSymmetry():
+    """
+    Mirror symmetry transformation, which flips horizontally and/or vertically
+
+    Example usage:
+    symmetry = MirrorSymmetry(mirror_x=x if "horizontal" else None, mirror_y=y if "vertical" else None)
+
+    # Flip mirrored_object over the symmetry and draw to the output
+    for x, y in np.argwhere(mirrored_object != background):
+        x2, y2 = symmetry.apply(x, y)
+        output_grid[x2, y2] = mirrored_object[x, y]
+    
+    """
+    def __init__(self, mirror_x, mirror_y):
+        self.mirror_x, self.mirror_y = mirror_x, mirror_y
+
+    def apply(self, x, y, iters=1):
+        if iters % 2 == 0:
+            return x, y
+        if self.mirror_x is not None:
+            x = 2*self.mirror_x - x
+        if self.mirror_y is not None:
+            y = 2*self.mirror_y - y
+        if isinstance(x, np.ndarray):
+            x = x.astype(int)
+        if isinstance(y, np.ndarray):
+            y = y.astype(int)
+        if isinstance(x, float):
+            x = int(round(x))
+        if isinstance(y, float):
+            y = int(round(y))
+        return x, y
+
+    def __repr__(self):
+        return f"MirrorSymmetry(mirror_x={self.mirror_x}, mirror_y={self.mirror_y})"
+
+    def __str__(self):
+        return f"MirrorSymmetry(mirror_x={self.mirror_x}, mirror_y={self.mirror_y})"
+    
+    def _iter_range(self, grid_shape):
+        return (0, 2)
+
 def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK], background=None):
     """
     Returns list of mirror symmetries.
@@ -798,36 +840,6 @@ def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK], background=None):
 
     If the grid has both horizontal and vertical mirror symmetries, the returned list will contain two elements.
     """
-
-    class MirrorSymmetry():
-        def __init__(self, mirror_x, mirror_y):
-            self.mirror_x, self.mirror_y = mirror_x, mirror_y
-
-        def apply(self, x, y, iters=1):
-            if iters % 2 == 0:
-                return x, y
-            if self.mirror_x is not None:
-                x = 2*self.mirror_x - x
-            if self.mirror_y is not None:
-                y = 2*self.mirror_y - y
-            if isinstance(x, np.ndarray):
-                x = x.astype(int)
-            if isinstance(y, np.ndarray):
-                y = y.astype(int)
-            if isinstance(x, float):
-                x = int(round(x))
-            if isinstance(y, float):
-                y = int(round(y))
-            return x, y
-
-        def __repr__(self):
-            return f"MirrorSymmetry(mirror_x={self.mirror_x}, mirror_y={self.mirror_y})"
-
-        def __str__(self):
-            return f"MirrorSymmetry(mirror_x={self.mirror_x}, mirror_y={self.mirror_y})"
-        
-        def _iter_range(self, grid_shape):
-            return (0, 2)
 
     n, m = grid.shape
     xy_possibilities = [

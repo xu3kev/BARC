@@ -7,81 +7,58 @@ from typing import *
 # symmetry, mirror
 
 # description:
-# In the input you will see two patterns on each outer side of two frames.
-# To make the output, you need mirror two patterns by the symmetry of the framework, make them inside the framework.
+# In the input you will see two objects on each outer side of two red frames.
+# To make the output, you need to mirror the two objects by flipping them over the symmetry of the red frames, making them inside the red frames. Each object flips over the frame closest to it.
 
 def main(input_grid):
     # Extract the framework
     frame_color = Color.RED
     object_color = Color.GRAY 
+    background = Color.BLACK
 
     # Create an empty grid
     n, m = input_grid.shape
     output_grid = np.zeros((n, m), dtype=int)
 
-    # Get two frame that form the framework
-    frames = find_connected_components(grid=input_grid, connectivity=4)
-    frames = [frame for frame in frames if np.any(frame == frame_color)]
+    # parse the input
+    objects = find_connected_components(grid=input_grid, connectivity=8, monochromatic=True, background=background)
+    frames = [ obj for obj in objects if frame_color in object_colors(obj, background=background) ]
+    mirrored_objects = [ obj for obj in objects if object_color in object_colors(obj, background=background) ]
 
-    # Get two objects that outside the framework
-    objects = find_connected_components(grid=input_grid, connectivity=8, monochromatic=True)
-    objects = [obj for obj in objects if np.any(obj == object_color)]
-    
-    object_list = []
-    framework = []
-    for frame in frames:
-        # Get the frame and its position
-        x, y, w, h = bounding_box(grid=frame)
-        cropped_frame = crop(grid=frame)
-        framework.append({"x": x, "y": y, "w": w, "h": h, "frame": cropped_frame})
-        # Place the frame in the output grid
-        output_grid = blit_sprite(grid=output_grid, sprite=cropped_frame, x=x, y=y)
+    # determine if we are doing horizontal or vertical mirroring
+    # if all the objects have the same X coordinate, we are doing vertical mirroring
+    # if all the objects have the same Y coordinate, we are doing horizontal mirroring
+    x_positions = [ object_position(obj, background=background, anchor="center")[0] for obj in objects ]
+    y_positions = [ object_position(obj, background=background, anchor="center")[1] for obj in objects ]
+    if all(x == x_positions[0] for x in x_positions): orientation = "vertical"
+    elif all(y == y_positions[0] for y in y_positions): orientation = "horizontal"
+    else: raise ValueError(f"The objects are not aligned in a single axis")
 
-    for obj in objects:
-        # Get the object and its position
-        x, y, w, h = bounding_box(grid=obj)
-        cropped_obj = crop(grid=obj)
-        object_list.append({"x": x, "y": y, "w": w, "h": h, "obj": cropped_obj})
+    # Flip each other object over its closest frame
+    for mirrored_object in mirrored_objects:
+        # Find the closest frame
+        def distance_between_objects(obj1, obj2):
+            x1, y1 = object_position(obj1, background=background, anchor="center")
+            x2, y2 = object_position(obj2, background=background, anchor="center")
+            return (x1 - x2)**2 + (y1 - y2)**2        
+        closest_frame = min(frames, key=lambda frame: distance_between_objects(frame, mirrored_object))
 
-    # Sort the framework by position
-    framework = sorted(framework, key=lambda x: x["x"])
-    framework = sorted(framework, key=lambda x: x["y"])    
-
-    # Check if the framework is horizontal or vertical
-    if_horizontal = framework[0]["w"] > framework[0]["h"]
-
-    if if_horizontal:
-        # Sort the objects by position
-        object_list = sorted(object_list, key=lambda x: x["y"])
-
-        # Get the two outer patterns
-        pattern_part1 = object_list[0]['obj']
-        pattern_part2 = object_list[1]['obj']
-
-        # Mirror the two inner patterns according to each frame's line
-        pattern_part1 = np.fliplr(pattern_part1)
-        pattern_part2 = np.fliplr(pattern_part2)
-
-        # Place the two outside patterns in the framework
-        output_grid = blit_sprite(grid=output_grid, sprite=pattern_part1, x=object_list[0]['x'], y=framework[0]['y'] + 2)
-        output_grid = blit_sprite(grid=output_grid, sprite=pattern_part2, x=object_list[1]['x'], y=framework[1]['y'] - object_list[1]['h'])
-    else:
-        # Sort the objects by position
-        object_list = sorted(object_list, key=lambda x: x["x"])
-
-        # Get the two outer patterns
-        pattern_part1 = object_list[0]['obj']
-        pattern_part2 = object_list[1]['obj']
-
-        # Mirror the two inner patterns according to each frame's line
-        pattern_part1 = np.flipud(pattern_part1)
-        pattern_part2 = np.flipud(pattern_part2)
-
-        print(framework)
-        print(object_list)
-       # Place the two outside patterns in the framework
-        output_grid = blit_sprite(grid=output_grid, sprite=pattern_part1, x=framework[0]['x'] + 2, y=object_list[0]['y'])
-        output_grid = blit_sprite(grid=output_grid, sprite=pattern_part2, x=framework[1]['x'] - object_list[1]['w'], y=object_list[1]['y'])
+        # Build a symmetry object for flipping over the closest frame
+        frame_x, frame_y = object_position(closest_frame, background=background, anchor="center")
+        this_x, this_y = object_position(mirrored_object, background=background, anchor="center")
+        # Make it one pixel past the middle of frame
+        frame_y += 0.5 if this_y > frame_y else -0.5
+        frame_x += 0.5 if this_x > frame_x else -0.5
+        symmetry = MirrorSymmetry(mirror_x=frame_x if orientation == "horizontal" else None,
+                                  mirror_y=frame_y if orientation == "vertical" else None)
+        
+        # Flip the object over the symmetry
+        for x, y in np.argwhere(mirrored_object != background):
+            x2, y2 = symmetry.apply(x, y)
+            output_grid[x2, y2] = mirrored_object[x, y]
+        
+        # Draw the frame
+        output_grid = blit_object(output_grid, closest_frame)
 
     return output_grid
 
@@ -96,15 +73,16 @@ def generate_input():
     frame_color = Color.RED
 
     # Draw a half of the framework
-    frame = np.zeros((frame_length, frame_width), dtype=int)
-    frame = draw_line(grid=frame, x=0, y=0, direction=(1, 0), color=frame_color)
-    frame[0][1] = frame_color
-    frame[-1][1] = frame_color
+    frame_sprite = np.zeros((frame_length, frame_width), dtype=int)
+    # horizontal bar and two vertical pixels
+    frame_sprite[:, 0] = frame_color
+    frame_sprite[0, 1] = frame_color
+    frame_sprite[-1, 1] = frame_color
 
     # Select the interval for two half frameworks that form one entire framework
     frame_interval = np.random.randint(4, 6)
     
-    # Calculate the sizes of two patterns in framwork
+    # Calculate the sizes of two things that we are going to mirror within framwork
     pattern_color = Color.GRAY
     pattern_length = frame_length - 2
     pattern_width = frame_interval // 2
@@ -117,19 +95,19 @@ def generate_input():
     # place the pattern in the frame
     whole_frame = np.zeros((frame_length, frame_width * 2 + frame_interval + pattern_width_with_padding * 2), dtype=int)
     # Place the upper half of the frame
-    whole_frame = blit_sprite(grid=whole_frame, sprite=frame, x=0, y=pattern_width_with_padding)
+    whole_frame = blit_sprite(whole_frame, frame_sprite, x=0, y=pattern_width_with_padding)
     # Place the upper pattern
-    whole_frame = blit_sprite(grid=whole_frame, sprite=pattern_1, x=1, y=0)
+    whole_frame = blit_sprite(whole_frame, pattern_1, x=1, y=0)
     # Place the lower pattern
-    whole_frame = blit_sprite(grid=whole_frame, sprite=pattern_2, x=1, y=frame_width * 2 + frame_interval + pattern_width_with_padding + 1)
+    whole_frame = blit_sprite(whole_frame, pattern_2, x=1, y=frame_width * 2 + frame_interval + pattern_width_with_padding + 1)
     # Place the lower half of the frame
-    whole_frame = blit_sprite(grid=whole_frame, sprite=np.fliplr(frame), x=0, y=frame_width + frame_interval + pattern_width_with_padding)
+    whole_frame = blit_sprite(whole_frame, np.fliplr(frame_sprite), x=0, y=frame_width + frame_interval + pattern_width_with_padding)
 
     # place the frame in the background
     x, y = random_free_location_for_sprite(grid=grid, sprite=whole_frame)
     grid = blit_sprite(grid=grid, sprite=whole_frame, x=x, y=y)
 
-    # Randomly rotate the grid
+    # Randomly rotate the grid so that we get both vertical and horizontal arrangements
     if np.random.rand() < 0.5:
         grid = np.rot90(grid)
     return grid
