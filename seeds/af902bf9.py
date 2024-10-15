@@ -4,42 +4,26 @@ import numpy as np
 from typing import *
 
 # concepts:
-# Fulfill, surrounding
+# filling, surrounding
 
 # description:
-# In the input you will see several yellow pixels, each four yellow pixels form a rectangle shape.
-# To make the output, fill the inner rectangle with red color.
+# In the input you will see several yellow pixels arranged in groups of 4 so that each group outlines a rectangular shape.
+# To make the output, fill the corresponding inner rectangular regions with red.
 
 def main(input_grid):
-    # Detect the area of the rectangle by finding the four surrounding yellow pixels
+    # Detect the rectangular regions by finding groups of four surrounding yellow pixels
     surrounding_color = Color.YELLOW
     rectangle_color = Color.RED
-
-    n, m = input_grid.shape
+    
     output_grid = np.copy(input_grid) 
 
-    for x, y in np.ndindex(n, m):
-        if input_grid[x, y] == surrounding_color:
-            # Get all the rectangles grid start from this point
-            rectangles = []
-            for dx, dy in np.ndindex(n - x, m - y):
-                rectangles.append(input_grid[x:x + dx + 1, y:y + dy + 1])
-            
-            # Check if one rectangle is surrounded by four yellow pixels
-            # Also check if the pixels have enough space to draw the inner rectangle
-            for rectangle in rectangles:
-                if ((rectangle.shape)[0] > 2 and (rectangle.shape)[1] > 2 and
-                    rectangle[0, 0] ==  surrounding_color and
-                    rectangle[0, -1] == surrounding_color and
-                    rectangle[-1, 0] == surrounding_color and
-                    rectangle[-1, -1] == surrounding_color):
-                    # Find the inner rectangle need to be colored
-                    bound_width, bound_height = rectangle.shape
-                    rec_width, rec_height = bound_width - 2, bound_height - 2
-
-                    # Place the inner rectangle with red color
-                    filled_rectangle = np.ones((rec_width, rec_height), dtype=int) * rectangle_color
-                    output_grid = blit_sprite(grid=output_grid, sprite=filled_rectangle, x=x + 1, y=y + 1)
+    # loop over all the yellows...
+    for x, y in np.argwhere(input_grid == surrounding_color):
+        # ...and find the other matching yellows forming a rectangle: (x, y), (x, y'), (x', y), (x', y')
+        for other_x, other_y in np.argwhere(input_grid == surrounding_color):
+            if input_grid[x, other_y] == surrounding_color and input_grid[other_x, y] == surrounding_color:
+                # fill the rectangle with red
+                output_grid[x+1:other_x, y+1:other_y] = rectangle_color
 
     return output_grid
 
@@ -59,19 +43,20 @@ def generate_input():
         rectangle_width = np.random.randint(1, 5)
         
         # Draw the rectangle with rectangle color
-        rectangle = np.ones((rectangle_len, rectangle_width), dtype=int) * rectangle_color
+        rectangle_sprite = np.full((rectangle_len, rectangle_width), rectangle_color)
         try:
-            x, y = random_free_location_for_sprite(grid=grid, sprite=rectangle, padding=2, padding_connectivity=8, border_size=1)
+            x, y = random_free_location_for_sprite(grid, rectangle_sprite, padding=2, padding_connectivity=8, border_size=1)
         except:
             continue
 
-        grid = blit_sprite(grid=grid, sprite=rectangle, x=x, y=y)
+        blit_sprite(grid, rectangle_sprite, x=x, y=y)
 
-        # Place four surrounding colors around the rectangle
-        grid[x-1, y-1] = surrounding_color
-        grid[x-1, y+rectangle_width] = surrounding_color
-        grid[x+rectangle_len, y-1] = surrounding_color
-        grid[x+rectangle_len, y+rectangle_width] = surrounding_color
+        # Place four surrounding colors around the rectangle right outside its corners
+        min_x, min_y, max_x, max_y = x, y, x+rectangle_len, y+rectangle_width
+        grid[min_x-1, min_y-1] = surrounding_color
+        grid[min_x-1, max_y] = surrounding_color
+        grid[max_x, y-1] = surrounding_color
+        grid[max_x, max_y] = surrounding_color
 
     # Remove the inner rectangle color, only keep the surrounding color
     grid[grid == rectangle_color] = Color.BLACK

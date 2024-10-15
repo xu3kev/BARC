@@ -7,29 +7,30 @@ from typing import *
 # flip
 
 # description:
-# In the input you will see a grid as part of the pattern.
+# In the input you will see a monochromatic sprite.
 # To make the output, 
-# 1. flip the grid horizontally with y-axis on the left side of the grid, make it twice larger.
+# 1. flip the grid horizontally with y-axis on the left side of the grid, making the canvas twice larger.
 # 2. flip it down with x-axis on the bottom side of the grid.
-# 3. Concate the flipped grid in step 2 to the top and bottom of the grid in step 1.
-# In total the grid is 6 times larger than the input grid.
+# 3. concatenate the flipped grid in step 2 to the top and bottom of the grid in step 1.
+# In total the output grid is twice as wide and three times as tall as the input.
 
 def main(input_grid):
-    # Create the output grid 6 times larger than the input grid
+    # Create the output grid twice as wide and three times as tall
     n, m = input_grid.shape
     output_grid = np.zeros((n * 2, m * 3), dtype=int)
 
     # Step 1: Flip the grid horizontally with y-axis on the left side of the grid, concate it to the left.
     # Place it in the middle of the output grid
     flip_grid = np.flipud(input_grid)
-    blit_sprite(grid=output_grid, sprite=flip_grid, x=0, y=m)
-    blit_sprite(grid=output_grid, sprite=input_grid, x=n, y=m)
+    blit_sprite(output_grid, sprite=flip_grid, x=0, y=m)
+    blit_sprite(output_grid, sprite=input_grid, x=n, y=m)
 
     # Step 2: Flip it down with x-axis on the bottom side of the grid, concate it to the bottom and top.
     original_object = output_grid[:, m :2 * m]
     filp_down_object = np.fliplr(original_object)
-    blit_sprite(grid=output_grid, sprite=filp_down_object, x=0, y=m * 2)
-    blit_sprite(grid=output_grid, sprite=filp_down_object, x=0, y= 0)
+    blit_sprite(output_grid, sprite=filp_down_object, x=0, y=m * 2)
+    blit_sprite(output_grid, sprite=filp_down_object, x=0, y=0)
+    
     return output_grid
 
 def generate_input():

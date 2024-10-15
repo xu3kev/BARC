@@ -4,85 +4,59 @@ import numpy as np
 from typing import *
 
 # concepts:
-# draw line, stair pattern
+# staircase pattern
 
 # description:
-# In the input you will see a grid with a teal pixel.
-# To make the output, draw a stair line from the teal pixel to the upper right and lower left.
+# In the input you will see a single teal pixel.
+# To make the output, draw a staircase from the teal pixel to the upper right and lower left with a step size of 2.
 
 def main(input_grid):
-    # Find the teal pixel
-    x, y = np.where(input_grid == Color.TEAL)
+    # Find the location of the teal pixel
+    teal_x, teal_y = np.argwhere(input_grid == Color.TEAL)[0]
 
-    # Line color is gray
-    line_color = Color.GRAY
+    # staircase is gray
+    staircase_color = Color.GRAY
 
-    # Generate the output grid
+    # we are going to draw on top of the input
     output_grid = input_grid.copy()
-    n, m = input_grid.shape
-    
+    width, height = input_grid.shape
 
-    # Draw stair line from the teal pixel
+    # Draw stairs from the teal pixel
     STAIR_LEN = 2
-    # First draw stair line to the upper right
-    cur_x, cur_y = x[0], y[0]
-    if_vertical = True
-    cur_stair_len = 0
-    while True:
-        # If the stair line is vertical, move up, otherwise move right
-        if if_vertical:
-            cur_y -= 1
-        else:
-            cur_x += 1
-
-        # If the current position is out of the grid, stop drawing
-        if cur_x < 0 or cur_x >= n or cur_y < 0 or cur_y >= m:
-            break
-        output_grid[cur_x][cur_y] = line_color
-
-        # Periodically change the direction of the stair line
-        cur_stair_len += 1
-        if cur_stair_len == STAIR_LEN:
-            if_vertical = not if_vertical
-            cur_stair_len = 0
-
-    # Then draw stair line to the lower left
-    cur_x, cur_y = x[0], y[0]
-    if_vertical = True
-    cur_stair_len = 0
-    while True:
-        # If the stair line is vertical, move down, otherwise move left
-        if if_vertical:
-            cur_y += 1
-        else:
-            cur_x -= 1
-
-        # If the current position is out of the grid, stop drawing
-        if cur_x < 0 or cur_x >= n or cur_y < 0 or cur_y >= m:
-            break
-
-        output_grid[cur_x][cur_y] = line_color
-
-        # Periodically change the direction of the stair line
-        cur_stair_len += 1
-        if cur_stair_len == STAIR_LEN:
-            if_vertical = not if_vertical
-            cur_stair_len = 0
+    # First draw stair to the upper right
+    x, y = teal_x, teal_y
+    while 0 <= x < width and 0 <= y < height:
+        # go up
+        draw_line(output_grid, x, y, length=STAIR_LEN, color=staircase_color, direction=(0, -1))
+        y -= STAIR_LEN
+        # go right
+        draw_line(output_grid, x, y, length=STAIR_LEN, color=staircase_color, direction=(1, 0))
+        x += STAIR_LEN
+    
+    # Then draw stair to the lower left
+    x, y = teal_x, teal_y
+    while 0 <= x < width and 0 <= y < height:
+        # go down
+        draw_line(output_grid, x, y, length=STAIR_LEN, color=staircase_color, direction=(0, 1))
+        y += STAIR_LEN
+        # go left
+        draw_line(output_grid, x, y, length=STAIR_LEN, color=staircase_color, direction=(-1, 0))
+        x -= STAIR_LEN
+    
+    # make sure that the teal pixel stays there
+    output_grid[teal_x, teal_y] = Color.TEAL
 
     return output_grid
 
-
-        
-
 def generate_input():
-    # Generate grid of size n x m
-    n, m = np.random.randint(15, 25), np.random.randint(15, 25)
-    grid = np.zeros((n, m), dtype=int)
+    # Generate grid
+    width, height = np.random.randint(15, 25), np.random.randint(15, 25)
+    grid = np.zeros((width, height), dtype=int)
 
     # Randomly place one teal pixel on the grid
     # Ensure the pixel is not on the border
-    x, y = np.random.randint(n // 3, n * 2 // 3), np.random.randint(n // 3, n * 2 // 3)
-    grid[x][y] = Color.TEAL
+    x, y = np.random.randint(width // 3, width * 2 // 3), np.random.randint(height // 3, height * 2 // 3)
+    grid[x, y] = Color.TEAL
 
     return grid
 
