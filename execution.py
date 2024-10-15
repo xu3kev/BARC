@@ -45,12 +45,26 @@ def terminate_all_processes():
 
 def _worker_with_id(args):
     task_id, source_code, return_var_name = args
-    global_vars = {}
-    exec(source_code, global_vars)
-    if return_var_name not in global_vars:
+    # global_vars = {}
+    def safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name in ['os', 'sys']:
+            raise ImportError(f"Import of '{name}' is not allowed")
+        return __import__(name, globals, locals, fromlist, level)
+
+    safe_builtins = {
+        k: v for k, v in __builtins__.items()
+        if k not in ['exit', 'quit']
+    }
+    safe_builtins['__import__'] = safe_import
+
+    safe_globals = {
+        '__builtins__': safe_builtins,
+    }
+    exec(source_code, safe_globals)
+    if return_var_name not in safe_globals:
         print(f"Error: {return_var_name} not found in global_vars")
         return None
-    ret = global_vars[return_var_name]
+    ret = safe_globals[return_var_name]
     return task_id, ret
 
 def multi_process_execute(codes, return_var_name, timeout=1, num_workers=8):
@@ -163,12 +177,12 @@ def multi_execute_transformation(sources, input_grids, random_seeds, timeout=1, 
 
     input_grids = [np.array(input_grid) for input_grid in input_grids]
             
-    try:
-        n, m = input_grids[0].shape
-    except:
-        breakpoint()
     codes = []
     for source, input_grid, seed in zip(sources, input_grids, random_seeds):
+        try:
+            n, m = input_grid.shape
+        except:
+            breakpoint()
         make_input = f"input_grid = np.zeros(({n}, {m}), dtype=int)\n"
         for i in range(n):
             for j in range(m):

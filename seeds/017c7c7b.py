@@ -16,7 +16,7 @@ def main(input_grid):
     # 2. Extend the pattern by copying the sprite and its symmetric copies
     # 3. Change the color from blue to red
     
-    symmetries = detect_translational_symmetry(input_grid, ignore_colors=[])
+    symmetries = detect_translational_symmetry(input_grid, ignore_colors=[], background=Color.BLACK)
     assert len(symmetries) > 0, "No translational symmetry found"
 
     # make the output (the height is now 9)

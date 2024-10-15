@@ -4,7 +4,7 @@ import numpy as np
 from typing import *
 
 # concepts:
-# <list of concepts, separated by commas>
+# non-black background, occlusion
 
 # description:
 # In the input you will see a non-black background (teal background) and the outlines of 5x5 blue rectangles

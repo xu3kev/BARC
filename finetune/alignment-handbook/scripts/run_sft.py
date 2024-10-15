@@ -17,9 +17,12 @@
 Supervised fine-tuning script for decoder language models.
 """
 
+
+
 import logging
 import random
 import sys
+import os
 
 import datasets
 import torch
@@ -40,10 +43,13 @@ from alignment import (
     get_quantization_config,
     get_tokenizer,
 )
-from trl import SFTTrainer, setup_chat_format
+from trl import SFTTrainer, setup_chat_format, DataCollatorForCompletionOnlyLM
 
 
 logger = logging.getLogger(__name__)
+
+# set env variable for wandb
+os.environ["WANDB_PROJECT"] = "ARC"
 
 
 def main():
@@ -101,9 +107,12 @@ def main():
     ################
     tokenizer = get_tokenizer(model_args, data_args)
 
+
     if tokenizer.eos_token_id == tokenizer.pad_token_id:
         # set pad token to a different value
-        tokenizer.pad_token_id = 770 # for mistral v3
+        # tokenizer.pad_token_id = 770 # for mistral v3
+        tokenizer.pad_token_id = 128002 # for llama3.1
+        # tokenizer.pad_token_id = 14 # for codestral
         print(tokenizer.pad_token_id)
         print(tokenizer.pad_token)
 
@@ -150,18 +159,26 @@ def main():
         desc="Applying chat template",
     )
 
+
+    response_template = "<|start_header_id|>assistant<|end_header_id|>"
+    response_template_ids = tokenizer.encode(response_template, add_special_tokens=False)
+    collator = DataCollatorForCompletionOnlyLM(response_template_ids, tokenizer=tokenizer, padding_free=True)
+
     ##########################
     # Decontaminate benchmarks
     ##########################
-    num_raw_train_samples = len(raw_datasets["train"])
-    raw_datasets = raw_datasets.filter(decontaminate_humaneval, batched=True, batch_size=10_000, num_proc=1)
-    num_filtered_train_samples = num_raw_train_samples - len(raw_datasets["train"])
-    logger.info(
-        f"Decontaminated {num_filtered_train_samples} ({num_filtered_train_samples/num_raw_train_samples * 100:.2f}%) samples from the training set."
-    )
+    # num_raw_train_samples = len(raw_datasets["train"])
+    # raw_datasets = raw_datasets.filter(decontaminate_humaneval, batched=True, batch_size=10_000, num_proc=1)
+    # num_filtered_train_samples = num_raw_train_samples - len(raw_datasets["train"])
+    # logger.info(
+    #     f"Decontaminated {num_filtered_train_samples} ({num_filtered_train_samples/num_raw_train_samples * 100:.2f}%) samples from the training set."
+    # )
 
     train_dataset = raw_datasets["train"]
     eval_dataset = raw_datasets["test"]
+    logger.info(
+        f"Number of training samples: {len(train_dataset)}, number of evaluation samples: {len(eval_dataset)}"
+    )
 
     with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
         for index in random.sample(range(len(raw_datasets["train"])), 3):
@@ -170,7 +187,7 @@ def main():
     ########################
     # Initialize the Trainer
     ########################
-    
+
     trainer = SFTTrainer(
         model=model,
         model_init_kwargs=model_kwargs,
@@ -179,10 +196,11 @@ def main():
         eval_dataset=eval_dataset,
         dataset_text_field="text",
         max_seq_length=training_args.max_seq_length,
-        tokenizer=tokenizer,
-        packing=False,
+        # tokenizer=tokenizer,
+        # packing=True,
         peft_config=get_peft_config(model_args),
         dataset_kwargs=training_args.dataset_kwargs,
+        data_collator=collator,
     )
 
     ###############
