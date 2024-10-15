@@ -7,57 +7,58 @@ from typing import *
 # line detection, color extraction
 
 # description:
-# In the input you will see a grid with several horizontal or vertical lines of different colors.
-# To make the output, make a grid with one horizontal line or vertical line for each color, 
-# in the order they appear in the input.
+# In the input you will see a grid consisting of stripes that are either horizontal or vertical.
+# To make the output, make a grid with one pixel for each stripe whose color is the same color as that stripe.
+# If the stripes are vertical, the output should be vertical, and if the stripes are horizontal, the output should be horizontal. The colors should be in the order they appear in the input.
 
 def main(input_grid):
-    # Determine whether the lines are horizontal or vertical
-    symmetry = detect_mirror_symmetry(grid=input_grid)[0]
-    if symmetry.mirror_x is None:
-        if_horizontal = False
+    # Parse input and then determine the orientation of the stripes
+    objects = find_connected_components(input_grid, connectivity=4, monochromatic=True, background=Color.BLACK)
+    x_positions = [ object_position(obj, background=Color.BLACK, anchor="center")[0] for obj in objects]
+    y_positions = [ object_position(obj, background=Color.BLACK, anchor="center")[1] for obj in objects]
+    if all(x == x_positions[0] for x in x_positions):
+        orientation = "vertical"
+    elif all(y == y_positions[0] for y in y_positions):
+        orientation = "horizontal"
     else:
-        if_horizontal = True
+        raise ValueError("The stripes are not aligned in a single axis")
     
-    # If the lines are horizontal, rotate the grid to make them vertical for easier processing
-    if if_horizontal:
-        input_grid = np.rot90(input_grid, k=3)
-    n, m = input_grid.shape
-
-    # Extract the colors of the lines
-    # One line may have different width
-    color_list = []
-    for i in range(n):
-        if i == 0:
-            color_list.append(input_grid[i][0])
-        elif input_grid[i][0] != color_list[-1]:
-            color_list.append(input_grid[i][0])
-    # Generate the output grid, one horizontal line for each color
-    output_grid = np.array([color_list])
-
-    # If the lines are vertical, transpose the output grid to make it vertical
-    if not if_horizontal:
-        output_grid = np.transpose(output_grid)
+    # Sort the objects depending on the orientation
+    if orientation == "horizontal":
+        objects.sort(key=lambda obj: object_position(obj, background=Color.BLACK, anchor="center")[0])
+    else:
+        objects.sort(key=lambda obj: object_position(obj, background=Color.BLACK, anchor="center")[1])
     
-    # Return the output grid
+    # Extract the colors of the stripes
+    colors = [ object_colors(obj, background=Color.BLACK)[0] for obj in objects ]
+
+    # Generate the output grid
+    if orientation == "horizontal":
+        output_grid = np.full((len(colors), 1), Color.BLACK)
+        output_grid[:, 0] = colors
+    else:
+        output_grid = np.full((1, len(colors)), Color.BLACK)
+        output_grid[0, :] = colors
+    
     return output_grid
+    
+
 
 def generate_input():
-    # Generate grid of size n x m, ensure n > m
-    n, m = np.random.randint(3, 10), np.random.randint(1, 10)
-    if n < m:
-        n, m = m, n
+    # Generate grid of size n x m
+    n, m = np.random.randint(3, 10), np.random.randint(2, 10)
     grid = np.zeros((n, m), dtype=int)
 
     # Randomly choose n colors
     colors = np.random.choice(list(Color.NOT_BLACK), n)
     
     # Draw vertical lines of the chosen colors
-    for i, color in enumerate(colors):
-        draw_line(grid=grid, x=i, y=0, length=m, color=color, direction=(0, 1))
+    for x, color in enumerate(colors):
+        draw_line(grid, x=x, y=0, length=m, color=color, direction=(0, 1))
+        # same as grid[x,:] = color
+    
     # Randomly rotate the whole grid to make the lines horizontal or vertical
-    if_rotate = np.random.choice([True, False])
-    if if_rotate:
+    if random.random() < 0.5:
         grid = np.rot90(grid)
 
     return grid
