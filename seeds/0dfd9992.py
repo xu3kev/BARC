@@ -52,18 +52,23 @@ def generate_input():
     w, h = random.randint(3, 8), random.randint(3, 8)
     sprite = random_sprite(w, h, density=1, color_palette=Color.NOT_BLACK)
 
-    # Place the sprite in the canvas
-    for x in range(0, grid.shape[0], w):
-        for y in range(0, grid.shape[1], h):
-            blit_sprite(grid, sprite, x, y)
+    # Place the sprite in the upper left corner of the canvas, then compute the orbit under the symmetry group
+    blit_sprite(grid, sprite, x=0, y=0)
+    symmetries = [TranslationalSymmetry(w, 0), TranslationalSymmetry(0, h)]
+    for x, y in np.argwhere(sprite != Color.BLACK):
+        for x2, y2 in orbit(grid, x, y, symmetries):
+            grid[x2, y2] = sprite[x, y]
+    # You could have also done this:
+    # for x in range(0, grid.shape[0], w):
+    #     for y in range(0, grid.shape[1], h):
+    #         blit_sprite(grid, sprite, x, y)
     
     # Create random occluders
     n_occluders = random.randint(1, 5)
     for _ in range(n_occluders):
         x, y = random.randint(0, grid.shape[0]), random.randint(0, grid.shape[1])
         w, h = random.randint(3, 7), random.randint(3, 7)
-        occluder_sprite = np.full((w, h), Color.BLACK)
-        blit_sprite(grid, occluder_sprite, x, y)
+        grid[x:x+w+1, y:y+h+1] = Color.BLACK
 
     return grid
 
