@@ -6,7 +6,7 @@ from typing import *
 # counting, color
 
 # description:
-# In the input you will see grey horizontal and vertical bars rectangular regions. Each rectangular region is black with some colored pixels added.
+# In the input you will see grey horizontal and vertical bars that divide rectangular regions. Each rectangular region is black with some colored pixels added.
 # To make the output, fill the rectangular region with the most colored pixels. Fill it with is color. Fill the other rectangular regions with black.   
 
 def main(input_grid: np.ndarray) -> np.ndarray:
@@ -14,18 +14,23 @@ def main(input_grid: np.ndarray) -> np.ndarray:
     output_grid = np.copy(input_grid)  
 
     # Get all the rectangular regions seperated by horizontal and vertical dividers
-    divider_color = Color.GRAY
+    # The dividers are colored grey, but more generally their color is just whatever color stretches all the way horizontally or vertically
+    for x in range(input_grid.shape[0]):
+        if np.all(input_grid[x, :] == input_grid[x, 0]):
+            divider_color = input_grid[x, 0]
+            break
+    # For this problem you could also do: divider_color = Color.GRAY
     regions = find_connected_components(grid=output_grid, background=divider_color, monochromatic=False, connectivity=4)
 
     # Find the region with the most colored pixels inside of it
-    num_colored_pixels = [ np.sum(region != divider_color & region != Color.BLACK) for region in regions ]
+    num_colored_pixels = [ np.sum((region != divider_color) & (region != Color.BLACK)) for region in regions ]
     max_colored_pixels = max(num_colored_pixels)
 
     # Fill the region with the most colored pixels with its color
     # Fill the other regions with black
     for region_obj in regions:
         # Figure out if it is one of the max colored regions to determine what the target color is that we are going to fill with
-        num_colored_pixels_in_this_region = np.sum(region_obj != divider_color & region_obj != Color.BLACK)
+        num_colored_pixels_in_this_region = np.sum((region_obj != divider_color) & (region_obj != Color.BLACK))
         if num_colored_pixels_in_this_region == max_colored_pixels:
             colors = [ color for color in object_colors(region_obj, background=divider_color) if color != Color.BLACK ]
             assert len(colors) == 1, "Each region should have only one color"
@@ -41,7 +46,7 @@ def main(input_grid: np.ndarray) -> np.ndarray:
 def generate_input() -> np.ndarray:
     # Define the base cofiguration of the grid seperated by chessboard lines
     # Randomly select the size of the squares, create a 3x3 grid of squares
-    region_len = np.random.choice([5, 7, 9])
+    region_len = np.random.choice([4, 5, 7])
     interior_len = region_len - 2
     region_num = 3
 
@@ -61,11 +66,11 @@ def generate_input() -> np.ndarray:
     for x in range(0, n, region_len + 1):
         for y in range(0, m, region_len + 1):
             # Randomly select the density of the square
-            square_background = np.zeros((region_len, region_len), dtype=int)
+            square_background = np.zeros((interior_len, interior_len), dtype=int)
             density = np.random.randint(1, interior_len * interior_len) / (interior_len * interior_len)
 
             # Randomly scatter the color in the square
-            square_background = random_scatter_points(grid=square_background, color=interior_color, density=density)
+            square_background = random_scatter_points(square_background, color=interior_color, density=density)
             grid = blit_sprite(grid, square_background, x, y)
         
     return grid
