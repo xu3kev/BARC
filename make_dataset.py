@@ -183,7 +183,7 @@ def main():
 
     if loaded_problems:
         random.shuffle(loaded_problems)
-    loaded_problems = loaded_problems[0:2000]
+    loaded_problems = loaded_problems[0:3000]
 
     problems = loaded_problems + seed_problems
     for problem in problems:

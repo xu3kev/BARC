@@ -1,0 +1,4 @@
+model_name_or_path: models/deepseek-coder-6.7b-instruct_lora_sft_string/
+template: deepseek
+infer_backend: vllm
+vllm_enforce_eager: true

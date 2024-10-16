@@ -19,7 +19,7 @@ def main(input_grid):
     background_color = Color.BLACK
 
     # Each object has a different color, so we can look at connected components by color
-    objects = detect_objects(input_grid, monochromatic=True, connectivity=8, background=Color.BLACK)
+    objects = detect_objects(input_grid, monochromatic=True, connectivity=8, background=background_color)
     sprites = [ crop(obj, background=Color.BLACK) for obj in objects ]
     # Find the rectangle
     for obj, sprite in zip(objects, sprites):
@@ -29,7 +29,7 @@ def main(input_grid):
             break
 
     # Find the color of the rectangle, because it is the occluder
-    rectangle_color = np.unique(crop(rectangle))[0]
+    rectangle_color = object_colors(rectangle, background=background_color)[0]
     
     # Delete the rectangle
     rectangle_mask = rectangle != Color.BLACK
@@ -38,7 +38,7 @@ def main(input_grid):
 
     # Find the symmetry
     # The occluder is rectangle_color, so we ignore it. In contrast, Color.BLACK is places where the object *actually* isn't located, so we can't ignore that.
-    mirrors = detect_mirror_symmetry(input_grid, ignore_colors=[rectangle_color])
+    mirrors = detect_mirror_symmetry(input_grid, ignore_colors=[rectangle_color], background=Color.BLACK)
 
     # Mirror each colored pixel
     for x, y in np.argwhere(output_grid != Color.BLACK):

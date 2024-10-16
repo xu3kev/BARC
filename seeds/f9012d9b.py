@@ -8,7 +8,7 @@ from typing import *
 
 # description:
 # In the input you will see a translationally symmetric pattern that has been partially occluded by a black rectangle
-# The output should be want the black rectangle should be in order to make it perfectly symmetric.
+# The output should be what the black rectangle should be in order to make it perfectly symmetric.
 # In other words, the output should be the missing part of the pattern, and it should be the same dimensions as the black rectangle.
 
 def main(input_grid):
@@ -22,7 +22,9 @@ def main(input_grid):
     # Do this first because we will need to know where it was after we fill it in
     occlusion_color = Color.BLACK
     black_rectangle_mask = (input_grid == occlusion_color)
-    symmetries = detect_translational_symmetry(input_grid, ignore_colors=[occlusion_color])
+
+    # Find the symmetry. Notice that black is not the background, but instead is the occlusion color. In fact there is no well-defined background color.
+    symmetries = detect_translational_symmetry(input_grid, ignore_colors=[occlusion_color], background=None)
 
     # Fill in the missing part
     for occluded_x, occluded_y in np.argwhere(black_rectangle_mask):
