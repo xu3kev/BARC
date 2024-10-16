@@ -1306,6 +1306,10 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
 
     Returns an (n,m) NumPy array representing the sprite.
     """
+    # record original parameters for later
+    original_n, original_m = n, m
+    original_density = density
+    original_symmetry = symmetry
 
     # canonical form: force dimensions to be lists
     if isinstance(n, range):
@@ -1349,27 +1353,28 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
     else:
         density = max(0.4, min(0.95, random.gauss(density, 0.1)))
 
-    while True:
-        sprite = generate_sprite(
-            n,
-            m,
-            symmetry_type=symmetry,
-            color_palate=color_palette,
-            fill_percentage=density,
-            connectivity=connectivity,
-            background=background,
-        )
-        assert is_contiguous(
-            sprite, connectivity=connectivity, background=background
-        ), "Generated sprite is not contiguous."
-        # check that the sprite has pixels that are flushed with the border
-        if (
-            np.sum(sprite[0, :]!=background) > 0
-            and np.sum(sprite[-1, :]!=background) > 0
-            and np.sum(sprite[:, 0]!=background) > 0
-            and np.sum(sprite[:, -1]!=background) > 0
-        ):
-            return sprite
+    sprite = generate_sprite(
+        n,
+        m,
+        symmetry_type=symmetry,
+        color_palate=color_palette,
+        fill_percentage=density,
+        connectivity=connectivity,
+        background=background,
+    )
+    assert is_contiguous(
+        sprite, connectivity=connectivity, background=background
+    ), "Generated sprite is not contiguous."
+    # check that the sprite has pixels that are flushed with the border
+    if (
+        np.sum(sprite[0, :]!=background) > 0
+        and np.sum(sprite[-1, :]!=background) > 0
+        and np.sum(sprite[:, 0]!=background) > 0
+        and np.sum(sprite[:, -1]!=background) > 0
+    ):
+        return sprite
+    else:
+        return random_sprite(original_n, original_m, original_density, original_symmetry, color_palette, connectivity, background)        
 
 
 def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochromatic=False, connectivity=None, allowed_dimensions=None, colors=None, can_overlap=False):
