@@ -182,6 +182,18 @@ def random_scatter_points(grid, color, density=0.5, background=Color.BLACK):
             colored += 1
     return grid
 
+def find_monochromatic_sprite(grid, color_palate, background=Color.BLACK):
+    """
+    Find the largest monochromatic component of the specified color in the grid.
+    """
+    monochromatic_object_list = []
+    for color in color_palate:
+        monochromatic_object = grid.copy()
+        monochromatic_object[monochromatic_object != color] = background
+        monochromatic_object_list.append(monochromatic_object)
+
+    return monochromatic_object_list
+
 def scale_pattern(pattern, scale_factor):
     """
     Scales the pattern by the specified factor.
