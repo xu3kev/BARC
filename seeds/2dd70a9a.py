@@ -5,201 +5,156 @@ from typing import *
 import time
 
 # concepts:
-# Path finding, backtracking
+# path finding
 
 
 # description:
-# Given a grid of size n x n, there will be some randomly placed teal pixels and a
-# start point (denoted by two adjacent green pixels) and end point (denoted by two adjacent red pixels).
-# Every time you encounter a teal pixel that blocks your way, you can change the direction you are moving.
-# You will start with a direction that is parallel to the starting two pixels.
-# Your goal is to go from the start point to the end point.
-
+# In the input you will see teal pixels and a short green line and a short red line.
+# Find a path starting from the green line and ending at the red line and color that path green, with the following constraints:
+# You can't go through a teal pixel; you can only change direction when you hit a teal pixel; you have to start in the direction of the green line.
 
 def main(input_grid):
-    # Finds the start and end points of grid
-    green_loc = np.argwhere(input_grid == Color.GREEN)
-    red_loc = np.argwhere(input_grid == Color.RED)
+    # Plan:
+    # 1. Find the start and end points of the pathfinding problem
+    # 2. Define the state space, initial state(s), successor function, and goal test
+    # 3. Run bfs to find the shortest path from start to end
+    # 4. Color the path green
 
-    # Detect if the start point is a horizontal or vertical block
-    diff = green_loc[0] == green_loc[1]
-    init_available_dir = []
-    if diff[0] == 0:
-        init_available_dir = [(1, 0), (-1, 0)]
+    # 1. Parse the input, based on color
+    # There is the start object, end object, and barriers object
+    background = Color.BLACK
+    start_object = input_grid.copy()
+    start_object[start_object != Color.GREEN] = background
+    end_object = input_grid.copy()
+    end_object[end_object != Color.RED] = background
+    barriers_object = input_grid.copy()
+    barriers_object[barriers_object != Color.TEAL] = background
+
+    # Determine the orientation of the start object
+    x_coordinates = {x for x, y in np.argwhere(start_object == Color.GREEN)}
+    y_coordinates = {y for x, y in np.argwhere(start_object == Color.GREEN)}
+    # vertical line?
+    if len(x_coordinates) == 1:
+        possible_orientations = [(0, 1), (0, -1)]
+    # horizontal line?
+    elif len(y_coordinates) == 1:
+        possible_orientations = [(1, 0), (-1, 0)]
     else:
-        init_available_dir = [(0, 1), (0, -1)]
+        assert False, "Start object is not horizontal/vertical"
+    
+    # 2. Define the state space, initial state(s), successor function, and goal test
+    # A state is a tuple of (x, y, orientation)
+    # orientation is a tuple of (dx, dy)
+        
+    # Initially we begin at a point on the line, along the orientation of the line
+    initial_states = [(x, y, orientation)
+                      for x, y in np.argwhere(start_object == Color.GREEN)
+                      for orientation in possible_orientations]
+    
 
-    # Finds available paths based off of different start points.
-    paths = []
-    for i in green_loc:
-        for j in red_loc:
-            path = find_path(
-                input_grid.copy(),
-                tuple(i),
-                tuple(j),
-                turn_at=[Color.TEAL],
-                path_color=Color.GREEN,
-                init_available_dir=init_available_dir,
-            )
-            if path is not None:
-                paths.append(path)
+    def successors(state):
+        x, y, orientation = state
+        dx, dy = orientation
 
-    # Count number of green pixels in each path, returns the path with the minimum number of green pixels (that is not just the starting green pixels)
-    green_counts = [np.sum(path == Color.GREEN) for path in paths]
-    green_counts = [count for count in green_counts if count > 2]
-    paths = [path for path in paths if np.sum(path == Color.GREEN) > 2]
+        if not (0 <= x + dx < input_grid.shape[0] and 0 <= y + dy < input_grid.shape[1]):
+            return
 
-    min_green_count = min(green_counts)
-    min_path = paths[green_counts.index(min_green_count)]
+        if barriers_object[x + dx, y + dy] == background:
+            yield (x + dx, y + dy, orientation)
+        if barriers_object[x + dx, y + dy] != background:
+            # right angle turns
+            new_orientations = [(dy, dx), (-dy, -dx)]
+            for new_orientation in new_orientations:
+                yield (x, y, new_orientation)
+    
+    def is_goal(state):
+        x, y, (dx, dy) = state
+        if not (0 <= x + dx < end_object.shape[0] and 0 <= y + dy < end_object.shape[1]):
+            return False
+        return end_object[x + dx, y + dy] == Color.RED
+    
+    # 3. Run bfs to find the shortest path from start to end
+    queue = list(initial_states)
+    visited = set(initial_states)
+    parent = {}
+    while queue:
+        state = queue.pop(0)        
+        if is_goal(state):
+            break        
+        for successor in successors(state):
+            if successor not in visited:
+                visited.add(successor)
+                parent[successor] = state
+                queue.append(successor)
 
-    return min_path
+    assert is_goal(state), "No path found"
+    
+    path = []
+    while state in parent:
+        path.append(state)
+        state = parent[state]
 
+    # 4. Color the path green
+    # draw on top of the input grid
+    output_grid = input_grid.copy()
+    for x, y, _ in path:
+        output_grid[x, y] = Color.GREEN
 
-def add(tuple1, tuple2):
-    return tuple1[0] + tuple2[0], tuple1[1] + tuple2[1]
-
+    return output_grid
 
 def generate_input():
     # We want to first generate a successful path and add some noise teal pixels.
     # Finally, we will remove the intermediate pixels in the path.
+    # Because the problem never uses the color 42, we will draw the path in that color, but finally erase it before returning the grid.
 
     # Initialize grid
     n = random.randint(14, 20)
     grid = np.zeros((n, n), dtype=int)
 
-    # Generate start point
+    # Generate start sprite, making it vertical (1x2 dimensions). We will rotate the final grid randomly to get a variety of orientations.
     start_sprite = random_sprite(1, 2, density=1, color_palette=[Color.GREEN])
-    # With 1/2 probability make it a horizontal start point
-    if random.randint(0, 1):
-        start_sprite = np.rot90(start_sprite)
 
-    # Generate end point
+    # Draw start sprite
+    start_x, start_y = random_free_location_for_sprite(grid, start_sprite, border_size=4)
+    blit_sprite(grid, start_sprite, start_x, start_y)
 
-    end_sprite = random_sprite(1, 2, density=1, color_palette=[Color.RED])
+    # Make a random path from the start to the end, leaving color 42 along the path, and leaving teal pixels at each turn
+    x,y = start_x, start_y-1
+    orientation = (0, -1)
+    target_length = random.randint(10, 20)
+    for _ in range(target_length):
+        # Draw the path
+        grid[x, y] = 42        
 
-    # With 1/2 probability make it a horizontal end point
-    if random.randint(0, 1):
-        end_sprite = np.rot90(end_sprite)
+        if random.random() < 0.2:
+            # right angle turn
+            dx, dy = orientation
+            new_orientation = random.choice([(dy, dx), (-dy, -dx)])
+            grid[x+dx, y+dy] = Color.TEAL
+            orientation = new_orientation
+        
+        dx, dy = orientation
+        x += dx
+        y += dy
 
-    # Draw start point
-    start_x, start_y = random_free_location_for_object(
-        grid, start_sprite, border_size=3
-    )
-    blit(grid, start_sprite, start_x, start_y)
+        if x < 0 or x >= n or y < 0 or y >= n: return generate_input()
+    
+    # Color the ending red
+    grid[x, y] = Color.RED
+    grid[x-dx, y-dy] = Color.RED
 
-    # Draw end point
-    end_x, end_y = random_free_location_for_object(
-        grid, end_sprite, border_size=3, padding=2
-    )
+    # randomly sprinkle teal in unoccupied locations
+    for x, y in np.argwhere(grid == Color.BLACK):
+        if random.random() < 0.3:
+            grid[x, y] = Color.TEAL
 
-    blit(grid, end_sprite, end_x, end_y)
+    # Replace the path with black
+    grid[grid == 42] = Color.BLACK
 
-    current_point = (start_x, start_y)
-    directions = calc_neighbors(grid, start_x, start_y)
-    current_direction = random.choice(list(directions.keys()))
-
-    # Draw a path from start to end, adding teal pixels for turning
-    while True:
-        dist_to_end = (end_x - current_point[0], end_y - current_point[1])
-        dir_to_end_vertical = (0, np.sign(dist_to_end[1]))
-        dir_to_end_horizontal = (np.sign(dist_to_end[0]), 0)
-
-        # Look at the neighboring colors
-        for k, v in directions.items():
-            coord = add(current_point, k)
-            try:
-                directions[k] = grid[coord[0], coord[1]]
-            except:
-                directions[k] = None
-        states = directions.values()
-
-        # If we are at a black pixel, color it as visited (blue)
-        if grid[current_point[0], current_point[1]] == Color.BLACK:
-            grid[current_point[0], current_point[1]] = Color.BLUE
-
-        # If we are adjacent to end point, we are almost there!
-        if Color.RED in states:
-            temp = add(current_point, current_direction)
-            temp2 = add(temp, current_direction)
-            if (
-                grid[temp[0], temp[1]] != Color.RED
-                or grid[temp2[0], temp2[1]] != Color.RED
-            ):
-
-                # Color the next two pixels of current direction red
-                grid[grid == Color.RED] = Color.BLACK
-                grid[temp[0], temp[1]] = Color.RED
-                grid[temp2[0], temp2[1]] = Color.RED
-            break
-
-        # Handle at edge case
-        if directions[current_direction] == None:
-            # Color current point teal
-            grid[current_point[0], current_point[1]] = Color.TEAL
-
-            # Change direction
-            current_direction = random.choice(
-                [k for k, v in directions.items() if v == Color.BLACK]
-            )
-
-        # With 0.2 probability, or if current direction is not going towards where the end point is,
-        # we turn to a direction with black pixel.
-        if (
-            (
-                random.random() < 0.2
-                or (
-                    current_direction != dir_to_end_horizontal
-                    and current_direction != dir_to_end_vertical
-                )
-            )
-            and directions[current_direction] == Color.BLACK
-            and Color.GREEN not in states
-        ):
-            # Choose a turn direction
-            # Check if there's a direction to turn to, prioritizing turning to end point direction
-            turn_dir_available = [
-                i
-                for i in directions.keys()
-                if directions[i] == Color.BLACK and i != current_direction
-            ]
-            prioritized_dir = []
-            if dir_to_end_horizontal in turn_dir_available:
-                prioritized_dir.append(dir_to_end_horizontal)
-            if dir_to_end_vertical in turn_dir_available:
-                prioritized_dir.append(dir_to_end_vertical)
-            if prioritized_dir != []:
-                turn_dir_available = prioritized_dir
-            if turn_dir_available != []:
-                turn_direction = random.choice(turn_dir_available)
-                # Color the next pixel in current direction teal
-                teal_x, teal_y = add(current_point, current_direction)
-                grid[teal_x, teal_y] = Color.TEAL
-
-                # Update current direction
-                current_direction = turn_direction
-
-        # If at start point, we must go in the direction of the start point
-        if grid[current_point[0], current_point[1]] == Color.GREEN:
-            # Move past the adjacent green pixel to a black pixel
-            current_direction = [
-                i for i in directions.keys() if directions[i] == Color.GREEN
-            ][0]
-            current_point = add(current_point, current_direction)
-
-        current_point = add(current_point, current_direction)
-
-    # For every other black pixel, mutate them to teal with 0.5 probability to add noise to grid
-    for i in range(n):
-        for j in range(n):
-            if grid[i, j] == Color.BLACK:
-                if random.random() < 0.3:
-                    grid[i, j] = Color.TEAL
-
-    # Make intermediate pixels black to remove the path
-    grid[grid == Color.BLUE] = Color.BLACK
+    # Randomly rotate
+    grid = np.rot90(grid, k=random.randint(0, 3))
 
     return grid
-
 
 # ============= remove below this point for prompting =============
 
