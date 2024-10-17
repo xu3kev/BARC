@@ -4,132 +4,123 @@ import numpy as np
 from typing import *
 
 # concepts:
-# scaling, shape completion
+# scaling, puzzle pieces, indicator pixels
 
 # description:
-# In the input you will see one pattern shape with one pixel of a different color as an indicator. 
-# Several other shapes will be given, each with one pixel of a different color as an indicator and different scales.
-# To make the output, scale the original shape to the same size and color as the other shapes by the size of indicator pixel.
-# Place the scaled shape on the other shapes so that the indicator pixel is at the same position.
+# In the input you will see objects with exactly 2 colors, each with one pixel/rectangle of a different color as an indicator. The indicator color is the same across objects.
+# To make the output, one of those objects is a template shape that you are going to translate/recolor/rescale to match indicators with each other object.
+# Place the rescaled template on top of the other shape so that the indicators are at the same position, and change color to match what you are placing on top of.
 
 def main(input_grid):
-    # The output grid transform from the input grid
-    output_grid = input_grid.copy()
+    # Plan:
+    # 1. Parse the input into template object and other objects, and determine the indicator color
+    # 2. For each other object, rescale+recolor the template to match indicators
+
+    # 1. Parse the input
 
     # Extract all the objects from the input grid
-    objects = find_connected_components(input_grid, background=Color.BLACK, connectivity=4, monochromatic=False)
+    background = Color.BLACK
+    objects = find_connected_components(input_grid, background=background, connectivity=8, monochromatic=False)
 
-    # Find out the original shape and indicator shapes
-    indicator_shapes = []
-    color_list = []
-    for object in objects:
-        object_shape = crop(object)
-        object_colors = np.unique(object_shape)
-        color_count = [len(np.argwhere(object_shape == color)) for color in object_colors]
+    # The indicator pixel's color appears in all the objects
+    possible_indicator_colors = [ color for color in Color.ALL_COLORS
+                                 if all( color in object_colors(obj, background=background) for obj in objects)]
+    assert len(possible_indicator_colors) == 1, "There should be exactly one indicator color"
+    indicator_color = possible_indicator_colors[0]
 
-        # Collect all the colors' appearance in the objects to find the indicator pixel's color
-        color_list.extend([color for color in object_colors if color != Color.BLACK])
+    # Find the template object, which is the biggest object after you scale the indicator down to have size 1x1
+    object_sizes = [ np.sum(obj != background) for obj in objects]
+    indicator_sizes = [ np.sum(obj == indicator_color) for obj in objects]
+    rescaled_sizes = [size // indicator_size for size, indicator_size in zip(object_sizes, indicator_sizes)]
+    template_index = np.argmax(rescaled_sizes)
+    template_object = objects[template_index]
+    other_objects = [obj for i, obj in enumerate(objects) if i != template_index]
 
-        # The indicator shape only has two contact squares with different colors and same scale
-        if len(color_count) == 2 and color_count[0] == color_count[1]:
-            indicator_shapes.append(object)
-        # Otherwise, it's the original shape
-        else:
-            original_shape = object_shape
-    
-    # The indicat pixel's color appear in all the indicator shapes and original shape
-    indicate_color = color_list[np.argmax([np.sum(color_list == color) for color in color_list])]
+    template_sprite = crop(template_object, background=background)
 
-    # Find out the relative position of the indicator pixel in the original shape
-    indicate_position = np.argwhere(original_shape == indicate_color)
+    # 2. For each other object, rescale+recolor the template to match indicators
+    # Determine the scaling factor by the ratio of the size of the indicator pixel region
+    # Determine the color according to the non-indicator color of the object
+    # Determine the position so that indicator pixels are overlaid
 
-    # Find the original shape's color
-    original_shape_color = [color for color in np.unique(original_shape) if color != Color.BLACK and color != indicate_color][0]
+    # To produce the output we draw on top of the input
+    output_grid = input_grid.copy()
 
-    for indicator_shape in indicator_shapes:
+    for other_object in other_objects:
+
         # Find the new shape's color
-        new_scale_shape_color =[color for color in np.unique(indicator_shape) if color != Color.BLACK and color != indicate_color][0]
+        new_color = [ color for color in object_colors(other_object, background=background) if color != indicator_color][0]
 
-        # Only leave the indicator pixel in the indicator shape
-        indicator_shape[indicator_shape != indicate_color] = Color.BLACK
+        # find the new scale, which is the ratio of the size of the indicator pixel in the original shape to the size of the indicator pixel in the new shape
+        new_scale = crop(other_object == indicator_color).shape[0] // crop(template_object == indicator_color).shape[0]
 
-        # Get the indicator pixel's size and position
-        x, y, w, h = bounding_box(indicator_shape)
-        scale_factor = w
+        # Scale the original template to the same scale...
+        template_sprite_scaled = scale_sprite(template_sprite, new_scale)
+        # ...and change its color to the new shape's color
+        template_sprite_scaled[(template_sprite_scaled != background) & (template_sprite_scaled != indicator_color)] = new_color
 
-        # Scale the original pattern to the same scale
-        original_shape_scale = scale_sprite(original_shape, scale_factor)
-
-        # Change the original shape's color to the new shape's color
-        original_shape_scale[original_shape_scale == original_shape_color] = new_scale_shape_color
-        x_rela, y_rela = indicate_position[0]
-
-        # Place the scaled original shape on the indicator shape, make sure the indicator pixel is at the same position
-        x_grid, y_grid = x - x_rela * scale_factor, y - y_rela * scale_factor
-        blit_sprite(output_grid, original_shape_scale, x=x_grid, y=y_grid)
+        # Overlay the indicator pixels from the scaled/recolored template sprite with the indicator pixels from the other object
+        x = np.min(np.argwhere(other_object == indicator_color)[:,0]) - np.min(np.argwhere(template_sprite_scaled == indicator_color)[:,0])
+        y = np.min(np.argwhere(other_object == indicator_color)[:,1]) - np.min(np.argwhere(template_sprite_scaled == indicator_color)[:,1])
+        blit_sprite(output_grid, template_sprite_scaled, x=x, y=y)
         
     return output_grid
 
 def generate_input():
     # Generate the background grid
-    n, m = np.random.randint(10, 25), np.random.randint(10, 25)
-    grid = np.zeros((n, m), dtype=int)
+    background = Color.BLACK
+    width, height = np.random.randint(10, 25), np.random.randint(10, 25)
+    grid = np.full((width, height), background)
 
-    # Get the place holder to ensure the shapes after completition do not overlap
-    place_holder = grid.copy()
+    # Randomly select the color of objects and indicator, which should all be distinct
+    n_objects = np.random.randint(2, 4)
+    colors = np.random.choice(Color.NOT_BLACK, n_objects + 1, replace=False)
+    indicator_color, template_color, other_colors = colors[0], colors[1], colors[2:]
 
-    # Randomly select the color of objects and indicator pixel
-    object_number = np.random.randint(2, 4)
-    colors = np.random.choice(Color.NOT_BLACK, object_number + 1, replace=False)
-    indicator_color, original_color = colors[0], colors[1]
+    # Ensure the shapes after completion do not overlap by having a canvas that shows what things will look like after producing the output
+    output_grid = grid.copy()    
 
     # Generate the original shape
     w, h = np.random.randint(3, 5), np.random.randint(3, 5)
-    original_shape = random_sprite(n=w, m=h, color_palette=[original_color], connectivity=4)
+    template_sprite = random_sprite(w, h, color_palette=[template_color], connectivity=4)
 
     # Randomly turn one pixel into the indicator pixel
-    indicator_pixel = random.choice(np.argwhere(original_shape == original_color))
-    original_shape[indicator_pixel[0], indicator_pixel[1]] = indicator_color
+    indicator_pixel = random.choice(np.argwhere(template_sprite == template_color))
+    template_sprite[indicator_pixel[0], indicator_pixel[1]] = indicator_color
 
-    # Place the original shape on the grid
-    x, y = random_free_location_for_sprite(grid=grid, sprite=original_shape)
-    blit_sprite(grid=grid, sprite=original_shape, x=x, y=y)
-    blit_sprite(grid=place_holder, sprite=original_shape, x=x, y=y)
+    # Place the template on the grid, and on the predicted output
+    x, y = random_free_location_for_sprite(grid=output_grid, sprite=template_sprite)
+    blit_sprite(grid, sprite=template_sprite, x=x, y=y)
+    blit_sprite(output_grid, sprite=template_sprite, x=x, y=y)
 
-    # Check which pixels are connected to the indicator pixel
-    positions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-    for pos in positions:
-        x_contact, y_contact = indicator_pixel[0] + pos[0], indicator_pixel[1] + pos[1]
-        if 0 <= x_contact < w and 0 <= y_contact < h and original_shape[x_contact, y_contact] == original_color:
-            x1, x2 = min(indicator_pixel[0], x_contact), max(indicator_pixel[0], x_contact)
-            y1, y2 = min(indicator_pixel[1], y_contact), max(indicator_pixel[1], y_contact)
-            indicator_shape = original_shape.copy()[x1:x2+1, y1:y2+1]
-            break
+    # Check which pixels are neighbors of the indicator pixel, which will be included in the other objects
+    neighbor_mask = (template_sprite == template_color) & object_neighbors(template_sprite == indicator_color, connectivity=8)
     
-    # Place the indicator shape on the grid
-    other_colors = colors[2:]
-    for color in other_colors:
-        # Change the object color
-        cur_object = indicator_shape.copy()
-        cur_object[cur_object == original_color] = color
-        
-        # Rescale the indicator shape
+    # Place the other objects
+    for other_color in other_colors:
+        # there is the completed other object which will be in the output, and the uncompleted other object which will be in the input
+        complete_other_object = template_sprite.copy()
+        complete_other_object[complete_other_object == template_color] = other_color
+
+        # Make the incomplete object, which just has the indicator pixel plus one of its neighbors
+        incomplete_other_object = template_sprite.copy()
+        incomplete_other_object[incomplete_other_object == template_color] = background        
+        neighbor_x, neighbor_y = random.choice(np.argwhere(neighbor_mask))
+        incomplete_other_object[neighbor_x, neighbor_y] = other_color
+
+        # Rescale both
         scale = np.random.randint(1, 4)
-        cur_object = scale_sprite(cur_object, scale)
-        scaled_original = scale_sprite(original_shape, scale)
+        complete_other_object = scale_sprite(complete_other_object, scale)
+        incomplete_other_object = scale_sprite(incomplete_other_object, scale)
 
-        # Place the original scaled object on the place_holder
-        try:
-            x, y = random_free_location_for_sprite(grid=place_holder, sprite=scaled_original, padding=1, padding_connectivity=8)
-        # If there is not enough space, generate a new input
-        except:
-            return generate_input()
-        blit_sprite(grid=place_holder, sprite=scaled_original, x=x, y=y)
+        # Place the complete object on the predicted output
+        x, y = random_free_location_for_sprite(output_grid, complete_other_object, padding=1, padding_connectivity=8)
+        blit_sprite(output_grid, complete_other_object, x=x, y=y)
 
-        # Get the relative position of the scaled indicator shape
-        x_rela, y_rela = x + indicator_pixel[0] * scale, y + indicator_pixel[1] * scale
-        # Place the scaled indicator shape on the grid
-        blit_sprite(grid=grid, sprite=cur_object, x=x_rela, y=y_rela)
+        # place the incomplete object such that its indicators overlap at the same location
+        x -= np.min(np.argwhere(complete_other_object == indicator_color)[:,0]) - np.min(np.argwhere(incomplete_other_object == indicator_color)[:,0])
+        y -= np.min(np.argwhere(complete_other_object == indicator_color)[:,1]) - np.min(np.argwhere(incomplete_other_object == indicator_color)[:,1])
+        blit_sprite(grid, incomplete_other_object, x=x, y=y)
 
     return grid
 
