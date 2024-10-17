@@ -17,16 +17,12 @@ def main(input_grid):
     # Detect the objects
     objects = find_connected_components(input_grid, background=Color.BLACK, connectivity=4, monochromatic=True)
 
-    connect = False
-    for x, y in zip(*np.where(input_grid == Color.BLACK)):
+    for x, y in np.argwhere(input_grid == Color.BLACK):
         # Check if the current position is between the two objects
-        # Also ensure it is not between the borders of the objects
-        if_between = check_between_objects(obj1=objects[0], obj2=objects[1], x=x, y=y, padding=1)
-        connect = connect or if_between
-        if if_between:
+        # Also ensure it is not between the borders of the objects (padding=1)
+        if check_between_objects(obj1=objects[0], obj2=objects[1], x=x, y=y, padding=1):
             output_grid[x, y] = Color.TEAL
     
-    assert connect, "The two objects can't be connected horizontally or vertically."
     return output_grid
 
 

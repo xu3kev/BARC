@@ -504,7 +504,7 @@ def randomly_spaced_indices(max_len, n_indices, border_size=1, padding=1):
 
 def check_between_objects(obj1, obj2, x, y, padding = 0, background=Color.BLACK):
     """
-    Check if the pixel is between two objects.
+    Check if a pixel is between two objects.
 
     padding: minimum distance from the edge of the objects
 
@@ -517,8 +517,8 @@ def check_between_objects(obj1, obj2, x, y, padding = 0, background=Color.BLACK)
     objects = sorted(objects, key=lambda x: object_position(x)[0])
 
     # There are two objects in the input
-    x1, y1, w1, h1 = bounding_box(objects[0])
-    x2, y2, w2, h2 = bounding_box(objects[1])
+    x1, y1, w1, h1 = bounding_box(objects[0], background=background)
+    x2, y2, w2, h2 = bounding_box(objects[1], background=background)
 
     # If the left one is higher than the right one and they can be connected horizontally
     if x1 + w1 <= x and x < x2 and y - padding >= max(y1, y2) and y + padding < min(y1 + h1, y2 + h2):
@@ -532,8 +532,8 @@ def check_between_objects(obj1, obj2, x, y, padding = 0, background=Color.BLACK)
     objects = sorted(objects, key=lambda x: object_position(x)[1])
 
     # There are two objects in the input
-    x1, y1, w1, h1 = bounding_box(objects[0])
-    x2, y2, w2, h2 = bounding_box(objects[1])
+    x1, y1, w1, h1 = bounding_box(objects[0], background=background)
+    x2, y2, w2, h2 = bounding_box(objects[1], background=background)
 
     # If the top one is to the left of the bottom one and they can be connected vertically
     if y1 + h1 <= y and y < y2 and x - padding >= max(x1, x2) and x + padding < min(x1 + w1, x2 + w2):

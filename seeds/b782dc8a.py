@@ -8,54 +8,44 @@ from typing import *
 
 # description:
 # In the input you will see a maze with a path that has two indicator pixels of different colors.
-# To make the output, fill the path with two colors in turn.
+# To make the output, fill all reachable parts of the maze starting with the indicator pixels and alternating colors.
 
 def main(input_grid):
-    # Output grid transform from the input grid
+    # Output grid draws on top of the input grid
     output_grid = input_grid.copy()
 
-    # Find all the paths in the maze
+    # Parse the input
     maze_color = Color.TEAL
-    objects = find_connected_components(input_grid, background=Color.TEAL, connectivity=4, monochromatic=False)
-
-    # Find the path with two indicator colors
-    for object in objects:
-        colors = np.unique(object)
-        colors = [color for color in colors if color != Color.BLACK and color != maze_color]
-        if len(colors) == 2:
-            path_color = colors
-            path_object = object
-            break
+    indicator_colors = [ color for color in object_colors(input_grid, background=Color.BLACK) if color != maze_color]
+    assert len(indicator_colors) == 2, "expected exactly two indicator colors"
     
-    # Fill the path with two colors in turn
-    def fill_the_grid(cur_color, next_color, x, y, grid):
-        n, m = grid.shape
-        # Search the path in four directions
+    # Fill the path with alternating colors in turn
+    def fill_maze(cur_color, next_color, x, y, grid):
+        width, height = grid.shape
+        # Search outward in four directions
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         for direction in directions:
             new_x, new_y = x + direction[0], y + direction[1]
-            if 0 <= new_x < n and 0 <= new_y < m and grid[new_x, new_y] == Color.BLACK:
+            if 0 <= new_x < width and 0 <= new_y < height and grid[new_x, new_y] == Color.BLACK:
                 grid[new_x, new_y] = next_color
-                # Change the next color to the current color
-                fill_the_grid(next_color, cur_color, new_x, new_y, grid)
+                # Change the next color to the current color: swap current and next
+                fill_maze(next_color, cur_color, new_x, new_y, grid)
     
     # Fill the path with two colors
-    position_list = np.argwhere(path_object == path_color[0]).tolist() + np.argwhere(path_object == path_color[1]).tolist()
-    
     # Start to fill the path with the pixel that already has the path_color
-    for x, y in position_list:
-        cur_color = path_object[x, y]
-        next_color = path_color[0] if cur_color == path_color[1] else path_color[1]
-        fill_the_grid(cur_color, next_color, x, y, output_grid)
+    for x, y in np.argwhere((input_grid != Color.BLACK) & (input_grid != maze_color)):
+        cur_color = input_grid[x, y]
+        next_color = indicator_colors[0] if cur_color == indicator_colors[1] else indicator_colors[1]
+        fill_maze(cur_color, next_color, x, y, output_grid)
 
     return output_grid
 
 def generate_input():
     # Create the background grid
-    n, m = np.random.randint(15, 30), np.random.randint(15, 30)
-    grid = np.full((n, m), Color.BLACK)
+    width, height = np.random.randint(15, 30), np.random.randint(15, 30)
+    grid = np.full((width, height), Color.BLACK)
 
-    # The function to check if the surrounding pixels are all black
+    # function to check if the surrounding pixels are all black
     def check_available(x, y, grid, directions):
         for direction in directions:
             new_x, new_y = x + direction[0], y + direction[1]
@@ -63,8 +53,8 @@ def generate_input():
                 return False
         return True
     
-    # The function for random walking to generate the maze
-    def random_walking(color, grid, x, y):
+    # function for random walk to generate the maze
+    def random_walk(color, grid, x, y):
         # Four walking directions
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
 
@@ -73,7 +63,7 @@ def generate_input():
         for direction in directions:
             cur_x, cur_y = x + direction[0], y + direction[1]
             # Check if the next position is out of the grid
-            if cur_x < 0 or cur_x >= n or cur_y < 0 or cur_y >= m:
+            if cur_x < 0 or cur_x >= width or cur_y < 0 or cur_y >= height:
                 continue
 
             # Check if the next position touch other maze path
@@ -82,7 +72,7 @@ def generate_input():
                 # If not, mark the next position as the maze path
                 # And continue the random walking
                 grid[cur_x, cur_y] = color
-                random_walking(color, grid, cur_x, cur_y)
+                random_walk(color, grid, cur_x, cur_y)
                 break
 
     # The color for the maze path        
@@ -102,7 +92,7 @@ def generate_input():
 
             # Avoid the exception `maximum recursion depth exceeded`
             try:
-                random_walking(maze_color, grid, x, y)
+                random_walk(maze_color, grid, x, y)
             except:
                 continue
     
@@ -121,7 +111,7 @@ def generate_input():
     grid[x, y] = path_color[0]
     directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
     for direction in directions:
-        if 0 <= x + direction[0] < n and 0 <= y + direction[1] < m and grid[x + direction[0], y + direction[1]] == Color.BLACK:
+        if 0 <= x + direction[0] < width and 0 <= y + direction[1] < height and grid[x + direction[0], y + direction[1]] == Color.BLACK:
             # Color the surrounding pixels with the other path_color
             # Which indicates the color should be changed in the next step
             grid[x + direction[0], y + direction[1]] = path_color[1]
