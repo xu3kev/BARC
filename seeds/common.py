@@ -296,7 +296,7 @@ def object_position(obj, background=Color.BLACK, anchor="upper left"):
     middle_x, middle_y = object_position(obj, background=background_color, anchor="center")
     """
 
-    anchor = anchor.lower().replace(" ", "") # robustness to mistakes by llm
+    anchor = anchor.lower().replace(" ", "").replace("top", "upper").replace("bottom", "lower") # robustness to mistakes by llm
 
     x, y, w, h = bounding_box(obj, background=background)
 
@@ -1307,6 +1307,10 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
     Returns an (n,m) NumPy array representing the sprite.
     """
 
+    # save the original inputs
+    n_original, m_original, density_original, symmetry_original, color_palette_original, connectivity_original, background_original = \
+        n, m, density, symmetry, color_palette, connectivity, background
+
     # canonical form: force dimensions to be lists
     if isinstance(n, range):
         n = list(n)
@@ -1349,27 +1353,31 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
     else:
         density = max(0.4, min(0.95, random.gauss(density, 0.1)))
 
-    while True:
-        sprite = generate_sprite(
-            n,
-            m,
-            symmetry_type=symmetry,
-            color_palate=color_palette,
-            fill_percentage=density,
-            connectivity=connectivity,
-            background=background,
-        )
-        assert is_contiguous(
-            sprite, connectivity=connectivity, background=background
-        ), "Generated sprite is not contiguous."
-        # check that the sprite has pixels that are flushed with the border
-        if (
-            np.sum(sprite[0, :]!=background) > 0
-            and np.sum(sprite[-1, :]!=background) > 0
-            and np.sum(sprite[:, 0]!=background) > 0
-            and np.sum(sprite[:, -1]!=background) > 0
-        ):
-            return sprite
+    sprite = generate_sprite(
+        n,
+        m,
+        symmetry_type=symmetry,
+        color_palate=color_palette,
+        fill_percentage=density,
+        connectivity=connectivity,
+        background=background,
+    )
+    assert is_contiguous(
+        sprite, connectivity=connectivity, background=background
+    ), "Generated sprite is not contiguous."
+    # check that the sprite has pixels that are flushed with the border
+    if (
+        np.sum(sprite[0, :]!=background) > 0
+        and np.sum(sprite[-1, :]!=background) > 0
+        and np.sum(sprite[:, 0]!=background) > 0
+        and np.sum(sprite[:, -1]!=background) > 0
+    ):
+        return sprite
+    
+    # if the sprite is not flushed with the border, then we need to regenerate it
+    return random_sprite(n_original, m_original, density_original, symmetry_original, color_palette_original, connectivity_original, background_original)
+
+
 
 
 def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochromatic=False, connectivity=None, allowed_dimensions=None, colors=None, can_overlap=False):
