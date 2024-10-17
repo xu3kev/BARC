@@ -37,6 +37,7 @@ def main(input_grid):
     # Initialize the output grid
     for i in range(len(vertical_lines)):
         for j in range(len(horizontal_lines)):
+            # Get the region of the color
             x1 = vertical_lines[i]
             x2 = vertical_lines[i + 1] if i + 1 < len(vertical_lines) else n
             y1 = horizontal_lines[j]
@@ -71,14 +72,17 @@ def generate_input():
     # Assign the colors to the pattern by the separation
     for i in range(color_w):
         for j in range(color_h):
+            # Get the region of the color
             x1 = horizontal_separation[i]
             x2 = horizontal_separation[i + 1] if i + 1 < len(horizontal_separation) else n
             y1 = vertical_separation[j]
             y2 = vertical_separation[j + 1] if j + 1 < len(vertical_separation) else m
 
+            # Each region is incomplete scattered color
             pattern = np.full((x2 - x1, y2 - y1), Color.BLACK)
             pattern = random_scatter_points(grid=pattern, color=colors[i * color_h + j], density=0.8)
 
+            # Place the pattern in the grid
             blit_sprite(grid=grid, sprite=pattern, x=x1, y=y1, background=Color.BLACK)
 
     # Draw black lines to separate the colors
