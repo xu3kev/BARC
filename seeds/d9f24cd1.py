@@ -48,7 +48,7 @@ def generate_input():
     
     # Get the region except the bottom row, left most column and right most column.
     # Randomly scatter the gray pixels on the grid.
-    randomly_scatter_points(grid=grid[1:-1, 1:-1], color=Color.GRAY, density=0.1)
+    randomly_scatter_points(grid[1:-1, 1:-1], color=Color.GRAY, density=0.1)
     
     return grid
 
