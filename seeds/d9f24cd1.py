@@ -4,32 +4,31 @@ import numpy as np
 from typing import *
 
 # concepts:
-# line drawing, obstacle recognition
+# line drawing, obstacle avoidance
 
 # description:
 # In the input you will see several red pixels on the bottom row of the grid, and some gray pixels scattered on the grid.
-# To make the output grid, you should draw a red line from the bottom row to the top row. If it touch the gray pixel, 
-# it should go right then up to avoid the gray pixel.
+# To make the output grid, you should draw a red line upward from each red pixel, but avoiding the gray pixels.
+# To avoid touching the gray pixels, go right to avoid them until you can go up again.
 
 def main(input_grid):
-    # The output grid is the same size as the input grid.
+    # The output grid is the same size as the input grid, and we are going to draw on top of the input, so we copy it
     output_grid = input_grid.copy()
     width, height = input_grid.shape
 
-    # Iterate through the red pixels on the bottom row from left to right
-    bottom_row = input_grid[:, -1]
-
-    # Get the positions of the red pixels on the bottom row.
-    for pos_x in np.argwhere(bottom_row == Color.RED):
-        # Draw the red line from the bottom row to the top row.
-        for pos_y in reversed(range(height)):
-            if output_grid[pos_x, pos_y] != Color.GRAY:
-                output_grid[pos_x, pos_y] = Color.RED
-            else:
+    # Get the positions of the red pixels on the bottom row
+    for x, y in np.argwhere(input_grid == Color.RED):
+        # Draw the red line upward, but move to the right to avoid touching gray pixels
+        while 0 < y < height and 0 < x < width:
+            if output_grid[x, y - 1] == Color.GRAY:
                 # If the red line touch the gray pixel, it should go right then up to avoid the gray pixel.
-                output_grid[pos_x + 1, pos_y + 1] = Color.RED
-                pos_x += 1
-                output_grid[pos_x, pos_y] = Color.RED
+                output_grid[x + 1, y] = Color.RED
+                x += 1
+            else:
+                # Otherwise we go up
+                output_grid[x, y - 1] = Color.RED
+                y -= 1
+
     return output_grid
 
 def generate_input():
