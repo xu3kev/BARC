@@ -4,12 +4,12 @@ import numpy as np
 from typing import *
 
 # concepts:
-# downscaling
+# downscaling, nesting
 
 # description:
 # In the input you will see a grid consisting of nested shapes of different colors.
 # To make the output, make a grid with one pixel for each layer of the shapes, 
-# with the color from outermost layer to the innermost layer in the order they appear in the input.
+# with the color from outermost layer to the innermost layer in the same order they appear in the input.
 
 def main(input_grid):
     # Find the objects in the input grid
