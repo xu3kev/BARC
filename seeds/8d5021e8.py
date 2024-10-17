@@ -45,7 +45,7 @@ def generate_input():
     density = np.random.randint(2, n * m) / (n * m)
 
     # Randomly scatter the color in the grid
-    grid = random_scatter_points(grid=grid, color=color, density=density)
+    randomly_scatter_points(grid, color=color, density=density)
 
     return grid
 

@@ -168,9 +168,12 @@ def find_connected_components(
                 connected_components.append(connected_component)
         return connected_components
 
-def random_scatter_points(grid, color, density=0.5, background=Color.BLACK):
+def randomly_scatter_points(grid, color, density=0.5, background=Color.BLACK):
     """
     Randomly scatter points of the specified color in the grid with specified density.
+
+    Example usage:
+    randomly_scatter_points(grid, color=a_color, density=0.5, background=background_color)
     """
     colored = 0
     n, m = grid.shape
@@ -468,25 +471,36 @@ def contact(
 
     return False
 
-def generate_position_has_interval(max_len, position_num, if_padding=False):
+def randomly_spaced_indices(max_len, n_indices, border_size=1, padding=1):
     """
-    Generate the position of the lines with random interval.
+    Generate randomly-spaced indices guaranteed to not be adjacent.
+    Useful for generating random dividers.
+
+    padding: guaranteed empty space in between indices
+    border_size: guaranteed empty space at the border
+
+    Example usage:
+    x_indices = randomly_spaced_indices(grid.shape[0], num_dividers, border_size=1, padding=2) # make sure each region is at least 2 pixels wide
+    for x in x_indices:
+        grid[x, :] = divider_color
     """
-    # Generate position list that has one interval
-    # Use 1 to represent the line, 0 to represent the interval
-    if if_padding:
-        position_list = ([0] + [1]) * (position_num) + [0]
-    else:
-        position_list = ([1] + [0]) * (position_num - 1) + [1]
+    if border_size>0:
+        return randomly_spaced_indices(max_len-border_size-2, n_indices, border_size=0, padding=padding) + border_size
+    
+    indices = [0 for _ in range(max_len)]
+    while sum(indices) < n_indices:
+        # Randomly select an index to turn 1
+        try:
+            possible_indices = [i for i in range(max_len)
+                                if sum(indices[max(0,i-padding) : min(i+1+padding, max_len)]) == 0 ]
+        except:
+            print('max_len:', max_len)
+            print('indices:', indices)
+            print('n_indices:', n_indices)
+            assert 0
+        indices[random.choice(possible_indices)] = 1
 
-    if len(position_list) > max_len:
-        return None
-    for i in range(max_len - len(position_list)):
-        position_list.insert(np.random.randint(0, len(position_list)), 0)
-
-    position_list = np.array(position_list)
-
-    return np.argwhere(position_list == 1).flatten()
+    return np.argwhere(indices).flatten()
 
 
 
