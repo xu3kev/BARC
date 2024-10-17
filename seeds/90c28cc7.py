@@ -44,8 +44,12 @@ def generate_input():
     pattern_w, pattern_h = np.random.randint(15, 20), np.random.randint(15, 20)
 
     # Randomly separate the pattern into colors
-    horizontal_separation = generate_position_has_interval(max_len=pattern_w, position_num=color_w, if_padding=True)
-    vertical_separation = generate_position_has_interval(max_len=pattern_h, position_num=color_h, if_padding=True)
+    horizontal_separation = generate_position_has_interval(max_len=pattern_w, position_num=color_w - 1, if_padding=True)
+    vertical_separation = generate_position_has_interval(max_len=pattern_h, position_num=color_h - 1, if_padding=True)
+
+    # Iterate from the beginning of the pattern
+    horizontal_separation = np.insert(horizontal_separation, 0, 0)
+    vertical_separation = np.insert(vertical_separation, 0, 0)
 
     # Assign the colors to the pattern by the separation
     pattern = np.zeros((pattern_w, pattern_h), dtype=int)
