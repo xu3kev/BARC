@@ -17,51 +17,14 @@ def main(input_grid):
     # Detect the objects
     objects = find_connected_components(input_grid, background=Color.BLACK, connectivity=4, monochromatic=True)
 
-    # First find out if they can be connected horizontally
-    objects = sorted(objects, key=lambda x: object_position(x)[0])
-
-    # There are two objects in the input
-    x1, y1, w1, h1 = bounding_box(objects[0])
-    x2, y2, w2, h2 = bounding_box(objects[1])
-
     connect = False
-
-    # Connect component color
-    connect_color = Color.TEAL
-
-    # If the left one is higher than the right one and they can be connected horizontally
-    if y1 <= y2 and y1 + h1 >= y2:
-        # We can connect them horizontally
-        for y in range(y2 + 1, min(y1 + h1, y2 + h2) - 1):
-            draw_line(grid=output_grid, x=x1 + w1, y=y, end_x=x2 - 1, end_y=y, direction=(1, 0), color=connect_color)
-            connect = True
-    # If the right one is higher than the left one and they can be connected horizontally
-    elif y2 <= y1 and y2 + h2 >= y1:
-        # We can connect them horizontally
-        for y in range(y1, min(y1 + h1, y2 + h2) - 1):
-            draw_line(grid=output_grid, x=x1 + w1, y=y, end_x=x2 - 1, end_y=y, direction=(1, 0), color=connect_color)
-            connect = True
-    
-   
-    # If we can't connect them horizontally, try vertically
-    objects = sorted(objects, key=lambda x: object_position(x)[1])
-
-    # There are two objects in the input
-    x1, y1, w1, h1 = bounding_box(objects[0])
-    x2, y2, w2, h2 = bounding_box(objects[1])
-
-    # If the top one is to the left of the bottom one and they can be connected vertically
-    if x1 <= x2 and x1 + w1 >= x2:
-        # We can connect them vertically
-        for x in range(x2 + 1, min(x1 + w1, x2 + w2) - 1):
-            draw_line(grid=output_grid, x=x, y=y1 + h1, end_x=x, end_y=y2 - 1, direction=(0, 1), color=connect_color)
-            connect = True
-    # If the top one is to the right of the bottom one and they can be connected vertically
-    elif x2 <= x1 and x2 + w2 >= x1:
-        # We can connect them vertically
-        for x in range(x1 + 1, min(x1 + w1, x2 + w2) - 1):
-            draw_line(grid=output_grid, x=x, y=y1 + h1, end_x=x, end_y=y2 - 1, direction=(0, 1), color=connect_color)
-            connect = True
+    for x, y in zip(*np.where(input_grid == Color.BLACK)):
+        # Check if the current position is between the two objects
+        # Also ensure it is not between the borders of the objects
+        if_between = check_between_objects(obj1=objects[0], obj2=objects[1], x=x, y=y, padding=1)
+        connect = connect or if_between
+        if if_between:
+            output_grid[x, y] = Color.TEAL
     
     assert connect, "The two objects can't be connected horizontally or vertically."
     return output_grid

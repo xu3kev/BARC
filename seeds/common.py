@@ -502,7 +502,47 @@ def randomly_spaced_indices(max_len, n_indices, border_size=1, padding=1):
 
     return np.argwhere(indices).flatten()
 
+def check_between_objects(obj1, obj2, x, y, padding = 0, background=Color.BLACK):
+    """
+    Check if the pixel is between two objects.
 
+    padding: minimum distance from the edge of the objects
+
+    Example usage:
+    if check_between_objects(obj1, obj2, x, y, padding=1, background=background_color):
+        # do something
+    """
+    objects = [obj1, obj2]
+    # First find out if the pixel is horizontally between the two objects
+    objects = sorted(objects, key=lambda x: object_position(x)[0])
+
+    # There are two objects in the input
+    x1, y1, w1, h1 = bounding_box(objects[0])
+    x2, y2, w2, h2 = bounding_box(objects[1])
+
+    # If the left one is higher than the right one and they can be connected horizontally
+    if x1 + w1 <= x and x < x2 and y - padding >= max(y1, y2) and y + padding < min(y1 + h1, y2 + h2):
+        return True
+    # If the right one is higher than the left one and they can be connected horizontally
+    if x2 + w2 <= x and x < x1 and y - padding >= max(y1, y2) and y + padding < min(y1 + h1, y2 + h2):
+        return True
+    
+
+    # Then find out if the pixel is vertically between the two objects
+    objects = sorted(objects, key=lambda x: object_position(x)[1])
+
+    # There are two objects in the input
+    x1, y1, w1, h1 = bounding_box(objects[0])
+    x2, y2, w2, h2 = bounding_box(objects[1])
+
+    # If the top one is to the left of the bottom one and they can be connected vertically
+    if y1 + h1 <= y and y < y2 and x - padding >= max(x1, x2) and x + padding < min(x1 + w1, x2 + w2):
+        return True
+    # If the top one is to the right of the bottom one and they can be connected vertically
+    if y2 + h2 <= y and y < y1 and x - padding >= max(x1, x2) and x + padding < min(x1 + w1, x2 + w2):
+        return True
+    
+    return False
 
 
 def random_free_location_for_sprite(
