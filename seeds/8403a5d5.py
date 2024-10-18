@@ -8,9 +8,9 @@ from typing import *
 
 # description:
 # In the input you will see a grid with a single pixel on the bottom of the grid.
-# To make the output, you should draw a pattern from the pixel.
-# step 1: draw a line from the pixel to the right, each line has one pixel interval.
-# step 2: put one pixel on the top / bottom interval alternatively.
+# To make the output, you should draw a geometric pattern starting outward from the pixel:
+# step 1: draw vertical bars starting from the pixel and going to the right with a horizontal period of 2.
+# step 2: put a grey pixel in between the vertical bars alternating between the top / bottom.
 
 def main(input_grid):
     # Output grid is the same size as the input grid
@@ -19,19 +19,21 @@ def main(input_grid):
     # Detect the pixel on the bottom of the grid
     pixel = find_connected_components(input_grid, monochromatic=True)[0]
     pixel_color = object_colors(pixel)[0]
-    x, y = object_position(pixel)
+    pixel_x, pixel_y = object_position(pixel)
 
     # Get the color of the pattern pixel by observation
     pattern_pixel_color = Color.GRAY
     
-    # STEP 1: Draw line from bottom to top from the pixel to right, each line has one pixel interval
-    for i in range(x, output_grid.shape[0], 2):
-        draw_line(output_grid, x=i, y=y, direction=(0, -1), color=pixel_color)
+    # STEP 1: Draw vertical bar from bottom to top starting from the pixel and going to the right, horizontal period of 2
+    horizontal_period = 2
+    for x in range(pixel_x, output_grid.shape[0], horizontal_period):
+        draw_line(output_grid, x=x, y=pixel_y, direction=(0, -1), color=pixel_color)
     
-    # STEP 2: put one pixel on the top / bottom interval alternatively
-    cur_y = 0
-    for i in range(x + 1, output_grid.shape[0], 2):
-        output_grid[i, cur_y] = pattern_pixel_color
+    # STEP 2: put a grey pixel in between the vertical bars alternating between the top / bottom.
+    cur_y = -1 if pixel_y == 0 else 0
+    for x in range(pixel_x + 1, output_grid.shape[0], horizontal_period):
+        output_grid[x, cur_y] = pattern_pixel_color
+        # alternate between top and bottom
         cur_y = 0 if cur_y == -1 else -1
 
     return output_grid
