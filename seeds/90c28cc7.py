@@ -12,9 +12,16 @@ from typing import *
 # To make the output, make a grid with one pixel for each cell of the chessboard.
 
 def main(input_grid):
-    # Find the color objects in the input grid
+    # Plan:
+    # 1. Find the colored regions in the input grid
+    # 2. Get the coordinates of the chessboard pattern, which are the x/y positions of the regions
+    # 3. Draw the output grid with one pixel for each region (cell of the chessboard)
+
+    # 1. Input parsing
+    # Find the colored objects in the input grid
     objects = find_connected_components(grid=input_grid, connectivity=4, monochromatic=True, background=Color.BLACK)
 
+    # 2. Figuring out the chessboard pattern
     # Get the position of the objects
     x_position_list = [object_position(obj)[0] for obj in objects]
     y_position_list = [object_position(obj)[1] for obj in objects]
@@ -24,6 +31,7 @@ def main(input_grid):
     x_position_list = sorted(np.unique(x_position_list))
     y_position_list = sorted(np.unique(y_position_list))
 
+    # 3. Drawing the output
     # Get the size of chessboard with one pixel represents the original region
     w_color, h_color = len(x_position_list), len(y_position_list)
     output_grid = np.full((w_color, h_color), Color.BLACK)
