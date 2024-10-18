@@ -101,11 +101,10 @@ def generate_input():
 
     # Mark the longest path to be colored to the path_color in turn
     objects = find_connected_components(grid, background=maze_color, connectivity=4, monochromatic=True)
-    objects = sorted(objects, key=lambda x: np.sum(x == Color.BLACK), reverse=True)
-    path = objects[0]
+    path = max(objects, key=lambda x: np.sum(x == Color.BLACK))
 
     # Find one empty position to start the path
-    x, y = random_free_location_for_sprite(grid=path, sprite=np.array([[1]]))
+    x, y = random.choice(np.argwhere(path == Color.BLACK))
 
     # Color the position with one of the path_color
     grid[x, y] = path_color[0]
