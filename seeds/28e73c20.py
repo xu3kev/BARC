@@ -3,17 +3,16 @@ from common import *
 import numpy as np
 from typing import *
 
-
 # concepts:
-# patterns, repetition
+# geometric pattern, repetition, spiral
 
 # description:
-# In the input you will see a black nxn grid.
-# To make the output, you should draw a spiral pattern of green pixels starting from the top left corner of the grid going to the right.
+# In the input you will see an empty black grid.
+# To make the output, you should draw a spiral pattern of green pixels starting from the top left corner and going to the right.
 
 def main(input_grid):
     # get the grid size
-    n, _ = input_grid.shape
+    width, height = input_grid.shape
 
     # start from the top left corner of the grid
     x, y = 0, 0
@@ -32,7 +31,7 @@ def main(input_grid):
     # continue spiralling until we cannot anymore
     while True:
         # First, check if we hit the border, if so, we turn clockwise
-        if x + direction[0] >= n or y + direction[1] >= n or x + direction[0] < 0 or y + direction[1] < 0:
+        if x + direction[0] >= width or y + direction[1] >= height or x + direction[0] < 0 or y + direction[1] < 0:
             direction = turn_clockwise(direction)
             continue
 
@@ -43,7 +42,7 @@ def main(input_grid):
 
         # Last, check if the square after the current one is green, if so, we turn clockwise
         # We do this to draw the spiral pattern
-        if (0 <= x + 2 * direction[0] < n and 0 <= y + 2 * direction[1] < n 
+        if (0 <= x + 2 * direction[0] < width and 0 <= y + 2 * direction[1] < height 
             and output_grid[x + 2 * direction[0], y + 2 * direction[1]] == Color.GREEN):
             direction = turn_clockwise(direction)
             continue
@@ -57,8 +56,8 @@ def main(input_grid):
 
 def generate_input():
     # first create a randomly sized grid, somewhere between 5x5 and 20x20
-    n = random.randint(5, 20)
-    grid = np.full((n, n), Color.BLACK)
+    length = random.randint(5, 20)
+    grid = np.full((length, length), Color.BLACK)
 
     return grid
 
