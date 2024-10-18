@@ -47,8 +47,14 @@ def prune_common_lib(common_lib, reference_code):
     common_lib_classes = common_lib[0]
     # TODO: what's the best way to handle classes?
     # if `detect_rotational_symmetry`, `detect_translational_symmetry`, `detect_mirror_symmetry` is called, then we should include the Symmetry class
-    symmtry_related_functions = ["detect_rotational_symmetry", "detect_translational_symmetry", "detect_mirror_symmetry"]
-    included_classes_names = exceptions + ["Symmetry"] if any([f in called_functions for f in symmtry_related_functions]) else exceptions
+    symmetry_related_functions = ["detect_rotational_symmetry", "detect_translational_symmetry", "detect_mirror_symmetry"]
+    symmetry_related_class_names = ["RotationalSymmetry", "TranslationalSymmetry", "MirrorSymmetry"]
+    included_classes_names = exceptions + ["Symmetry"] if any([f in called_functions for f in symmetry_related_functions]) else exceptions
+    for class_name in symmetry_related_class_names:
+        if class_name in reference_code:
+            if class_name not in included_classes_names:
+                included_classes_names.append(class_name)
+
     called_common_lib_classes = [c for c in common_lib_classes if c["name"] in included_classes_names]
     
     called_common_lib = (called_common_lib_classes, called_common_lib_functions)
