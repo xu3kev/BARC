@@ -4,17 +4,16 @@ import numpy as np
 from typing import *
 
 # concepts:
-# downscaling, mirror
+# downscaling, mirror, horizontal/vertical bars
 
 # description:
-# In the input you will see a grid consisting of a chessboard pattern of different colors.
-# Each pattern is a square region with a single color, and has same size.
-# The regions are separated by grid lines, which are also colored.
-# To make the output, make a grid with one pixel for each region of the chessboard.
-# The output grid should be mirrored by x-axis.
+# In the input you will see horizontal and vertical bars separating different regions/cells/partitions with each cell containing different colors, like a chessboard.
+# Each separated region has a single color.
+# To make the output, make a grid with one colored pixel for each region of the chessboard.
+# Finally mirror along the x-axis.
 
 def main(input_grid):
-    # Find the color of grid lines
+    # Find the color of horizontal and vertical bars that separate the different regions/cells/partitions
     line_candidates = find_connected_components(grid=input_grid, connectivity=4, monochromatic=True, background=Color.BLACK)
     line_candidates = sorted(line_candidates, key=lambda x: crop(x).shape[0] * crop(x).shape[1], reverse=True)
 
