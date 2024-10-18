@@ -13,71 +13,82 @@ from typing import *
 # Finally mirror along the x-axis.
 
 def main(input_grid):
-    # Find the color of horizontal and vertical bars that separate the different regions/cells/partitions
-    line_candidates = find_connected_components(grid=input_grid, connectivity=4, monochromatic=True, background=Color.BLACK)
-    line_candidates = sorted(line_candidates, key=lambda x: crop(x).shape[0] * crop(x).shape[1], reverse=True)
+    # Plan:
+    # 1. Determine the color of the separator between the regions
+    # 2. Extract all the regions separated by the separator color
+    # 3. Find the region positions and their possible X/Y positions
+    # 4. Create the output grid so that one pixel represents the original region, preserving X/Y ordering
+    # 5. Mirror the output grid by x-axis
 
-    # The grid lines spread across the whole grid
-    line_grid = line_candidates[0]
-    line_color = object_colors(line_grid)[0]
+    # 1. Find the color of horizontal and vertical bars that separate the different regions/cells/partitions
+    # One way of doing this is to find the connected component which stretches all the way horizontally and vertically over the input
+    separator_candidates = [ possible_separator
+                            for possible_separator in find_connected_components(grid=input_grid, connectivity=4, monochromatic=True, background=Color.BLACK)
+                            if crop(possible_separator).shape == input_grid.shape ]
+    assert len(separator_candidates) == 1, "There should be exactly 1 separator partitioning the input"
+    separator = separator_candidates[0]
+    separator_color = object_colors(separator, background=Color.BLACK)[0]
 
-    # Extract all the squares separated by the grid lines
-    squares = find_connected_components(grid=input_grid, connectivity=4, monochromatic=True, background=line_color)
+    # 2. Extract all the regions separated by the separator color
+    regions = find_connected_components(grid=input_grid, connectivity=4, monochromatic=True, background=separator_color)
 
-    # Sort the squares by their position
-    squares = sorted(squares, key=lambda x: object_position(obj=x, background=line_color)[0])
-    squares = sorted(squares, key=lambda x: object_position(obj=x, background=line_color)[1])
+    # 3. Find the region positions
+    x_positions = { object_position(obj, background=separator_color)[0] for obj in regions }
+    y_positions = { object_position(obj, background=separator_color)[1] for obj in regions }
 
-    # Get the size of the output chessboard
-    w = np.unique([object_position(obj=x, background=line_color)[0] for x in squares]).shape[0]
-    h = np.unique([object_position(obj=x, background=line_color)[1] for x in squares]).shape[0]
+    # 4. Create the output grid, each region becomes a single pixel
+
+    # Get the size of the output
+    width = len(x_positions)
+    height = len(y_positions)    
 
     # Create the output grid
     # Use one pixel to represent the original region
-    output_grid = np.full((w, h), Color.BLACK)
-    for i, square in enumerate(squares):
-        cur_color = object_colors(obj=square, background=line_color)[0]
-        output_grid[i % w, i // w] = cur_color
+    output_grid = np.full((width, height), Color.BLACK)
+    for output_x, input_x in enumerate(sorted(x_positions)):
+        for output_y, input_y in enumerate(sorted(y_positions)):
+            for region in regions:
+                if object_position(region, background=separator_color) == (input_x, input_y):
+                    output_grid[output_x, output_y] = object_colors(region, background=separator_color)[0]
+                    break
 
-    # Mirror the output grid by x-axis
+    # 5. Mirror the output grid by x-axis
     output_grid = np.flip(output_grid, axis=0)
 
     return output_grid
 
 def generate_input():
-    # Randomly choose the pattern size
+    # Randomly choose the number of regions that are going to form the output canvas
     w, h = np.random.randint(3, 6), np.random.randint(3, 6)
-    pattern = np.full((w, h), Color.BLACK)
+    # Keep track of the color of each region
+    region_colors = np.full((w, h), Color.BLACK)
 
-    # Randomly choose the color size
-    num_color = np.random.randint(1, 4)
-    colors = np.random.choice(Color.NOT_BLACK, num_color + 1, replace=False)
-    pattern_colors = colors[1:]
-    line_color = colors[0]
+    # Randomly choose the colors. the separator gets a special color and colored regions get a color randomly selected from other_colors
+    num_other_colors = np.random.randint(1, 4)
+    separator_color, *other_colors = np.random.choice(Color.NOT_BLACK, num_other_colors + 1, replace=False)
 
-    # Randomly color the pattern
+    # Randomly color the regions
     for x, y in np.ndindex(w, h):
         # Randomly determine if the cell should be colored
-        if_color = np.random.choice([True, False])
-        if if_color:
+        if np.random.choice([True, False]):
             # Randomly choose the color
-            pattern[x, y] = np.random.choice(pattern_colors)
+            region_colors[x, y] = np.random.choice(other_colors)
     
-    # Randomly choose the scale factor and scale the pattern
+    # Randomly choose the scale factor and scale the regions so that they are bigger than just a single pixel
     scale_factor = np.random.randint(3, 6)
-    scaled_pattern = scale_sprite(pattern, scale_factor)
+    grid = scale_sprite(region_colors, scale_factor)
     
-    # Draw lines to separate the colors
+    # Draw horizontal/vertical lines to separate the colors
     interval = scale_factor
     # First draw vertical lines
-    for i in range(0, w * scale_factor, interval):
-        draw_line(grid=scaled_pattern, x=i, y=0, direction=(0, 1), color=line_color)
+    for x in range(interval, w * scale_factor, interval):
+        draw_line(grid, x=x, y=0, direction=(0, 1), color=separator_color)
     # Then draw horizontal lines
-    for j in range(0, h * scale_factor, interval):
-        draw_line(grid=scaled_pattern, x=0, y=j, direction=(1, 0), color=line_color)
+    for y in range(interval, h * scale_factor, interval):
+        draw_line(grid, x=0, y=y, direction=(1, 0), color=separator_color)
     
-    # Get rid of the border
-    grid = scaled_pattern[1:, 1:]
+    # drop the extra pixels
+    grid = grid[1:,1:]
 
     return grid
 
