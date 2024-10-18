@@ -7,121 +7,113 @@ from typing import *
 # downscaling
 
 # description:
-# In the input you will see one grid with chessboard pattern separated by several lines.
-# Each separated region is a square of same size.
-# Some square regions are have same color on the four corners, and some are not.
-# To make the output, you need to find the minimum regular squares with same color on the four corners,
-# The black square regions with same color on the four corners should be filled with the color in the output.
-# Each square region should be represented by one pixel in the output grid.
+# In the input you will see horizontal and vertical bars/dividers of a particular color that define rectangular regions, with some of the single-pixel vertices colored differently.
+# Some rectangular regions are have same color on the four vertices, and some are not.
+# To make the output, find the regions colored differently on all vertices and produce a single output pixel of that color in the corresponding part of the output.
+# Ignore regions which just have the color of the horizontal and vertical bars at their vertices.
 
 def main(input_grid):
+
     # Detect the objects
     objects = find_connected_components(input_grid, background=Color.BLACK, connectivity=4, monochromatic=True)
     
-    # The line color is the color that appear most 
-    objects = sorted(objects, key=lambda x: np.sum(x != Color.BLACK), reverse=True)
-    line_color = object_colors(objects[0])[0]
+    # The divider color is the most frequent non-background color, and the background is black
+    divider_color = max(Color.NOT_BLACK, key=lambda color: np.sum(input_grid == color))
 
-    # Detect the pixels that form the square
-    pixels = [obj for obj in objects if object_colors(obj) != [line_color]]
-    x_position = [object_position(obj)[0] for obj in pixels]
-    y_position = [object_position(obj)[1] for obj in pixels]
+    # Detect the single pixels that form the vertices of the regions
+    pixels = [ obj for obj in objects if object_colors(obj) != [divider_color] ]
+    x_positions = [object_position(obj)[0] for obj in pixels]
+    y_positions = [object_position(obj)[1] for obj in pixels]
 
-    # Find the region of the pattern
-    x_min, x_max = min(x_position), max(x_position)
-    y_min, y_max = min(y_position), max(y_position)
-    pattern_region = input_grid[x_min:x_max+1, y_min:y_max+1]
+    # Ignore regions that are not part of those special pixels
+    x_min, x_max = min(x_positions), max(x_positions)
+    y_min, y_max = min(y_positions), max(y_positions)
+    input_grid = input_grid[x_min:x_max+1, y_min:y_max+1]
 
-    # Figure out the size of black square
-    squares = find_connected_components(pattern_region, background=line_color, connectivity=4, monochromatic=True)
-    squares = [square for square in squares if object_colors(square, background=line_color) == [Color.BLACK]]
-    square_len = crop(squares[0], background=line_color).shape[0]
+    # Extract just the black regions delimited by the divider color
+    regions = find_connected_components(input_grid, background=divider_color, connectivity=4, monochromatic=True)
+    regions = [region for region in regions if object_colors(region, background=divider_color) == [Color.BLACK]]
 
-    # Calculate the size of the output grid, should be the same size as using one pixel to represent a square in the region
-    w, h = (x_max - x_min) // (square_len + 1), (y_max - y_min) // (square_len + 1)
-    output_grid = np.full((w, h), Color.BLACK)
+    # Determine their colors by the colors of their vertices, so we are going to have to look at the corners
+    def diagonal_corners(obj, background):
+        x, y, w, h = bounding_box(obj, background)
+        return [(x-1, y-1), (x + w, y-1), (x-1, y + h), (x + w, y + h)]
+    
+    region_colors = []
+    for region in regions:
+        vertex_colors = { input_grid[x, y] for x, y in diagonal_corners(region, background=divider_color) }
+        vertex_colors = set(vertex_colors)
+        if len(vertex_colors) == 1 and vertex_colors != {divider_color}:
+            region_colors.append(vertex_colors.pop())
+        else:
+            region_colors.append(Color.BLACK)
+    
+    # Find the number distinct X/Y positions of the regions, which tells us the size of the output
+    x_positions = sorted({object_position(region, background=divider_color)[0] for region in regions})
+    y_positions = sorted({object_position(region, background=divider_color)[1] for region in regions})
 
-    # Check the representing color for each square in the output grid
-    for x, y in np.ndindex(w, h):
-        # Calculate the relative position of the square in the pattern region
-        rela_x = x * (square_len + 1)
-        rela_y = y * (square_len + 1)
+    # Make the output
+    output_grid = np.full((len(x_positions), len(y_positions)), Color.BLACK)
 
-        # Check if the four corners on the square are in same color different from the line color
-        # If so, fill the square with the color
-        cur_pixel_color = pattern_region[rela_x, rela_y]
-        if (cur_pixel_color != line_color and
-            pattern_region[rela_x + square_len + 1, rela_y] == cur_pixel_color and
-            pattern_region[rela_x, rela_y + square_len + 1] == cur_pixel_color and
-            pattern_region[rela_x + square_len + 1, rela_y + square_len + 1] == cur_pixel_color):
-            output_grid[x, y] = cur_pixel_color
+    for region, color in zip(regions, region_colors):
+        x, y = object_position(region, background=divider_color)
+        output_grid[x_positions.index(x), y_positions.index(y)] = color
     
     return output_grid
             
 def generate_input():
+    # We are going to generate square regions
     # Randomly set square size and square number for each row
     # Make sure the grid size is smaller than 30
     square_size = np.random.randint(2, 4)
     square_num = np.random.randint(6, 30 // (square_size + 1))
 
     # Calculate the grid size
-    n = square_size * square_num + square_num - 1
-    m = n
-    grid = np.full((n, m), Color.BLACK)
+    width = square_size * square_num + square_num - 1
+    height = width
+    grid = np.full((width, height), Color.BLACK)
 
     # Randomly set the color of the squares and lines
-    color_number = 3
-    colors = np.random.choice(Color.NOT_BLACK, color_number, replace=False)
-    line_color = colors[0]
-    square_colors = colors[1:]
+    n_colors = 4
+    divider_color, *other_colors = np.random.choice(Color.NOT_BLACK, n_colors, replace=False)
 
-    # Draw lines to separate the squares
+    # Draw horizontal/vertical lines to separate the square regions
     # First draw the vertical lines
-    for i in range(square_size, n, square_size + 1):
-        draw_line(grid=grid, x=i, y=0, direction=(0, 1), color=line_color)
+    for x in range(square_size, width, square_size + 1):
+        draw_line(grid=grid, x=x, y=0, direction=(0, 1), color=divider_color)
     # Then draw the horizontal lines
-    for j in range(square_size, m, square_size + 1):
-        draw_line(grid=grid, x=0, y=j, direction=(1, 0), color=line_color)
+    for y in range(square_size, height, square_size + 1):
+        draw_line(grid=grid, x=0, y=y, direction=(1, 0), color=divider_color)
+    
+    # Split the grid into black regions
+    regions = find_connected_components(grid=grid, background=divider_color, connectivity=4, monochromatic=True)
+    regions = [region for region in regions if object_colors(region, background=divider_color) == [Color.BLACK]]
 
-    # Generate the pattern of the square, each color should not touch other colors
-    while(True):
-        # Initialize the 3x3 background
-        pattern = np.full((3, 3), Color.BLACK)
-
-        # Generate the first pattern with one color
-        n1, m1 = np.random.randint(1, 4), np.random.randint(1, 4)
-        object1 = random_sprite(n=n1, m=m1, color_palette=[square_colors[0]], background=Color.BLACK, connectivity=8)
-        x, y = random_free_location_for_sprite(grid=pattern, sprite=object1, background=Color.BLACK, padding=1, padding_connectivity=8)
-        blit_sprite(pattern, object1, x=x, y=y, background=Color.BLACK)
-        
-        # Generate the second pattern with another color
-        n2, m2 = np.random.randint(1, 4), np.random.randint(1, 4)
-        object2 = random_sprite(n=n2, m=m2, color_palette=[square_colors[1]], background=Color.BLACK, connectivity=8)
-        try:
-            # Ensure the two patterns do not touch each other
-            x, y = random_free_location_for_sprite(grid=pattern, sprite=object2, background=Color.BLACK, padding=1, padding_connectivity=8)
-            blit_sprite(pattern, object2, x=x, y=y, background=Color.BLACK)
-            break
-        except:
+    # Repeatedly pick random regions and try coloring their vertices with a random color
+    # Remember that we can't recolor a vertex that is already colored differently from the divider
+    # Vertices are at diagonal corners, so define helper for this
+    def diagonal_corners(obj, background):
+        x, y, w, h = bounding_box(obj, background)
+        return [(x-1, y-1), (x + w, y-1), (x-1, y + h), (x + w, y + h)]
+    # check to make sure that we only consider regions whose corners are in the canvas
+    regions = [region for region in regions
+               if all(0 <= x < width and 0 <= y < height for x, y in diagonal_corners(region, background=divider_color))]
+    for _ in range(6):
+        region = random.choice(regions)
+        vertex_colors = { grid[x, y] for x, y in diagonal_corners(region, background=divider_color) }
+        # Pick the color, remembering that we can't recolor a vertex that is already colored differently from the divider
+        vertex_colors = vertex_colors - {divider_color}
+        if len(vertex_colors) == 0:
+            new_color = np.random.choice(other_colors)
+        elif len(vertex_colors) == 1:
+            new_color = vertex_colors.pop()
+        elif len(vertex_colors) > 1:
             continue
 
-    # Randomly choose a 3x3 square to be the target square
-    x_square = np.random.randint(1, square_num - 3)
-    y_square = np.random.randint(1, square_num - 3)
+        # Color the vertices
+        for x, y in diagonal_corners(region, background=divider_color):
+            grid[x, y] = new_color
     
-
-    # Draw the target square 
-    for x, y in np.ndindex(3, 3):
-        rela_x = (x_square + x) * (square_size + 1) - 1
-        rela_y = (y_square + y) * (square_size + 1) - 1
-        # Color the four corners with the color of the pattern
-        if pattern[x, y] != Color.BLACK:
-            color = pattern[x, y]
-            grid[rela_x, rela_y] = color
-            grid[rela_x, rela_y + square_size + 1] = color
-            grid[rela_x + square_size + 1, rela_y] = color
-            grid[rela_x + square_size + 1, rela_y + square_size + 1] = color
-        
     return grid
 
 # ============= remove below this point for prompting =============
