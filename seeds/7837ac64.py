@@ -13,7 +13,12 @@ from typing import *
 # Ignore regions which just have the color of the horizontal and vertical bars at their vertices.
 
 def main(input_grid):
+    # Plan:
+    # 1. Parse the input into  dividers, regions, and vertices
+    # 2. Extract the regions colored differently from the divider on all vertices
+    # 3. Produce the output grid by representing each region with a single pixel of the color of its vertices, as long as its color is not the divider
 
+    # 1. Parse the input
     # Detect the objects
     objects = find_connected_components(input_grid, background=Color.BLACK, connectivity=4, monochromatic=True)
     
@@ -34,6 +39,7 @@ def main(input_grid):
     regions = find_connected_components(input_grid, background=divider_color, connectivity=4, monochromatic=True)
     regions = [region for region in regions if object_colors(region, background=divider_color) == [Color.BLACK]]
 
+    # 2. Analyze vertices, which live on the diagonal corners of the regions, to find the color of the regions
     # Determine their colors by the colors of their vertices, so we are going to have to look at the corners
     def diagonal_corners(obj, background):
         x, y, w, h = bounding_box(obj, background)
@@ -47,6 +53,8 @@ def main(input_grid):
             region_colors.append(vertex_colors.pop())
         else:
             region_colors.append(Color.BLACK)
+
+    # 3. Produce the output grid, representing each big region as a single pixel
     
     # Find the number distinct X/Y positions of the regions, which tells us the size of the output
     x_positions = sorted({object_position(region, background=divider_color)[0] for region in regions})
