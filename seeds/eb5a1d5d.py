@@ -12,21 +12,26 @@ from typing import *
 # with the color from outermost layer to the innermost layer in the same order they appear in the input.
 
 def main(input_grid):
+    # Plan:
+    # 1. Parse the input into objects and order them from outermost to innermost by area
+    # 2. Draw nested rectangles with the colors of the input objects, each layer has only one pixel length
+
+    # 1. input parsing
     # Find the objects in the input grid
     objects = find_connected_components(input_grid, connectivity=4, monochromatic=True, background=Color.BLACK)
 
-    # Sort the objects from outermost to innermost
+    # Sort the objects from outermost to innermost, using area to determine the order
     objects.sort(key=lambda obj: crop(obj).shape[0] * crop(obj).shape[1], reverse=True)
 
+    # 2. drawing the output
     # Leave only one layer of each color shape
     grid_len = len(objects) * 2 - 1
     output_grid = np.full((grid_len, grid_len), Color.BLACK)
 
-    # Calculate each layer's length and color
+    # Calculate each layer's length, which starts at the outermost layer
     current_len = grid_len
-    cur_color = Color.BLACK
 
-    # Draw a nested shape with the colors, each layer has only one pixel length of the current color
+    # Draw nested shapes with the colors of the input objects. Each layer has only one pixel length of the current color
     for i, object in enumerate(objects):
         # Get the color of the current layer
         color = object_colors(object)[0]
@@ -34,8 +39,7 @@ def main(input_grid):
         cur_shape = np.full((current_len, current_len), color)
         # Place the current shape in the output grid
         # Make sure each layer has only one pixel length of the current color
-        blit_sprite(grid=output_grid, sprite=cur_shape, x=i, y=i, background=cur_color)
-        cur_color = color
+        blit_sprite(output_grid, sprite=cur_shape, x=i, y=i)
         current_len -= 2
 
     return output_grid
