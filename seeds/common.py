@@ -1421,7 +1421,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                         candidate_object[i:i+n, j:j+m] = candidate_sprite
                         if not any( np.all(candidate_object == obj) for obj in objects):
                             scan_objects.append(candidate_object)
-        print("scanning produced", len(scan_objects), "objects")
+        #print("scanning produced", len(scan_objects), "objects")
         objects.extend(scan_objects)
 
     if not can_overlap:
@@ -1442,7 +1442,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                     if True or x1 + n1 <= x2 or x2 + n2 <= x1 or y1 + m1 <= y2 or y2 + m2 <= y1:
                         overlap_matrix[i, j] = np.any(obj1 & obj2)
                         overlap_matrix[j, i] = overlap_matrix[i, j]
-        print("time to compute overlaps", time.time() - start)
+        #print("time to compute overlaps", time.time() - start)
         start= time.time()
 
         # Pick a subset of objects that don't overlap and which cover as many pixels as possible
@@ -1488,7 +1488,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                 return without_index, without_goodness
 
         solution, _ = pick_objects(remaining_indices, [], np.zeros_like(grid, dtype=bool))
-        print("time to pick objects", time.time() - start)
+        #print("time to pick objects", time.time() - start)
 
         objects = keep_objects + solution
 

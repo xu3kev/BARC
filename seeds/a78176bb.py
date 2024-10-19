@@ -21,6 +21,7 @@ def main(input_grid):
     background = Color.BLACK
     grey_objects = [ obj for obj in find_connected_components(input_grid, connectivity=4, monochromatic=True, background=background)
                      if Color.GREY in object_colors(obj, background=background) ]
+    # extracting the diagonal by color: we know it's just everything that's not grey
     diagonal_object = input_grid.copy()
     diagonal_object[diagonal_object == Color.GREY] = background
 
