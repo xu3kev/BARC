@@ -219,6 +219,8 @@ def blit(grid, sprite, x=0, y=0, background=None):
 
     new_grid = grid
 
+    x, y = int(x), int(y)
+
     for i in range(sprite.shape[0]):
         for j in range(sprite.shape[1]):
             if background is None or sprite[i, j] != background:
@@ -392,6 +394,7 @@ def collision(
 
     dx = x2 - x1
     dy = y2 - y1
+    dx, dy = int(dx), int(dy)
 
     for x in range(n1):
         for y in range(m1):
@@ -436,8 +439,8 @@ def contact(
     n1, m1 = object1.shape
     n2, m2 = object2.shape
 
-    dx = x2 - x1
-    dy = y2 - y1
+    dx = int(x2 - x1)
+    dy = int(y2 - y1)
 
     if connectivity == 4:
         moves = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0)]
@@ -1361,10 +1364,6 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
     Returns an (n,m) NumPy array representing the sprite.
     """
 
-    # save the original inputs
-    n_original, m_original, density_original, symmetry_original, color_palette_original, connectivity_original, background_original = \
-        n, m, density, symmetry, color_palette, connectivity, background
-
     # canonical form: force dimensions to be lists
     if isinstance(n, range):
         n = list(n)
@@ -1374,6 +1373,10 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
         n = [n]
     if not isinstance(m, list):
         m = [m]
+
+    # save the original inputs
+    n_original, m_original, density_original, symmetry_original, color_palette_original, connectivity_original, background_original = \
+        n, m, density, symmetry, color_palette, connectivity, background
 
     # radial and diagonal require target shape to be square
     can_be_square = any(n_ == m_ for n_ in n for m_ in m)

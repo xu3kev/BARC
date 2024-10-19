@@ -14,20 +14,21 @@ from typing import *
 
 def main(input_grid):
     # Check if the input grid has mirror symmetry along the middle x-axis.
-    middle_x = len(input_grid) // 2
-    print(input_grid[0: middle_x], input_grid[middle_x + 1:][::-1])
+    width, height = input_grid.shape
+    middle_x = width // 2
     
     # If the input grid has mirror symmetry along the middle x-axis, output a blue pixel.
     # Otherwise, output an orange pixel.
     if np.all(input_grid[0: middle_x] == input_grid[middle_x + 1:][::-1]):
-        output_grid = np.array([[Color.BLUE]])
+        output_grid = np.full((1,1), Color.BLUE)
     else:
-        output_grid = np.array([[Color.ORANGE]])
+        output_grid = np.full((1,1), Color.ORANGE)
+    
     return output_grid
 
 def generate_input():
-    n, m = 3, 3
-    grid = np.zeros((n, m), dtype=int)
+    width, height = 3, 3
+    grid = np.zeros((width, height), dtype=int)
     
     # Randomly generate a 3x3 grid with symmetric pattern or not.
     has_y_axis_symmetry = np.random.choice([True, False])
@@ -39,10 +40,10 @@ def generate_input():
     if not has_y_axis_symmetry:
         # Randomly 40% colored pixels on the grid
         target_density = 0.4
-        target_number_of_pixels = int(target_density * m * n)
+        target_number_of_pixels = int(target_density * height * width)
         for i in range(target_number_of_pixels):
-            x = np.random.randint(0, n)
-            y = np.random.randint(0, m)
+            x = np.random.randint(0, width)
+            y = np.random.randint(0, height)
             grid[x, y] = Color.BLACK
 
     return grid
