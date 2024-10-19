@@ -4,77 +4,84 @@ import numpy as np
 from typing import *
 
 # concepts:
-# pattern generation, expand
+# pixel patterns, expansion, color sequence
 
 # description:
-# In the input you will see a grid with a cross pattern, each line's pixel has alternating colors.
-# To make the output, you should expand the cross to the right, left, top, and bottom follow the color 
-# of the cross's original color sequence.
+# In the input you will see a grid with a cross pattern. Each pixel in the cross has a different color.
+# To make the output, you should expand the cross right/left/top/bottom following the original color sequence of the cross.
 
 def main(input_grid):
-    # Create output grid
+    # Plan:
+    # 1. Parse the input and create output canvas to draw on top of
+    # 2. Extract the vertical and horizontal parts of the cross, and make note of the coordinate of the middle
+    # 3. Expand the horizontal part to the right and left, aligned with the middle y coordinate
+    # 4. Expand the vertical part to the top and bottom, aligned with the middle x coordinate    
+
+    # 1. Input parsing
+    # Extract the cross, which has many colors and so is not monochromatic.
+    objects = find_connected_components(input_grid, monochromatic=False)
+    assert len(objects) == 1, "exactly one cross expected"
+    obj = objects[0]
+    cross_x, cross_y = object_position(obj)
+
+    # Create output grid, which we are going to draw on top of, so we start with the input grid
     output_grid = input_grid.copy()
-    n, m = input_grid.shape
+    width, height = input_grid.shape
 
-    # Extract the pattern
-    pattern = find_connected_components(input_grid, monochromatic=False)[0]
+    # 2. Cross analysis: Extract subsprites, get the middle
+    # Extract the horizontal/vertical parts of the cross sprite by figuring out where its middle is (where the horizontal and vertical lines meet)
+    sprite = crop(obj)
+    cross_width, cross_height = sprite.shape
+    # Middle is where they meet
+    cross_middle_x = next( x for x in range(cross_width) if np.all(sprite[x, :] != Color.BLACK) )
+    cross_middle_y = next( y for y in range(cross_height) if np.all(sprite[:, y] != Color.BLACK) )
+    # Extract the horizontal and vertical parts of the cross
+    vertical_sprite = sprite[cross_middle_x:cross_middle_x+1, :]
+    horizontal_sprite = sprite[:, cross_middle_y:cross_middle_y+1]
 
-    # Detect the row and column that contain lines
-    cropped_pattern = crop(pattern)
-    for x in range(cropped_pattern.shape[0]):
-        if np.all(cropped_pattern[x, :] != Color.BLACK):
-            break
-    for y in range(cropped_pattern.shape[1]):
-        if np.all(cropped_pattern[:, y] != Color.BLACK):
-            break
-    vertical_line = np.array([cropped_pattern[x, :]])
-    horizontal_line = np.array([cropped_pattern[:, y]]).T
-    
-    x_pattern, y_pattern = object_position(pattern)
-
-    # STEP 1: expand the horizontal line to the right and left
-    x_start, y_start, len_line = x_pattern, y_pattern + y, cropped_pattern.shape[0]
-    for i in range(x_start, n, len_line):
-        blit_sprite(output_grid, horizontal_line, x=i, y=y_start)
+    # 3. Expand the horizontal line to the right and left
+    x_start, y_start, len_line = cross_x, cross_y + cross_middle_y, cross_width
+    for i in range(x_start, width, len_line):
+        blit_sprite(output_grid, horizontal_sprite, x=i, y=y_start)
     for i in range(x_start, -(len_line), -len_line):
-        blit_sprite(output_grid, horizontal_line, x=i, y=y_start)
+        blit_sprite(output_grid, horizontal_sprite, x=i, y=y_start)
     
-    # STEP 2: expand the vertical line to the top and bottom
-    x_start, y_start, len_line = x_pattern + x, y_pattern, cropped_pattern.shape[1]
-    for i in range(y_start, m, len_line):
-        blit_sprite(output_grid, vertical_line, x=x_start, y=i)
+    # 4. Expand the vertical line to the top and bottom
+    x_start, y_start, len_line = cross_x + cross_middle_x, cross_y, cross_height
+    for i in range(y_start, height, len_line):
+        blit_sprite(output_grid, vertical_sprite, x=x_start, y=i)
     for i in range(y_start, -(len_line), -len_line):
-        blit_sprite(output_grid, vertical_line, x=x_start, y=i)
+        blit_sprite(output_grid, vertical_sprite, x=x_start, y=i)
         
     return output_grid
 
 def generate_input():
     # Generate the background grid
-    n, m = np.random.randint(20, 30, size=2)
-    grid = np.zeros((n, m), dtype=int)
+    width, height = np.random.randint(20, 30, size=2)
+    grid = np.full((width, height), Color.BLACK)
 
     # Randomly choose the number of colors
     num_colors = np.random.randint(2, 5)
     colors = np.random.choice(Color.NOT_BLACK, size=num_colors, replace=False)
 
     # Generate a line with these colors in sequence
-    line = np.zeros((num_colors, 1), dtype=int)
+    line = np.full((num_colors, 1), Color.BLACK)
     for i in range(num_colors):
         line[i, 0] = colors[i]
 
     # form a cross pattern randomly
     cross_points = random.randint(0, num_colors - 1)
-    pattern = np.zeros((num_colors, num_colors), dtype=int)
+    sprite = np.full((num_colors, num_colors), Color.BLACK)
     line_t = np.transpose(line)
-    blit_sprite(pattern, line, x=0, y=cross_points)
-    blit_sprite(pattern, line_t, x=cross_points, y=0)
+    blit_sprite(sprite, line, x=0, y=cross_points)
+    blit_sprite(sprite, line_t, x=cross_points, y=0)
 
     # Randomly rotate the pattern
-    pattern = np.rot90(pattern, k=np.random.randint(4))
+    sprite = np.rot90(sprite, k=np.random.randint(4))
 
     # Randomly place the pattern on the grid
-    x, y = random_free_location_for_sprite(grid=grid, sprite=pattern)
-    blit_sprite(grid, pattern, x=x, y=y)
+    x, y = random_free_location_for_sprite(grid, sprite)
+    blit_sprite(grid, sprite, x=x, y=y)
 
     return grid
 
