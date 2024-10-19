@@ -299,7 +299,7 @@ def object_position(obj, background=Color.BLACK, anchor="upper left"):
     middle_x, middle_y = object_position(obj, background=background_color, anchor="center")
     """
 
-    anchor = anchor.lower().replace(" ", "") # robustness to mistakes by llm
+    anchor = anchor.lower().replace(" ", "").replace("top", "upper").replace("bottom", "lower") # robustness to mistakes by llm
 
     x, y, w, h = bounding_box(obj, background=background)
 
@@ -1360,10 +1360,10 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
 
     Returns an (n,m) NumPy array representing the sprite.
     """
-    # record original parameters for later
-    original_n, original_m = n, m
-    original_density = density
-    original_symmetry = symmetry
+
+    # save the original inputs
+    n_original, m_original, density_original, symmetry_original, color_palette_original, connectivity_original, background_original = \
+        n, m, density, symmetry, color_palette, connectivity, background
 
     # canonical form: force dimensions to be lists
     if isinstance(n, range):
@@ -1427,8 +1427,10 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
         and np.sum(sprite[:, -1]!=background) > 0
     ):
         return sprite
-    else:
-        return random_sprite(original_n, original_m, original_density, original_symmetry, color_palette, connectivity, background)        
+    
+    # if the sprite is not flushed with the border, then we need to regenerate it
+    return random_sprite(n_original, m_original, density_original, symmetry_original, color_palette_original, connectivity_original, background_original)
+
 
 
 def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochromatic=False, connectivity=None, allowed_dimensions=None, colors=None, can_overlap=False):
@@ -1472,7 +1474,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                         candidate_object[i:i+n, j:j+m] = candidate_sprite
                         if not any( np.all(candidate_object == obj) for obj in objects):
                             scan_objects.append(candidate_object)
-        print("scanning produced", len(scan_objects), "objects")
+        #print("scanning produced", len(scan_objects), "objects")
         objects.extend(scan_objects)
 
     if not can_overlap:
@@ -1493,7 +1495,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                     if True or x1 + n1 <= x2 or x2 + n2 <= x1 or y1 + m1 <= y2 or y2 + m2 <= y1:
                         overlap_matrix[i, j] = np.any(obj1 & obj2)
                         overlap_matrix[j, i] = overlap_matrix[i, j]
-        print("time to compute overlaps", time.time() - start)
+        #print("time to compute overlaps", time.time() - start)
         start= time.time()
 
         # Pick a subset of objects that don't overlap and which cover as many pixels as possible
@@ -1539,7 +1541,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                 return without_index, without_goodness
 
         solution, _ = pick_objects(remaining_indices, [], np.zeros_like(grid, dtype=bool))
-        print("time to pick objects", time.time() - start)
+        #print("time to pick objects", time.time() - start)
 
         objects = keep_objects + solution
 
