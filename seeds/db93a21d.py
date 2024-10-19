@@ -4,48 +4,59 @@ import numpy as np
 from typing import *
 
 # concepts:
-# Expanding, Framing
+# Expanding, Framing, Growing
 
 # description:
 # In the input you will see some squares of different sizes and colors.
 # To make the output, you need to:
 # 1. Expand the squares down to the bottom of the grid using the color BLUE.
-# 2. Draw a green frame around the squares. The green square should be one time larger than the original square.
+# 2. Draw a green frame around the squares. The green square should be twice as long as the original square.
 # 3. Put the original square back to the center of the green square.
 
 def main(input_grid):
-    # Extract the squares from the input grid
-    squares = find_connected_components(input_grid, background=Color.BLACK, connectivity=4, monochromatic=True)
+    # Plan:
+    # 1. Extract the square objects from the input grid
+    # 2. Expand the squares down to the bottom using the color BLUE
+    # 3. Draw the frame
+    # 4. Put the original squares back
 
-    # Observe the frame color and the expand color
+    # 1. Input parsing and setup
+    # Extract the squares in the input grid
+    square_objects = find_connected_components(input_grid, background=Color.BLACK, connectivity=4, monochromatic=True)
+
+    # Note the frame color and the expansion down color
     frame_color = Color.GREEN
     expand_color = Color.BLUE
 
     # The output grid is the same size as the input grid
-    output_grid = np.zeros_like(input_grid)
+    output_grid = np.full_like(input_grid, Color.BLACK)
 
-    # STEP 1: Expand the square down to the bottom use color expand_color
-    for square in squares:
-        x, y, w, h = bounding_box(square)
+    # 2. Expand the square down to the bottom use color expand_color
+    for square_obj in square_objects:
+        x, y, w, h = bounding_box(square_obj)
+        # Equivalently:
+        # output_grid[x:x+w, y+h:] = expand_color
         for i in range(x, x + w):
             draw_line(grid=output_grid, x=i, y=y + h, color=expand_color, direction=(0, 1))
     
-    # STEP 2: Draw a green square frame around the squares, the green square should be one time larger than the original square
-    for square in squares:
-        x, y, w, h = bounding_box(square)
-        # Square can be partially out of the grid
+    # 3. Draw a green square frame around the original squares, the green square should be twice as big as original were
+    for square_obj in square_objects:
+        # The square can be partly outside the canvas
+        # This math is to get the (x,y) of the top-left corner of the square, even if it's outside the canvas
+        x, y, w, h = bounding_box(square_obj)
         square_len = max(w, h)
-        x = x - (square_len - w)
-        y = y - (square_len - h)
-
-        green_square = np.full((square_len * 2, square_len * 2), frame_color)
-        blit_sprite(grid=output_grid, sprite=green_square, x=x - square_len // 2, y=y - square_len // 2)
+        x -= (square_len - w)
+        y -= (square_len - h)
+        # Make and draw the frame
+        frame_len = square_len * 2
+        green_frame = np.full((frame_len, frame_len), frame_color)
+        blit_sprite(output_grid, green_frame, x - square_len // 2, y - square_len // 2)
     
-    # STEP 3: Put the original square back to the center of the green square
-    for square in squares:
-        x, y, w, h = bounding_box(square)
-        square = crop(square)
-        blit_sprite(grid=output_grid, sprite=square, x=x, y=y, background=frame_color)
+    # 4. Put the original square back to the center of the green square
+    for square_obj in square_objects:
+        x, y, w, h = bounding_box(square_obj)
+        square_obj = crop(square_obj)
+        blit_sprite(output_grid, square_obj, x, y)
 
     return output_grid
 
