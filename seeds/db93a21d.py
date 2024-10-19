@@ -62,9 +62,9 @@ def main(input_grid):
 
 def generate_input():
     # Generate the background grid
-    n = np.random.randint(15, 30)
-    m = n
-    grid = np.full((n, m), Color.BLACK)
+    width = np.random.randint(15, 30)
+    height = width
+    grid = np.full((width, height), Color.BLACK)
 
     # Randomly select the number of squares
     square_num = np.random.randint(2, 5)
