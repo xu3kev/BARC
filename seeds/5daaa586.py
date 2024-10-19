@@ -65,7 +65,7 @@ def generate_input() -> np.ndarray:
 
     # Randomly choose a color from line and create several scattered pixels of that color
     scattered_pixel_color = random.choice(line_colors)
-    grid = random_scatter_points(grid=grid, color=scattered_pixel_color, density=0.2)
+    randomly_scatter_points(grid, color=scattered_pixel_color, density=0.2)
     
     # Randomly determine order for placing colored lines
     lines_pos = [(horizontal_lines_pos[0], 0), (horizontal_lines_pos[1], 0), (0, vertical_lines_pos[0]), (0, vertical_lines_pos[1])]

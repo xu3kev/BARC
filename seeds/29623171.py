@@ -70,8 +70,8 @@ def generate_input() -> np.ndarray:
             density = np.random.randint(1, interior_len * interior_len) / (interior_len * interior_len)
 
             # Randomly scatter the color in the square
-            square_background = random_scatter_points(square_background, color=interior_color, density=density)
-            grid = blit_sprite(grid, square_background, x, y)
+            square_background = randomly_scatter_points(square_background, color=interior_color, density=density)
+            blit_sprite(grid, square_background, x, y)
         
     return grid
 

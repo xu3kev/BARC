@@ -39,7 +39,7 @@ def generate_input():
     background_color = np.random.choice(avaliable_colors)
     
     # Generate random color pixels on the grid.
-    grid = random_scatter_points(grid=grid, color=background_color, density=0.7)
+    randomly_scatter_points(grid, color=background_color, density=0.7)
 
     # Randomly generate the number of black squares.
     square_num = np.random.randint(1, 4)
