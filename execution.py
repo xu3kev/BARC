@@ -173,6 +173,9 @@ output_grid = {function_name}(input_grid)
 
     return output
 
+with open("seeds/common.py", "r") as f:
+    COMMON_LIBRARY_CODE = f.read()
+
 def multi_execute_transformation(sources, input_grids, random_seeds, timeout=1, function_name="main", num_workers=8):
 
     input_grids = [np.array(input_grid) for input_grid in input_grids]
@@ -188,8 +191,9 @@ def multi_execute_transformation(sources, input_grids, random_seeds, timeout=1, 
             for j in range(m):
                 make_input += f"input_grid[{i}][{j}] = {input_grid[i][j]}\n"
                 
-        code = f"""import numpy as np
-from common import *
+        code = f"""
+{COMMON_LIBRARY_CODE}        
+import numpy as np
 import random as random98762
 random98762.seed({seed})
 np.random.seed({seed})
