@@ -3,14 +3,35 @@ import tqdm
 import json
 from gen_dataset import Problem, make_input_prompt, convert_chat_format
 from arc import validation_problems, train_problems
+from arc.types import ArcIOPair, ArcProblem
 import re
 
 from gen_dataset import TRANSPOSE, EXTRA_NEWLINE
 
-SPLIT="validation"
+from arc.read import parse_dir
+import os
+
+def get_concept_arc_problems():
+    problems = []
+    for problem_directory in os.listdir("../../ConceptARC"):
+        problems.extend(parse_dir("../../ConceptARC/"+problem_directory))
+    
+    return problems
+
+
+concept_arc_problems = get_concept_arc_problems()
+# assert every uid is unique
+uids = [p.uid for p in concept_arc_problems]
+assert len(uids) == len(set(uids))
+
+# SPLIT="validation"
 # SPLIT = "train"
+SPLIT = "concept_arc"
+
 # SPLIT = "selected-val-subset50.json"
 # SPLIT = "selected-train-subset50.json"
+
+VERSION = "v2"
 
 ALL_PROBLEMS = []
 
@@ -42,6 +63,19 @@ def main():
     elif SPLIT == "validation":
         problems = list(validation_problems)
         random.shuffle(problems)
+    elif SPLIT == "concept_arc":
+        problems = list(concept_arc_problems)
+        # need to split problems to each test input becomes a problem
+        new_problems = []
+        for problem in problems:
+            for ti, test_pair in enumerate(problem.test_pairs):
+                new_problem = ArcProblem(uid=f"{problem.uid}-{ti}",
+                                         train_pairs=problem.train_pairs,
+                                         test_pairs=[test_pair])
+                new_problems.append(new_problem)
+            assert len(problem.test_pairs) == 3, f"Problem {problem.uid} has {len(problem.test_pairs)} test pairs"
+        problems = new_problems
+            
     elif SPLIT.endswith(".json"):
         # load the json file
         problems = []
@@ -58,17 +92,27 @@ def main():
 
     # save all problems
 
+    seed_uid_hit = []
     for arc_problem in tqdm.tqdm(problems):
         
         uid = arc_problem.uid
         if uid in seeds_uid:
+            seed_uid_hit.append(uid)
             continue
-        problem = Problem(seed_id=arc_problem.uid, code="# No code")
+        if SPLIT == "concept_arc":
+            problem = Problem(arc_problem=arc_problem, code="# No code")
+        else:
+            problem = Problem(seed_id=arc_problem.uid, code="# No code")
 
         question = make_input_prompt(problem, transpose=True)
     
+#         answer = f"""Let's solve this puzzle using Python code with the common library functions. We'll first reason about the problem and then write the code to solve it. The `transform` function will take the input grid and return the output grid. Here is the Python code with the comments describing how to solve the problem:
+# ```python
+# """
         messages = convert_chat_format(question, None)['messages']
         ALL_PROBLEMS.append({"uid": uid, "messages": messages})
+
+    breakpoint()
         
 
     # print([p['uid'] for p in ALL_PROBLEMS[0:50]])
@@ -87,6 +131,9 @@ def main():
         problem_file = f"arc_problems_{split_filename}_{len(ALL_PROBLEMS)}_extra_newline.jsonl"
     if TRANSPOSE and EXTRA_NEWLINE:
         problem_file = f"arc_problems_{split_filename}_{len(ALL_PROBLEMS)}_transpose_extra_newline.jsonl"
+
+    if VERSION:
+        problem_file = problem_file.replace(".jsonl", f"_{VERSION}.jsonl")
     
     print(f"Saving to {problem_file}")
     with open(problem_file, "w") as f:

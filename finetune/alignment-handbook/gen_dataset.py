@@ -118,19 +118,29 @@ class Problem:
     train_pairs: list
     test_pairs: list
 
-    def __init__(self, filename=None, code=None, seed_id=None, train_pairs=None, test_pairs=None):
+    def __init__(self, filename=None, code=None, seed_id=None, train_pairs=None, test_pairs=None, arc_problem=None):
         self.filename = filename
         self.seed_id = None
         if filename:
             self.seed_id = filename.split(".")[0]
             if "_" in self.seed_id:
                 self.seed_id= self.seed_id.split("_")[0]
-        if seed_id:
-            self.seed_id = seed_id
-        if self.seed_id:
-            pattern = r"[0-9a-f]{8}"
-            assert re.match(pattern, self.seed_id)
-            self.load_arc_problem(self.seed_id)
+        
+        if arc_problem:
+            self.seed_id = arc_problem.uid
+            self.train_pairs = []
+            for pair in arc_problem.train_pairs:
+                self.train_pairs.append(IOPair(pair.x.T, pair.y.T))
+            self.test_pairs = []
+            for pair in arc_problem.test_pairs:
+                self.test_pairs.append(IOPair(pair.x.T, pair.y.T))
+        else:
+            if seed_id:
+                self.seed_id = seed_id
+            if self.seed_id:
+                pattern = r"[0-9a-f]{8}"
+                assert re.match(pattern, self.seed_id)
+                self.load_arc_problem(self.seed_id)
 
         self.code = code
         if train_pairs:
