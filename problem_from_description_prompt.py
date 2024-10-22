@@ -5,6 +5,8 @@ import random
 from tqdm import tqdm
 import numpy as np
 
+random.seed(0)
+
 from utils import extract_functions, extract_function_calls, extract_class_definitions, parse_code, remove_trailing_code, generate_html_grid, get_description_from_lines, get_concepts_from_lines
 from execution import execute_transformation, execute_input_generator
 from prompt import get_common_lib_from_file, prune_common_lib
@@ -25,7 +27,8 @@ def extract_concepts_and_descriptions(content):
 
     return concepts, description
 
-def make_self_instruct_prompt(seed_embeddings, seed_contents, problem_concept, problem_description, problem_embedding, num_seeds=1, common_lib=None, common_lib_function_names=None, brief_common=True):
+def make_self_instruct_prompt(seed_embeddings, seed_contents, function_names, function_name_to_definition, function_name_to_seed_content,
+                               problem_concept, problem_description, problem_embedding, num_seeds=1, common_lib=None, common_lib_function_names=None, brief_common=True):
     A = np.array(seed_embeddings)
     B = np.array(problem_embedding)
 
@@ -50,12 +53,25 @@ def make_self_instruct_prompt(seed_embeddings, seed_contents, problem_concept, p
     description = f"Concepts: \n{problem_concept}\n\nDescription: \n{problem_description}"
 
     # read the prompt template from prompts/problem_from_description.md
-    with open("prompts/problem_from_description.md") as f:
+    with open("prompts/problem_from_description_suggesting_function.md") as f:
         prompt_template = f.read()
+
+    # randomly pick a function name
+    Flag = True
+    while Flag:
+        function_name = random.choice(function_names)
+        # randomly pick a function example given the function name
+        if len(function_name_to_seed_content[function_name]) > 0:
+            function_example = random.choice(function_name_to_seed_content[function_name])
+            Flag = False
+        else:
+            Flag = True
+        # get the function definition given the function name
+        function_definition = function_name_to_definition[function_name]
     
-    prompt = prompt_template.format(description=description, common_lib=common_lib, examples=examples)
-    # print(prompt)
-    seeds = [seed for seed, _ in best_seeds_contents]
+    prompt = prompt_template.format(description=description, common_lib=common_lib, examples=examples,
+                                    function_name=function_name, function_example=function_example, function_definition=function_definition)
+    seeds = [seed for seed, _ in best_seeds_contents] + [function_name] + [description]
     return prompt, seeds
 
 def ensure_colors_exist(code):
@@ -196,10 +212,36 @@ def main():
     # Load the common library
     common_lib, common_lib_function_names = get_common_lib_from_file(f"{current_file_dir}/seeds/common.py")
 
+    print("Common Library Functions:")
+    print(common_lib_function_names)
+    from collections import defaultdict
+    function_name_to_seed_content = defaultdict(list)
+    for seed, content in seeds_contents:
+        # only use the main function part
+        content_main = content.split("def generate_input(")[0]
+        try:
+            content = content.split("# ============= remove below")[0]
+        except:
+            pass
+        for func in common_lib_function_names:
+            if f"{func}(" in content_main:
+                function_name_to_seed_content[func].append(content)
+
+    function_name_to_definition = {func["name"]: func["api_definition"] for func in common_lib[1]}
+
+    # sort every thing to make sure it is deterministic
+    sorted_common_lib_function_names = sorted(list(common_lib_function_names))
+
+    for k, v in function_name_to_seed_content.items():
+        function_name_to_seed_content[k] = sorted(v)
+
     # print all files
     print(f"Using the following {len(seeds)} seeds:", ", ".join(seeds).replace(".py", ""))
     prompts_and_seeds = [ make_self_instruct_prompt(seed_embeddings=seed_embeddings, 
                                                     seed_contents=seed_contents,
+                                                    function_names = sorted_common_lib_function_names,
+                                                    function_name_to_definition = function_name_to_definition,
+                                                    function_name_to_seed_content = function_name_to_seed_content,
                                                     problem_concept=problem_concept, 
                                                     problem_description=problem_description, 
                                                     problem_embedding=problem_embedding, 
@@ -224,7 +266,7 @@ def main():
         just_the_prompts = [prompt for prompt, seed in prompts_and_seeds]
         list_of_lists_of_samples = client.generate_parallel(just_the_prompts, num_samples=arguments.num_samples, max_tokens=arguments.max_tokens, num_workers=arguments.sample_parallel, model=prompt_model, temperature=arguments.temperature)
         # flatten the list
-        samples = [sample for sublist in list_of_lists_of_samples for sample in sublist]
+        samples = [sublist for sublist in list_of_lists_of_samples]
         samples_and_seeds = list(zip(samples, [seed for prompt, seed in prompts_and_seeds]))
 
     codes_and_seeds = []
@@ -248,6 +290,7 @@ def main():
     file_name_json = file_name_base + f"_description_file_{arguments.jsonl.replace('.jsonl', '')}" + ".jsonl"
     file_name_json = file_name_json.replace("/", "_")
     print(f"Writing to jsonl {file_name_json}")
+
     with open(file_name_json, "w") as f:
         # jsonl, one json per line
         import json
