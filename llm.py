@@ -180,6 +180,26 @@ class LLMClient:
             n=num_samples
         )
         return response
+
+    def generate_request(self, prompt, model, temperature, max_tokens, top_p, num_samples):
+        request = {
+            "model":model.value,
+            "messages":[
+                {
+                    "role": "system",
+                    "content": self.system_content
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "temperature":temperature,
+            "max_tokens":max_tokens,
+            "top_p":top_p,
+            "n":num_samples
+        }
+        return request
     
     def send_embedding_request(self, input, model):
         response = self.client.embeddings.create(
