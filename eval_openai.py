@@ -1,3 +1,25 @@
+import os
+import traceback
+import sys
+
+def trace_calls(frame, event, arg):
+    if event != 'call':
+        return
+    co = frame.f_code
+    func_name = co.co_name
+    if func_name == 'execve':
+        filename = co.co_filename
+        line_no = frame.f_lineno
+        if 'lscpu' in str(arg):
+            print(f"lscpu called from {filename}:{line_no}")
+            traceback.print_stack(frame)
+    return trace_calls
+
+sys.settrace(trace_calls)
+
+# Rest of your imports and code below this line
+
+
 import json
 from enum import Enum
 # extract markdown code blocks
@@ -17,6 +39,18 @@ def get_concept_arc_problems():
     return problems
 
 concept_arc_problems = get_concept_arc_problems()
+concept_arc_problems = list(concept_arc_problems)
+# need to split problems to each test input becomes a problem
+new_problems = []
+from arc.types import ArcIOPair, ArcProblem
+for problem in concept_arc_problems:
+    for ti, test_pair in enumerate(problem.test_pairs):
+        new_problem = ArcProblem(uid=f"{problem.uid}-{ti}",
+                                    train_pairs=problem.train_pairs,
+                                    test_pairs=[test_pair])
+        new_problems.append(new_problem)
+    assert len(problem.test_pairs) == 3, f"Problem {problem.uid} has {len(problem.test_pairs)} test pairs"
+concept_arc_problems = new_problems
 
 TRANSPOSE = False
 
@@ -145,6 +179,42 @@ def multi_validate(arc_problem, codes):
         assert len(results) == len(codes)
 
     return results
+
+def multi_validate2(arc_problem, codes):
+
+    # do all inputs all together
+    
+    results = [list() for _ in range(len(codes))]
+    pairs = arc_problem.train_pairs + arc_problem.test_pairs
+    for pair_idx in range(len(pairs)):
+        input_grid = pairs[pair_idx].x
+        try:
+            output_grids = multi_execute_transformation(codes, [input_grid]*len(codes), random_seeds=[0]*len(codes),
+                                                        timeout=2, function_name="transform", num_workers=64)
+        except KeyboardInterrupt:
+            exit()
+
+        assert len(output_grids) == len(codes)
+        
+        for code_idx, output_grid in enumerate(output_grids):
+            # compare
+            try:
+                comparison_result, ratio = compare_grids(output_grid, pairs[pair_idx].y)
+            except:
+                breakpoint()
+            if comparison_result == GridComparisonResult.EQUAL:
+                results[code_idx].append((comparison_result == GridComparisonResult.EQUAL, ratio))
+            elif comparison_result == GridComparisonResult.SHAPE_MISMATCH:
+                results[code_idx].append((comparison_result == GridComparisonResult.EQUAL, ratio))
+            elif comparison_result == GridComparisonResult.CONTENT_MISMATCH:
+                results[code_idx].append((comparison_result == GridComparisonResult.EQUAL, ratio))
+            else:
+                results[code_idx].append((None, 0.0))
+
+        assert len(results) == len(codes)
+
+    return results
+
 
 def get_arc_problem(uid):
     for problem in train_problems + validation_problems + concept_arc_problems:
