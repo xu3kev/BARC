@@ -56,8 +56,8 @@ def generate_input():
 
     # Generate the gray lines' positions with interval between each line to form several rectangles
     # If padding is True, the lines will be padded with 1 grid on both sides
-    vertical_lines = generate_position_has_interval(max_len=n, position_num=line_num, if_padding=True)
-    horizontal_lines = generate_position_has_interval(max_len=m, position_num=line_num, if_padding=True)
+    vertical_lines = randomly_spaced_indices(max_len=n, n_indices=line_num, border_size=1, padding=4)
+    horizontal_lines = randomly_spaced_indices(max_len=m, n_indices=line_num, border_size=1, padding=2)
 
     # Draw the gray vertical and horizontal lines on the grid
     for vertical_line in vertical_lines:

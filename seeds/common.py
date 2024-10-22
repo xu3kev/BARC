@@ -168,9 +168,12 @@ def find_connected_components(
                 connected_components.append(connected_component)
         return connected_components
 
-def random_scatter_points(grid, color, density=0.5, background=Color.BLACK):
+def randomly_scatter_points(grid, color, density=0.5, background=Color.BLACK):
     """
     Randomly scatter points of the specified color in the grid with specified density.
+
+    Example usage:
+    randomly_scatter_points(grid, color=a_color, density=0.5, background=background_color)
     """
     colored = 0
     n, m = grid.shape
@@ -215,6 +218,8 @@ def blit(grid, sprite, x=0, y=0, background=None):
     """
 
     new_grid = grid
+
+    x, y = int(x), int(y)
 
     for i in range(sprite.shape[0]):
         for j in range(sprite.shape[1]):
@@ -296,7 +301,7 @@ def object_position(obj, background=Color.BLACK, anchor="upper left"):
     middle_x, middle_y = object_position(obj, background=background_color, anchor="center")
     """
 
-    anchor = anchor.lower().replace(" ", "") # robustness to mistakes by llm
+    anchor = anchor.lower().replace(" ", "").replace("top", "upper").replace("bottom", "lower") # robustness to mistakes by llm
 
     x, y, w, h = bounding_box(obj, background=background)
 
@@ -389,6 +394,7 @@ def collision(
 
     dx = x2 - x1
     dy = y2 - y1
+    dx, dy = int(dx), int(dy)
 
     for x in range(n1):
         for y in range(m1):
@@ -433,8 +439,8 @@ def contact(
     n1, m1 = object1.shape
     n2, m2 = object2.shape
 
-    dx = x2 - x1
-    dy = y2 - y1
+    dx = int(x2 - x1)
+    dy = int(y2 - y1)
 
     if connectivity == 4:
         moves = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0)]
@@ -468,27 +474,78 @@ def contact(
 
     return False
 
-def generate_position_has_interval(max_len, position_num, if_padding=False):
+def randomly_spaced_indices(max_len, n_indices, border_size=1, padding=1):
     """
-    Generate the position of the lines with random interval.
+    Generate randomly-spaced indices guaranteed to not be adjacent.
+    Useful for generating random dividers.
+
+    padding: guaranteed empty space in between indices
+    border_size: guaranteed empty space at the border
+
+    Example usage:
+    x_indices = randomly_spaced_indices(grid.shape[0], num_dividers, border_size=1, padding=2) # make sure each region is at least 2 pixels wide
+    for x in x_indices:
+        grid[x, :] = divider_color
     """
-    # Generate position list that has one interval
-    # Use 1 to represent the line, 0 to represent the interval
-    if if_padding:
-        position_list = ([0] + [1]) * (position_num) + [0]
-    else:
-        position_list = ([1] + [0]) * (position_num - 1) + [1]
+    if border_size>0:
+        return randomly_spaced_indices(max_len-border_size-2, n_indices, border_size=0, padding=padding) + border_size
+    
+    indices = [0 for _ in range(max_len)]
+    while sum(indices) < n_indices:
+        # Randomly select an index to turn 1
+        try:
+            possible_indices = [i for i in range(max_len)
+                                if sum(indices[max(0,i-padding) : min(i+1+padding, max_len)]) == 0 ]
+        except:
+            print('max_len:', max_len)
+            print('indices:', indices)
+            print('n_indices:', n_indices)
+            assert 0
+        indices[random.choice(possible_indices)] = 1
 
-    if len(position_list) > max_len:
-        return None
-    for i in range(max_len - len(position_list)):
-        position_list.insert(np.random.randint(0, len(position_list)), 0)
+    return np.argwhere(indices).flatten()
 
-    position_list = np.array(position_list)
+def check_between_objects(obj1, obj2, x, y, padding = 0, background=Color.BLACK):
+    """
+    Check if a pixel is between two objects.
 
-    return np.argwhere(position_list == 1).flatten()
+    padding: minimum distance from the edge of the objects
 
+    Example usage:
+    if check_between_objects(obj1, obj2, x, y, padding=1, background=background_color):
+        # do something
+    """
+    objects = [obj1, obj2]
+    # First find out if the pixel is horizontally between the two objects
+    objects = sorted(objects, key=lambda x: object_position(x)[0])
 
+    # There are two objects in the input
+    x1, y1, w1, h1 = bounding_box(objects[0], background=background)
+    x2, y2, w2, h2 = bounding_box(objects[1], background=background)
+
+    # If the left one is higher than the right one and they can be connected horizontally
+    if x1 + w1 <= x and x < x2 and y - padding >= max(y1, y2) and y + padding < min(y1 + h1, y2 + h2):
+        return True
+    # If the right one is higher than the left one and they can be connected horizontally
+    if x2 + w2 <= x and x < x1 and y - padding >= max(y1, y2) and y + padding < min(y1 + h1, y2 + h2):
+        return True
+    
+
+    # Then find out if the pixel is vertically between the two objects
+    objects = sorted(objects, key=lambda x: object_position(x)[1])
+
+    # There are two objects in the input
+    x1, y1, w1, h1 = bounding_box(objects[0], background=background)
+    x2, y2, w2, h2 = bounding_box(objects[1], background=background)
+
+    # If the top one is to the left of the bottom one and they can be connected vertically
+    if y1 + h1 <= y and y < y2 and x - padding >= max(x1, x2) and x + padding < min(x1 + w1, x2 + w2):
+        return True
+    # If the top one is to the right of the bottom one and they can be connected vertically
+    if y2 + h2 <= y and y < y1 and x - padding >= max(x1, x2) and x + padding < min(x1 + w1, x2 + w2):
+        return True
+    
+    return False
 
 
 def random_free_location_for_sprite(
@@ -684,12 +741,10 @@ def orbit(grid, x, y, symmetries):
         # ... now we do something with them like copy colors or infer missing colors
     """
 
-    max_iteration = max(grid.shape)
-
     # Compute all possible numbers of iterations for each symmetry
     all_possible = []
     import itertools
-    possible_iterations = itertools.product(range(-max_iteration, max_iteration+1), repeat=len(symmetries))
+    possible_iterations = itertools.product(*[ list(range(*s._iter_range(grid.shape))) for s in symmetries])
     for iters in possible_iterations:
         new_x, new_y = x, y
         for sym, i in zip(symmetries, iters):
@@ -701,46 +756,68 @@ def orbit(grid, x, y, symmetries):
 
     return list(set(all_possible))
 
+class TranslationalSymmetry(Symmetry):
+    """
+    Translation symmetry transformation, which repeatedly translates by a fixed vector
 
-def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
+    Example usage:
+    # Create a translational symmetry that translates by (dx, dy)
+    symmetry = TranslationalSymmetry(translate_x=dx, translate_y=dy)
+    # example of using orbit to tile the entire canvas
+    for x, y in np.argwhere(input_grid != Color.BLACK):
+        # Compute orbit on to the target grid, which is typically the output
+        symmetric_points = orbit(output_grid, x, y, [symmetry])
+        for x, y in symmetric_points:
+            output_grid[x, y] = input_grid[x, y]
+    """
+    def __init__(self, translate_x, translate_y):
+        self.translate_x, self.translate_y = translate_x, translate_y
+
+    def apply(self, x, y, iters=1):
+        x = x + iters * self.translate_x
+        y = y + iters * self.translate_y
+        if isinstance(x, np.ndarray):
+            x = x.astype(int)
+        if isinstance(y, np.ndarray):
+            y = y.astype(int)
+        if isinstance(x, float):
+            x = int(round(x))
+        if isinstance(y, float):
+            y = int(round(y))
+        return x, y
+
+    def __repr__(self):
+        return f"TranslationalSymmetry(translate_x={self.translate_x}, translate_y={self.translate_y})"
+
+    def __str__(self):
+        return f"TranslationalSymmetry(translate_x={self.translate_x}, translate_y={self.translate_y})"
+
+    def _iter_range(self, grid_shape):
+        import math
+        top_of_range = 0
+        if self.translate_x != 0:
+            top_of_range = math.ceil(grid_shape[0] / abs(self.translate_x))
+        if self.translate_y != 0:
+            top_of_range = max(top_of_range, math.ceil(grid_shape[1] / abs(self.translate_y)))
+        
+        return (-top_of_range, top_of_range+1)
+
+def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK], background=None):
     """
     Finds translational symmetries in a grid.
-    Satisfies: grid[x, y] == grid[x + translate_x, y + translate_y] for all x, y, as long as neither pixel is in `ignore_colors`.
+    Satisfies: grid[x, y] == grid[x + translate_x, y + translate_y] for all x, y, as long as neither pixel is in `ignore_colors`, and as long as x,y is not background.
 
     Returns a list of Symmetry objects, each representing a different translational symmetry.
 
     Example:
-    symmetries = detect_translational_symmetry(grid, ignore_colors=[occluder_color])
-    for x, y in np.argwhere(grid != occluder_color):
+    symmetries = detect_translational_symmetry(grid, ignore_colors=[occluder_color], background=background_color)
+    for x, y in np.argwhere(grid != occluder_color & grid != background_color):
         # Compute orbit on to the target grid
         # When copying to an output, this is usually the output grid
         symmetric_points = orbit(grid, x, y, symmetries)
         for x, y in symmetric_points:
             assert grid[x, y] == grid[x, y] or grid[x, y] == occluder_color
     """
-
-    class TranslationalSymmetry(Symmetry):
-        def __init__(self, translate_x, translate_y):
-            self.translate_x, self.translate_y = translate_x, translate_y
-
-        def apply(self, x, y, iters=1):
-            x = x + iters * self.translate_x
-            y = y + iters * self.translate_y
-            if isinstance(x, np.ndarray):
-                x = x.astype(int)
-            if isinstance(y, np.ndarray):
-                y = y.astype(int)
-            if isinstance(x, float):
-                x = int(round(x))
-            if isinstance(y, float):
-                y = int(round(y))
-            return x, y
-
-        def __repr__(self):
-            return f"TranslationalSymmetry(translate_x={self.translate_x}, translate_y={self.translate_y})"
-
-        def __str__(self):
-            return f"TranslationalSymmetry(translate_x={self.translate_x}, translate_y={self.translate_y})"
 
     n, m = grid.shape
     x_possibilities = [ TranslationalSymmetry(translate_x, 0) for translate_x in range(1, n) ]
@@ -750,7 +827,7 @@ def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
     xy_possibilities = [ TranslationalSymmetry(translate_x, translate_y) for translate_x in range(1,n) for translate_y in range(1,m) ]
 
     def score(sym):
-        perfectly_preserved, outside_canvas, conflict = _score_symmetry(grid, sym, ignore_colors)
+        perfectly_preserved, outside_canvas, conflict = _score_symmetry(grid, sym, ignore_colors, background=background)
         return perfectly_preserved - 0.01 * outside_canvas - 100000 * conflict
     x_scores = [score(sym) for sym in x_possibilities]
     y_scores = [score(sym) for sym in y_possibilities]
@@ -776,45 +853,62 @@ def detect_translational_symmetry(grid, ignore_colors=[Color.BLACK]):
 
     return detections
 
-def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]):
+class MirrorSymmetry():
+    """
+    Mirror symmetry transformation, which flips horizontally and/or vertically
+
+    Example usage:
+    symmetry = MirrorSymmetry(mirror_x=x if "horizontal" else None, mirror_y=y if "vertical" else None)
+
+    # Flip mirrored_object over the symmetry and draw to the output
+    for x, y in np.argwhere(mirrored_object != background):
+        x2, y2 = symmetry.apply(x, y)
+        output_grid[x2, y2] = mirrored_object[x, y]
+    
+    """
+    def __init__(self, mirror_x, mirror_y):
+        self.mirror_x, self.mirror_y = mirror_x, mirror_y
+
+    def apply(self, x, y, iters=1):
+        if iters % 2 == 0:
+            return x, y
+        if self.mirror_x is not None:
+            x = 2*self.mirror_x - x
+        if self.mirror_y is not None:
+            y = 2*self.mirror_y - y
+        if isinstance(x, np.ndarray):
+            x = x.astype(int)
+        if isinstance(y, np.ndarray):
+            y = y.astype(int)
+        if isinstance(x, float):
+            x = int(round(x))
+        if isinstance(y, float):
+            y = int(round(y))
+        return x, y
+
+    def __repr__(self):
+        return f"MirrorSymmetry(mirror_x={self.mirror_x}, mirror_y={self.mirror_y})"
+
+    def __str__(self):
+        return f"MirrorSymmetry(mirror_x={self.mirror_x}, mirror_y={self.mirror_y})"
+    
+    def _iter_range(self, grid_shape):
+        return (0, 2)
+
+def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK], background=None):
     """
     Returns list of mirror symmetries.
     Satisfies: grid[x, y] == grid[2*mirror_x - x, 2*mirror_y - y] for all x, y, as long as neither pixel is in `ignore_colors`
 
     Example:
-    symmetries = detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]) # ignore_color: In case parts of the object have been removed and occluded by black
-    for x, y in np.argwhere(grid != Color.BLACK):
+    symmetries = detect_mirror_symmetry(grid, ignore_colors=[Color.RED], background=Color.BLACK) # ignore_color: In case parts of the object have been removed and occluded by red
+    for x, y in np.argwhere(grid != Color.BLACK & grid != Color.RED): # Everywhere that isn't background and isn't occluded
         for sym in symmetries:
             symmetric_x, symmetric_y = sym.apply(x, y)
-            assert grid[symmetric_x, symmetric_y] == grid[x, y] or grid[symmetric_x, symmetric_y] == Color.BLACK
+            assert grid[symmetric_x, symmetric_y] == grid[x, y] or grid[symmetric_x, symmetric_y] == Color.RED
 
     If the grid has both horizontal and vertical mirror symmetries, the returned list will contain two elements.
     """
-
-    class MirrorSymmetry():
-        def __init__(self, mirror_x, mirror_y):
-            self.mirror_x, self.mirror_y = mirror_x, mirror_y
-
-        def apply(self, x, y, iters=1):
-            if self.mirror_x is not None:
-                x = 2*self.mirror_x - x
-            if self.mirror_y is not None:
-                y = 2*self.mirror_y - y
-            if isinstance(x, np.ndarray):
-                x = x.astype(int)
-            if isinstance(y, np.ndarray):
-                y = y.astype(int)
-            if isinstance(x, float):
-                x = int(round(x))
-            if isinstance(y, float):
-                y = int(round(y))
-            return x, y
-
-        def __repr__(self):
-            return f"MirrorSymmetry(mirror_x={self.mirror_x}, mirror_y={self.mirror_y})"
-
-        def __str__(self):
-            return f"MirrorSymmetry(mirror_x={self.mirror_x}, mirror_y={self.mirror_y})"
 
     n, m = grid.shape
     xy_possibilities = [
@@ -836,9 +930,9 @@ def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]):
 
     best_symmetries, best_score = [], 0
     for sym in x_possibilities + y_possibilities + xy_possibilities:
-        perfectly_preserved, outside_canvas, conflict = _score_symmetry(grid, sym, ignore_colors)
+        perfectly_preserved, outside_canvas, conflict = _score_symmetry(grid, sym, ignore_colors, background=background)
         score = perfectly_preserved - 0.01 * outside_canvas - 10000 * conflict
-        if conflict > 0:
+        if conflict > 0 or perfectly_preserved == 0:
             continue
 
         if score > best_score:
@@ -850,18 +944,18 @@ def detect_mirror_symmetry(grid, ignore_colors=[Color.BLACK]):
     return best_symmetries
 
 
-def detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK]):
+def detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK], background=None):
     """
     Finds rotational symmetry in a grid, or returns None if no symmetry is possible.
     Satisfies: grid[x, y] == grid[y - rotate_center_y + rotate_center_x, -x + rotate_center_y + rotate_center_x] # clockwise
                grid[x, y] == grid[-y + rotate_center_y + rotate_center_x, x - rotate_center_y + rotate_center_x] # counterclockwise
-               for all x, y, as long as neither pixel is in `ignore_colors`.
+               for all x, y, as long as neither pixel is in `ignore_colors`, and as long as x, y is not `background`.
 
     Example:
-    sym = detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK]) # ignore_color: In case parts of the object have been removed and occluded by black
-    for x, y in np.argwhere(grid != Color.BLACK):
+    sym = detect_rotational_symmetry(grid, ignore_colors=[Color.GREEN], background=Color.BLACK) # ignore_color: In case parts of the object have been removed and occluded by black
+    for x, y in np.argwhere(grid != Color.GREEN):
         rotated_x, rotated_y = sym.apply(x, y, iters=1) # +1 clockwise, -1 counterclockwise
-        assert grid[rotated_x, rotated_y] == grid[x, y] or grid[rotated_x, rotated_y] == Color.BLACK
+        assert grid[rotated_x, rotated_y] == grid[x, y] or grid[rotated_x, rotated_y] == Color.GREEN or grid[x, y] == Color.BLACK
     print(sym.center_x, sym.center_y) # In case these are needed, they are floats
     """
 
@@ -892,6 +986,9 @@ def detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK]):
 
             return x, y
 
+        def _iter_range(self, grid_shape):
+            return (0, 4)
+
     # Find the center of the grid
     # This is the first x,y which could serve as the center
     n, m = grid.shape
@@ -904,7 +1001,7 @@ def detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK]):
 
     best_rotation, best_score = None, 0
     for sym in possibilities:
-        perfectly_preserved, outside_canvas, conflict = _score_symmetry(grid, sym, ignore_colors)
+        perfectly_preserved, outside_canvas, conflict = _score_symmetry(grid, sym, ignore_colors, background=background)
         score = perfectly_preserved - 5 * outside_canvas - 1000 * conflict
         if score > best_score:
             best_rotation = sym
@@ -912,17 +1009,17 @@ def detect_rotational_symmetry(grid, ignore_colors=[Color.BLACK]):
 
     return best_rotation
 
-def _score_symmetry(grid, symmetry, ignore_colors):
+def _score_symmetry(grid, symmetry, ignore_colors, background=None):
     """
     internal function not used by LLM
 
     Given a grid, scores how well the grid satisfies the symmetry.
 
     Returns:
-     the number of pixels that are perfectly preserved by the symmetry
-     the number of pixels that are mapped outside the canvas (kind of bad)
+     the number of nonbackground pixels that are perfectly preserved by the symmetry
+     the number of nonbackground pixels that are mapped outside the canvas (kind of bad)
 
-     the number of pixels that are mapped to a different color (very bad)
+     the number of nonbackground pixels that are mapped to a different color (very bad)
     """
 
     n, m = grid.shape
@@ -930,7 +1027,11 @@ def _score_symmetry(grid, symmetry, ignore_colors):
     bad_mapping = 0
     off_canvas = 0
 
-    occupied_locations = np.argwhere(~np.isin(grid, ignore_colors))
+    if background is None:
+        occupied_locations = np.argwhere(~np.isin(grid, ignore_colors))
+    else:
+        occupied_locations = np.argwhere((~np.isin(grid, ignore_colors)) & (grid != background))
+    
     n_occupied = occupied_locations.shape[0]
     transformed_x, transformed_y = symmetry.apply(occupied_locations[:,0], occupied_locations[:,1])
 
@@ -1169,6 +1270,13 @@ def generate_sprite(
         diagonal_orientation = random.choice([True, False])
         x = random.randint(0, n - 1)
         y = x if diagonal_orientation else n - 1 - x
+    elif symmetry_type == "mirror":
+        # shrink to a quarter size, we are just making a single quadrant
+        original_n = n
+        original_m = m
+        n, m = int(n / 2 + 0.5), int(m / 2 + 0.5)
+        x, y = random.randint(0, n - 1), random.randint(0, m - 1)
+        grid = np.full((n, m), background)
     elif symmetry_type == "radial":
         # we are just going to make a single quadrant and then apply symmetry
         assert n == m, "Radial symmetry requires a square grid."
@@ -1208,6 +1316,30 @@ def generate_sprite(
         for _ in range(3):
             blit(output, np.rot90(output), background=background)
         grid = output
+    elif symmetry_type == "mirror":
+        # this requires resizing
+        output = np.full((original_n, original_m), background)
+        output[:n, :m] = grid
+        if original_n%2 == 0: dx = 0
+        else: dx = -1
+        if original_m%2 == 0: dy = 0
+        else: dy = -1
+        output[n+dx:, :m] = np.flipud(grid)
+        output[:n, m+dy:] = np.fliplr(grid)
+        output[n+dx:, m+dy:] = np.flipud(np.fliplr(grid))
+        
+        grid = output
+
+        if not is_contiguous(grid, background=background, connectivity=connectivity):
+            return generate_sprite(
+                n=original_n,
+                m=original_m,
+                symmetry_type=symmetry_type,
+                fill_percentage=fill_percentage,
+                color_palate=color_palate,
+                connectivity=connectivity,
+                background=background,
+            )
 
     elif symmetry_type == "diagonal":
         # diagonal symmetry goes both ways, flip a coin to decide which way
@@ -1226,23 +1358,31 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
     Generate a sprite (an object), represented as a numpy array.
 
     n, m: dimensions of the sprite. If these are lists, then a random value will be chosen from the list.
-    symmetry: optional type of symmetry to apply to the sprite. Can be 'horizontal', 'vertical', 'diagonal', 'radial', 'not_symmetric'. If None, a random symmetry type will be chosen.
+    symmetry: optional type of symmetry to apply to the sprite. Can be 'horizontal', 'vertical', 'diagonal', 'radial', 'mirror', 'not_symmetric'. If None, a random symmetry type will be chosen.
     color_palette: optional list of colors to use in the sprite. If None, a random color palette will be chosen.
 
     Returns an (n,m) NumPy array representing the sprite.
     """
 
     # canonical form: force dimensions to be lists
+    if isinstance(n, range):
+        n = list(n)
+    if isinstance(m, range):
+        m = list(m)    
     if not isinstance(n, list):
         n = [n]
     if not isinstance(m, list):
         m = [m]
 
+    # save the original inputs
+    n_original, m_original, density_original, symmetry_original, color_palette_original, connectivity_original, background_original = \
+        n, m, density, symmetry, color_palette, connectivity, background
+
     # radial and diagonal require target shape to be square
     can_be_square = any(n_ == m_ for n_ in n for m_ in m)
 
     # Decide on symmetry type before generating the sprites
-    symmetry_types = ["horizontal", "vertical", "not_symmetric"]
+    symmetry_types = ["horizontal", "vertical", "not_symmetric", "mirror"]
     if can_be_square:
         symmetry_types = symmetry_types + ["diagonal", "radial"]
 
@@ -1270,27 +1410,30 @@ def random_sprite(n, m, density=0.5, symmetry=None, color_palette=None, connecti
     else:
         density = max(0.4, min(0.95, random.gauss(density, 0.1)))
 
-    while True:
-        sprite = generate_sprite(
-            n,
-            m,
-            symmetry_type=symmetry,
-            color_palate=color_palette,
-            fill_percentage=density,
-            connectivity=connectivity,
-            background=background,
-        )
-        assert is_contiguous(
-            sprite, connectivity=connectivity, background=background
-        ), "Generated sprite is not contiguous."
-        # check that the sprite has pixels that are flushed with the border
-        if (
-            np.sum(sprite[0, :]!=background) > 0
-            and np.sum(sprite[-1, :]!=background) > 0
-            and np.sum(sprite[:, 0]!=background) > 0
-            and np.sum(sprite[:, -1]!=background) > 0
-        ):
-            return sprite
+    sprite = generate_sprite(
+        n,
+        m,
+        symmetry_type=symmetry,
+        color_palate=color_palette,
+        fill_percentage=density,
+        connectivity=connectivity,
+        background=background,
+    )
+    assert is_contiguous(
+        sprite, connectivity=connectivity, background=background
+    ), "Generated sprite is not contiguous."
+    # check that the sprite has pixels that are flushed with the border
+    if (
+        np.sum(sprite[0, :]!=background) > 0
+        and np.sum(sprite[-1, :]!=background) > 0
+        and np.sum(sprite[:, 0]!=background) > 0
+        and np.sum(sprite[:, -1]!=background) > 0
+    ):
+        return sprite
+    
+    # if the sprite is not flushed with the border, then we need to regenerate it
+    return random_sprite(n_original, m_original, density_original, symmetry_original, color_palette_original, connectivity_original, background_original)
+
 
 
 def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochromatic=False, connectivity=None, allowed_dimensions=None, colors=None, can_overlap=False):
@@ -1334,7 +1477,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                         candidate_object[i:i+n, j:j+m] = candidate_sprite
                         if not any( np.all(candidate_object == obj) for obj in objects):
                             scan_objects.append(candidate_object)
-        print("scanning produced", len(scan_objects), "objects")
+        #print("scanning produced", len(scan_objects), "objects")
         objects.extend(scan_objects)
 
     if not can_overlap:
@@ -1355,7 +1498,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                     if True or x1 + n1 <= x2 or x2 + n2 <= x1 or y1 + m1 <= y2 or y2 + m2 <= y1:
                         overlap_matrix[i, j] = np.any(obj1 & obj2)
                         overlap_matrix[j, i] = overlap_matrix[i, j]
-        print("time to compute overlaps", time.time() - start)
+        #print("time to compute overlaps", time.time() - start)
         start= time.time()
 
         # Pick a subset of objects that don't overlap and which cover as many pixels as possible
@@ -1401,7 +1544,7 @@ def detect_objects(grid, _=None, predicate=None, background=Color.BLACK, monochr
                 return without_index, without_goodness
 
         solution, _ = pick_objects(remaining_indices, [], np.zeros_like(grid, dtype=bool))
-        print("time to pick objects", time.time() - start)
+        #print("time to pick objects", time.time() - start)
 
         objects = keep_objects + solution
 

@@ -37,8 +37,8 @@ def generate_input() -> np.ndarray:
     n, m = np.random.randint(20, 30), np.random.randint(3, 5)
     grid = np.zeros((n, m), dtype=int)
 
-    # Randomlargest_rec_height scatter density of blue color pixels on the grid.
-    grid = random_scatter_points(grid=grid, color=Color.BLUE, density=0.6)
+    # Random largest_rec_height scatter density of blue color pixels on the grid.
+    randomly_scatter_points(grid, color=Color.BLUE, density=0.6)
     
     # Define random size for the pink rectangle, the rectangle should not be a line or point
     rectangle_width = max(2, random.randint(int(0.25 * n), int(0.45 * n)))
@@ -48,8 +48,8 @@ def generate_input() -> np.ndarray:
     rectangle = np.full((rectangle_width, rectangle_height), Color.BLACK)
     
     # Place the pink sprite at a random position in the grid
-    pos_x, pos_y = random.randint(0, n - rectangle_width + 1), random.randint(0, m - rectangle_height + 1)
-    grid = blit_sprite(grid=grid, sprite=rectangle, x=pos_x, y=pos_y, background=[Color.BLUE])
+    x, y = random.randint(0, n - rectangle_width + 1), random.randint(0, m - rectangle_height + 1)
+    blit_sprite(grid=grid, sprite=rectangle, x=x, y=y, background=Color.BLUE)
     
     return grid
 

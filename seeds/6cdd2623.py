@@ -50,7 +50,7 @@ def generate_input():
 
     # Two colors of pixels are scattered on the grid as noise.
     for scattered_color in scattered_colors:
-        grid = random_scatter_points(grid=grid, color=scattered_color, density=0.2)
+        randomly_scatter_points(grid, color=scattered_color, density=0.2)
 
     # One color of pixels are scattered on the boundary of the grid, and only four pixels
     # They are guaranteed to form two lines.

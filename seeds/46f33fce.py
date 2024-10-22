@@ -34,7 +34,7 @@ def main(input_grid):
         single_pixel_sprite = crop(obj, background=Color.BLACK)
 
         # Scale the sprite by `scale_factor` times
-        scaled_sprite = scale_pattern(pattern=single_pixel_sprite, scale_factor=scale_factor)
+        scaled_sprite = scale_sprite(single_pixel_sprite, scale_factor)
 
         # The coordinate of the scaled pattern (anchored at the upper left)
         new_x, new_y = x - scale_factor + 1, y - scale_factor + 1
@@ -43,7 +43,7 @@ def main(input_grid):
         output_grid = blit_sprite(grid=output_grid, x=new_x, y=new_y, sprite=scaled_sprite, background=Color.BLACK)
     
     # Scale the whole grid by scale_factor times
-    output_grid = scale_pattern(pattern=output_grid, scale_factor=scale_factor)
+    output_grid = scale_sprite(output_grid, scale_factor)
 
     return output_grid
 

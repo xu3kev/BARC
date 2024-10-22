@@ -37,7 +37,7 @@ def generate_input():
     grid = np.zeros((n, m), dtype=int)
 
     # Generate random teal pixels on the grid.    
-    grid = random_scatter_points(grid=grid, color=Color.TEAL, density=0.2)
+    randomly_scatter_points(grid, color=Color.TEAL, density=0.2)
 
     # Randomly get the width, length and position of the extract part.
     width, length = np.random.randint(4, n - 1), np.random.randint(4, m - 1)
