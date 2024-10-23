@@ -182,7 +182,7 @@ class LLMClient:
         )
         return response
 
-    def generate_request(self, prompt, model, temperature, max_tokens, top_p, num_samples):
+    def generate_request_json(self, prompt, model, temperature, max_tokens, top_p, num_samples):
         request = {
             "model":model.value,
             "messages":[
@@ -202,11 +202,14 @@ class LLMClient:
         }
         return request
 
-    def batch_request(self, requests, job_description):
+    def batch_request(self, job_description, prompts, model, temperature, max_tokens, num_samples, top_p=1, blocking=False):
         """
         Uses the batch API to upload all the requests in a file and get the results
-        Returns a function that when called either gives a status update or the results (i.e. this routine is non-blocking)
+        if blocking, returns the final list of list of results (or None) when a result is missing
+        if not blocking, returns a function that when called gives a tuple of (status, maybe_final_result)
+        By default it does not block.
         """
+        requests = [self.generate_request_json(p, model, temperature, max_tokens, top_p, num_samples) for p in prompts]
         # Create a file based on the job description called job_description_input.jsonl, and put each request in a line
         input_data = []
         for n, request in enumerate(requests):
@@ -256,7 +259,17 @@ class LLMClient:
                 data = None
             return retrieval.status, data
         
-        return callback
+        if not blocking: return callback
+
+        start_time = time.time()
+        while True:
+            status, data = callback()
+            if "completed" in str(status):
+                pretty_printed_time = time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time))
+                print(f" [+] Batch job {job_description} completed in {pretty_printed_time}")
+                return data
+            print(f" [~] Status: {status}")
+            time.sleep(5)
 
 
         

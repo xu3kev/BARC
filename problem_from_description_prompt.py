@@ -199,10 +199,6 @@ def main():
     
     # get current directory path
     current_file_dir = os.path.dirname(os.path.realpath(__file__))
-
-    # just take the first 20 descriptions and concepts
-    problem_concepts = problem_concepts[:20]
-    problem_descriptions = problem_descriptions[:20]
     
     # generate embedding for the problem descriptions
     client = LLMClient(provider=embedding_provider, cache_dir=f"{current_file_dir}/cache")
@@ -294,17 +290,10 @@ def main():
 
     samples_and_seeds = []
     if arguments.batch_request:
-        batch_request = [ client.generate_request(prompt, num_samples=arguments.num_samples, model=prompt_model, temperature=arguments.temperature, max_tokens=arguments.max_tokens, top_p=1)
-                        for prompt, seeds in prompts_and_seeds ]
         base_jsonl = arguments.jsonl.replace(".jsonl", "")
-        callback = client.batch_request(batch_request, job_description=f"codegen_{base_jsonl}")
-        while True:
-            status, result = callback()
-            print(" [~] Status of batch request:", status)
-            time.sleep(4)
-            if "completed" in str(status):
-                print(" [+] Batch request completed")
-                break
+        result = client.batch_request(job_description=f"codegen_{base_jsonl}", prompts=[prompt for prompt, seeds in prompts_and_seeds],
+                                        model=prompt_model, temperature=arguments.temperature, max_tokens=arguments.max_tokens, top_p=1,
+                                        num_samples=arguments.num_samples, blocking=True)
 
         n_successful_samples = 0
         for samples, seeds in zip(result, [seeds for prompt, seeds in prompts_and_seeds]):

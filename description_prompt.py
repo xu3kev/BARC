@@ -93,6 +93,7 @@ def main():
     parser.add_argument("--max_tokens", type=int, default=2048, help="max number of tokens for generation")
     parser.add_argument("--rng_offset", type=int, default=0, help="offset to rng_seed_offset")
     parser.add_argument("--use_concepts", "-uc", action="store_false", help="make the prompts not use concepts", default=True)
+    parser.add_argument("--batch_request", "-br", action="store_true", help="generate a batch request, cheaper and high throughput but bad latency")
     
     arguments = parser.parse_args()
 
@@ -128,7 +129,7 @@ def main():
 
     batch_size = arguments.batch_size
     prompts = [ make_self_instruct_prompt(seeds_contents=seeds_contents, 
-                                                    rng_seed=rng_seed + rng_offset, 
+                                                    rng_seed=str(rng_seed) + str(rng_offset), 
                                                     num_descriptions=arguments.num_descriptions,
                                                     use_concepts=arguments.use_concepts,
                                                     num_generations=arguments.num_generations)
@@ -136,46 +137,20 @@ def main():
 
     client = LLMClient(provider=provider, cache_dir=f"{current_file_dir}/cache")
 
-    USE_BATCH_API = True
-    if USE_BATCH_API:
-        tasks = []
-        seen_ids = set()
-        for prompt in tqdm(prompts):
-            request = client.generate_request(prompt=prompt, model=model, temperature=arguments.temperature,
-                                              max_tokens=arguments.max_tokens, top_p=1, num_samples=1)
-
-            # hash prompt model temperature and maxtokens to a 16 char string
-            params_to_hash = f"{prompt}___{model}___{arguments.temperature}___{arguments.max_tokens}"
-            
-            # Create MD5 hash and take first 16 characters
-            custom_id = hashlib.md5(params_to_hash.encode('utf-8')).hexdigest()[:16]
-            
-            if custom_id in seen_ids:
-                raise ValueError(f"Duplicate custom_id detected: {custom_id}")
-            task = {
-                "custom_id": f"{custom_id}",
-                "method": "POST",
-                "url": "/v1/chat/completions",
-                "body": request
-            }
-            tasks.append(task)
+    if arguments.batch_request:
 
         model_name = arguments.model.replace("/", "_")
-        # write the codes to jsonl file
-        file_name_base = f"batch_requests_self_instruct_descriptions_fewshot_{arguments.num_descriptions}_{model_name}_temp{arguments.temperature:.2f}_maxtokens{arguments.max_tokens}_rng{arguments.rng_offset}"
+        job_name = f"batch_requests_self_instruct_descriptions_fewshot_{arguments.num_descriptions}_{model_name}_temp{arguments.temperature:.2f}_maxtokens{arguments.max_tokens}_rng{arguments.rng_offset}"
         if arguments.use_concepts:
-            file_name_base += "_used_concepts"
-        import json
-        file_name_jsonl = file_name_base + ".jsonl"
-        print(f"Writing to jsonl {file_name_jsonl}")
-        with open(file_name_jsonl, 'w') as file:
-            for obj in tasks:
-                file.write(json.dumps(obj) + '\n')
-        
-        exit()
-    
-    samples = []
-    if arguments.sample_parallel == 1:
+            job_name += "_used_concepts"
+
+        samples = client.batch_request(job_name, prompts, model, temperature=arguments.temperature, max_tokens=arguments.max_tokens, top_p=1, num_samples=1, 
+                                       blocking=True)
+        # filter out None samples, and take the first (of 1) sample
+        samples = [ sample[0] for sample in samples if sample is not None ]
+
+    elif arguments.sample_parallel == 1:
+        samples = []
         for prompt in tqdm(prompts):
             try:
                 sample = client.generate(prompt, num_samples=1, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=model)[0]
