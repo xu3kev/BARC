@@ -154,6 +154,7 @@ def main():
     parser.add_argument("--ignore_cache_samples", "-ics", action="store_true", help="ignore cache for samples", default=False)
     parser.add_argument("--suggest_function", "-sf", action="store_true", help="suggest a function to use in the prompt", default=False)
     parser.add_argument("--batch_request", "-br", action="store_true", help="use batch request API", default=False)
+    parser.add_argument("--outdir", default=None, help="output directory for the code")
 
     arguments = parser.parse_args()
 
@@ -202,11 +203,11 @@ def main():
     
     # generate embedding for the problem descriptions
     client = LLMClient(provider=embedding_provider, cache_dir=f"{current_file_dir}/cache")
-    problem_description_embeddings = [client.generate_embedding(description, model=embedding_model) for description in tqdm(problem_descriptions)]
+    problem_description_embeddings = client.generate_embedding(problem_descriptions, model=embedding_model)
     if not arguments.use_concept_embeddings:
         problem_embeddings = problem_description_embeddings
     else:
-        problem_concepts_embeddings = [client.generate_embedding(concepts, model=embedding_model) for concepts in problem_concepts]
+        problem_concepts_embeddings = client.generate_embedding(problem_concepts, model=embedding_model)
         problem_embeddings = [concept_embedding + description_embedding for concept_embedding, description_embedding in tqdm(zip(problem_concepts_embeddings, problem_description_embeddings))]
     
     print(" [+] finished calculating embeddings")
@@ -335,8 +336,16 @@ def main():
     file_name_base = f"self_instruct_code_fewshot_{arguments.num_seeds}_{prompt_model_name}_temp{arguments.temperature:.2f}_maxtokens{arguments.max_tokens}"
     if arguments.brief_common:
         file_name_base += "_briefcommon"
-    file_name_json = file_name_base + f"_description_file_{arguments.jsonl.replace('.jsonl', '')}" + ".jsonl"
-    file_name_json = file_name_json.replace("/", "_")
+    if arguments.suggest_function:
+        file_name_base += "_suggestfunction"
+    if arguments.use_concept_embeddings:
+        file_name_base += "_conceptembeddings"    
+    description_file_base = os.path.basename(arguments.jsonl.replace(".jsonl", ""))
+    file_name_json = file_name_base + f"_description_file_{description_file_base}" + ".jsonl"
+
+    if arguments.outdir is not None: # join with the base path
+        file_name_json = os.path.join(arguments.outdir, os.path.basename(file_name_json))
+        
     print(f"Writing to jsonl {file_name_json}")
 
     with open(file_name_json, "w") as f:

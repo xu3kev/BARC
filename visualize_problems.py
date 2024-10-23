@@ -20,6 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("--jsonl", type=str, required=True)
     parser.add_argument("--start", type=int, default=0)
     parser.add_argument("--size", type=int, default=100)
+    parser.add_argument("--outdir", type=str, required=True)
     args = parser.parse_args()
 
     with open(args.jsonl, "r") as f:
@@ -419,6 +420,8 @@ body {{
 </html>
     """
     file_name = args.jsonl.replace(".jsonl", f"_start_{args.start}_size_{args.start + args.size}.html")
+    if args.outdir:
+        file_name = os.path.join(args.outdir, os.path.basename(file_name))
 
     print(f"Writing to {file_name}")
     with open(file_name, "w") as f:

@@ -272,10 +272,6 @@ class LLMClient:
             time.sleep(5)
 
 
-        
-
-        
-    
     def send_embedding_request(self, input, model):
         response = self.client.embeddings.create(
             model=model.value,
@@ -357,20 +353,30 @@ class LLMClient:
         return cached_samples[:num_samples]
     
     def generate_embedding(self, input, model=None):
-        model = self.check_model_name(model)
-        cached_embedding = self.get_embedding_from_cache(input, model)
+        """input can be a list, in which case we return a list of embeddings"""
+        originally_list = isinstance(input, list)
+        if not isinstance(input, list): input = [input]
 
-        # If the embedding is not cached, generate it
-        if cached_embedding is None:
-            actually_got_embedding = False
+        model = self.check_model_name(model)
+        cached_embedding = [ self.get_embedding_from_cache(s, model) for s in input]
+
+        need_to_compute = [ s for s, e in zip(input, cached_embedding) if e is None ]
+
+        while len(need_to_compute) > 0:
+            batch_size = 512
+            next_batch = need_to_compute[:batch_size]
+            need_to_compute = need_to_compute[batch_size:]
+
+            actually_got_embeddings = False
             backoff_timer = 1
-            while not actually_got_embedding:
+            while not actually_got_embeddings:
                 try:
-                    response = self.send_embedding_request(input, model)
-                    embedding = response.data[0].embedding
-                    self.add_embedding_to_cache(input, model, embedding)
+                    response = self.send_embedding_request(next_batch, model)
+                    embeddings = [response.data[i].embedding for i in range(len(next_batch))]
+                    for s, e in zip(next_batch, embeddings):
+                        self.add_embedding_to_cache(s, model, e)
                     self.update_usage(model.value, response.usage)
-                    actually_got_embedding = True
+                    actually_got_embeddings = True
                 except Exception as e:
                     if "Rate limit reached for model" in str(e):
                         if backoff_timer > 120:
@@ -388,9 +394,9 @@ class LLMClient:
                 
 
         # WARN neccessary to get the samples from cache again as it might have been updated
-        cached_embedding = self.get_embedding_from_cache(input, model)
+        cached_embeddings = [self.get_embedding_from_cache(s, model) for s in input]
 
-        return cached_embedding
+        return cached_embeddings[0] if not originally_list else cached_embeddings
 
 
 

@@ -262,6 +262,7 @@ def main():
     parser.add_argument("--total_timeout", type=int, default=30, help="The total timeout value for a problem generation run")
     parser.add_argument("--reprompt", action="store_true", help="Reprompt for failed problems")
     parser.add_argument("--indexes", nargs=2, type=int, help="Indexes of the problems to generate")
+    parser.add_argument("--outdir", type=str, help="Output directory for the generated problems, if not the same as the input jsonl file")
     args = parser.parse_args()
 
     total_timeout = args.total_timeout 
@@ -286,6 +287,8 @@ def main():
         result_saving_file = args.jsonl.replace(".jsonl", "_generated_problems.jsonl")
         if args.indexes:
             result_saving_file = args.jsonl.replace(".jsonl", f"_{args.indexes[0]}_{args.indexes[1]}.jsonl")
+        if args.outdir:
+            result_saving_file = os.path.join(args.outdir, os.path.basename(result_saving_file))
         print(f"Saving to {result_saving_file}")
         with open(args.jsonl) as f:
             import json

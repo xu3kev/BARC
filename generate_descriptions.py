@@ -94,6 +94,7 @@ def main():
     parser.add_argument("--rng_offset", type=int, default=0, help="offset to rng_seed_offset")
     parser.add_argument("--use_concepts", "-uc", action="store_false", help="make the prompts not use concepts", default=True)
     parser.add_argument("--batch_request", "-br", action="store_true", help="generate a batch request, cheaper and high throughput but bad latency")
+    parser.add_argument("--outdir", type=str, default=None, help="output directory for the descriptions")
     
     arguments = parser.parse_args()
 
@@ -177,6 +178,8 @@ def main():
     if arguments.use_concepts:
         file_name_base += "_used_concepts"
     file_name_json = file_name_base + ".jsonl"
+    if arguments.outdir is not None: # join with the base path
+        file_name_json = os.path.join(arguments.outdir, os.path.basename(file_name_json))
     print(f"Writing to jsonl {file_name_json}")
     with open(file_name_json, "w") as f:
         # jsonl, one json per line
