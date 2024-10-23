@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 import time
 import tiktoken
+import json
 
 
 class Provider(Enum):
@@ -200,6 +201,67 @@ class LLMClient:
             "n":num_samples
         }
         return request
+
+    def batch_request(self, requests, job_description):
+        """
+        Uses the batch API to upload all the requests in a file and get the results
+        Returns a function that when called either gives a status update or the results (i.e. this routine is non-blocking)
+        """
+        # Create a file based on the job description called job_description_input.jsonl, and put each request in a line
+        input_data = []
+        for n, request in enumerate(requests):
+            _request = {"custom_id": f"request-{n}", "method": "POST", "url": "/v1/chat/completions", "body": request}
+            input_data.append(json.dumps(_request))
+        input_data = "\n".join(input_data) + "\n"
+
+        import io
+        
+        # Upload the file to the batch API
+        batch_input_file = self.client.files.create(
+            file=io.BytesIO(bytes(input_data, 'utf-8')), 
+            purpose="batch"
+        )
+
+        batch_input_file_id = batch_input_file.id
+
+        batch_job = self.client.batches.create(
+            input_file_id=batch_input_file_id,
+            endpoint="/v1/chat/completions",
+            completion_window="24h",
+            metadata={
+            "description": job_description
+            }
+        )
+
+        def callback():
+            nonlocal batch_job
+            retrieval = self.client.batches.retrieve(batch_job.id)
+            if "completed" in str(retrieval.status):
+                data = self.client.files.content(retrieval.output_file_id).content
+                # process the data as though it were jsonl: first convert from bytes to string
+                data = data.decode("utf-8")
+                # then iterate through the lines
+                data = data.strip().split("\n")
+                data = [json.loads(d) for d in data]
+                response_dictionary = {}
+                for entry in data:
+                    index = int(entry["custom_id"].replace("request-", ""))
+                    response_dictionary[index] = entry["response"].get("body", {}).get("choices", None)
+                    if response_dictionary[index] is not None:
+                        response_dictionary[index] = [c["message"]["content"] for c in response_dictionary[index]]
+                
+                data = [response_dictionary.get(i, None) for i in range(len(requests))]
+
+            else:
+                data = None
+            return retrieval.status, data
+        
+        return callback
+
+
+        
+
+        
     
     def send_embedding_request(self, input, model):
         response = self.client.embeddings.create(

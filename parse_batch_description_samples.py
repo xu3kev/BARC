@@ -24,6 +24,18 @@ def extract_concepts_and_descriptions(content):
 
     return all_concepts, all_descriptions
 
+def process_jsonl_line(response):
+    list_of_concepts, list_of_descriptions = [], []
+    sample = response['response']['body']['choices'][0]["message"]["content"]
+    parsed_concepts_lst, parsed_description_lst = extract_concepts_and_descriptions(sample)
+    for parsed_concepts, parsed_description in zip(parsed_concepts_lst, parsed_description_lst):
+        if parsed_concepts != [] and parsed_description != []:
+            parsed_concepts = ", ".join(parsed_concepts)
+            list_of_concepts.append(parsed_concepts)
+            list_of_descriptions.append(parsed_description)
+    return list_of_concepts, list_of_descriptions
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process a JSONL file to extract concepts and descriptions.")
     parser.add_argument("jsonl_file", type=str, help="Path to the JSONL file containing samples.")

@@ -10,6 +10,7 @@ random.seed(0)
 from utils import extract_functions, extract_function_calls, extract_class_definitions, parse_code, remove_trailing_code, generate_html_grid, get_description_from_lines, get_concepts_from_lines
 from execution import execute_transformation, execute_input_generator
 from prompt import get_common_lib_from_file, prune_common_lib
+import parse_batch_description_samples
 
 from llm import *
 
@@ -28,7 +29,8 @@ def extract_concepts_and_descriptions(content):
     return concepts, description
 
 def make_self_instruct_prompt(seed_embeddings, seed_contents, function_names, function_name_to_definition, function_name_to_seed_content,
-                               problem_concept, problem_description, problem_embedding, num_seeds=1, common_lib=None, common_lib_function_names=None, brief_common=True):
+                               problem_concept, problem_description, problem_embedding, num_seeds=1, 
+                               common_lib=None, common_lib_function_names=None, brief_common=True, suggest_function=False):
     A = np.array(seed_embeddings)
     B = np.array(problem_embedding)
 
@@ -52,26 +54,36 @@ def make_self_instruct_prompt(seed_embeddings, seed_contents, function_names, fu
 
     description = f"Concepts: \n{problem_concept}\n\nDescription: \n{problem_description}"
 
-    # read the prompt template from prompts/problem_from_description.md
-    with open("prompts/problem_from_description_suggesting_function.md") as f:
-        prompt_template = f.read()
+    # read the prompt template
+    if not suggest_function:
+        prompt_template_file = "prompts/problem_from_description.md"
+        with open(prompt_template_file) as f:
+            prompt_template = f.read()
+        
+        prompt = prompt_template.format(description=description, common_lib=common_lib, examples=examples)
+        seeds = [seed for seed, _ in best_seeds_contents] + [description]
+    else:
+        prompt_template_file = "prompts/problem_from_description_suggesting_function.md"
+        with open(prompt_template_file) as f:
+            prompt_template = f.read()
 
-    # randomly pick a function name
-    Flag = True
-    while Flag:
-        function_name = random.choice(function_names)
-        # randomly pick a function example given the function name
-        if len(function_name_to_seed_content[function_name]) > 0:
-            function_example = random.choice(function_name_to_seed_content[function_name])
-            Flag = False
-        else:
-            Flag = True
-        # get the function definition given the function name
-        function_definition = function_name_to_definition[function_name]
+        # randomly pick a function name
+        Flag = True
+        while Flag:
+            function_name = random.choice(function_names)
+            # randomly pick a function example given the function name
+            if len(function_name_to_seed_content[function_name]) > 0:
+                function_example = random.choice(function_name_to_seed_content[function_name])
+                Flag = False
+            else:
+                Flag = True
+            # get the function definition given the function name
+            function_definition = function_name_to_definition[function_name]
+        
+        prompt = prompt_template.format(description=description, common_lib=common_lib, examples=examples,
+                                        function_name=function_name, function_example=function_example, function_definition=function_definition)
+        seeds = [seed for seed, _ in best_seeds_contents] + [function_name] + [description]
     
-    prompt = prompt_template.format(description=description, common_lib=common_lib, examples=examples,
-                                    function_name=function_name, function_example=function_example, function_definition=function_definition)
-    seeds = [seed for seed, _ in best_seeds_contents] + [function_name] + [description]
     return prompt, seeds
 
 def ensure_colors_exist(code):
@@ -140,6 +152,8 @@ def main():
     parser.add_argument("--nohtml", action="store_true", help="don't generate html", default=False)
     parser.add_argument("--use_concept_embeddings", "-uc", action="store_true", help="use concept embeddings in addition to description embeddings", default=False)
     parser.add_argument("--ignore_cache_samples", "-ics", action="store_true", help="ignore cache for samples", default=False)
+    parser.add_argument("--suggest_function", "-sf", action="store_true", help="suggest a function to use in the prompt", default=False)
+    parser.add_argument("--batch_request", "-br", action="store_true", help="use batch request API", default=False)
 
     arguments = parser.parse_args()
 
@@ -162,13 +176,33 @@ def main():
     print(f"Reading from {arguments.jsonl}")
     with open(arguments.jsonl) as f:
         data = f.readlines()
+    n_lines = 0
     for line in data:
+        n_lines += 1
         problem = json.loads(line)
-        problem_concepts.append(problem["concepts"])
-        problem_descriptions.append(problem["description"])
+        if "concepts" in problem and "description" in problem:
+            # File is already preprocessed
+            problem_concepts.append(problem["concepts"])
+            problem_descriptions.append(problem["description"])
+        else:
+            # File is the raw output of batched processing
+            new_concepts, new_descriptions = parse_batch_description_samples.process_jsonl_line(problem)
+            problem_concepts.extend(new_concepts)
+            problem_descriptions.extend(new_descriptions)
+    print(f" [+] Processed {n_lines} lines resulting in {len(problem_concepts)} descriptions")
+    print("Here are 10 random examples:")
+    random_indices = random.sample(range(len(problem_concepts)), 10)
+    for i in random_indices:
+        print(f"Concepts: {problem_concepts[i]}")
+        print(f"Description: {problem_descriptions[i]}")
+        print()
     
     # get current directory path
     current_file_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # just take the first 20 descriptions and concepts
+    problem_concepts = problem_concepts[:20]
+    problem_descriptions = problem_descriptions[:20]
     
     # generate embedding for the problem descriptions
     client = LLMClient(provider=embedding_provider, cache_dir=f"{current_file_dir}/cache")
@@ -178,6 +212,8 @@ def main():
     else:
         problem_concepts_embeddings = [client.generate_embedding(concepts, model=embedding_model) for concepts in problem_concepts]
         problem_embeddings = [concept_embedding + description_embedding for concept_embedding, description_embedding in tqdm(zip(problem_concepts_embeddings, problem_description_embeddings))]
+    
+    print(" [+] finished calculating embeddings")
     
     # get all files in seeds directory
     seeds = os.listdir(os.path.join(current_file_dir, "seeds"))
@@ -248,14 +284,37 @@ def main():
                                                     num_seeds=arguments.num_seeds,
                                                     common_lib=common_lib,
                                                     common_lib_function_names=common_lib_function_names,
-                                                    brief_common=arguments.brief_common)
+                                                    brief_common=arguments.brief_common,
+                                                    suggest_function=arguments.suggest_function)
                for problem_concept, problem_description, problem_embedding in tqdm(zip(problem_concepts, problem_descriptions, problem_embeddings)) ]
     client.show_token_usage()
     client.show_global_token_usage()
 
     client = LLMClient(provider=prompt_provider, cache_dir=f"{current_file_dir}/cache")
+
     samples_and_seeds = []
-    if arguments.sample_parallel == 1:
+    if arguments.batch_request:
+        batch_request = [ client.generate_request(prompt, num_samples=arguments.num_samples, model=prompt_model, temperature=arguments.temperature, max_tokens=arguments.max_tokens, top_p=1)
+                        for prompt, seeds in prompts_and_seeds ]
+        base_jsonl = arguments.jsonl.replace(".jsonl", "")
+        callback = client.batch_request(batch_request, job_description=f"codegen_{base_jsonl}")
+        while True:
+            status, result = callback()
+            print(" [~] Status of batch request:", status)
+            time.sleep(4)
+            if "completed" in str(status):
+                print(" [+] Batch request completed")
+                break
+
+        n_successful_samples = 0
+        for samples, seeds in zip(result, [seeds for prompt, seeds in prompts_and_seeds]):
+            if samples is None: continue
+            n_successful_samples += len(samples)
+            samples_and_seeds.append((samples, seeds))
+        
+        print(f" [+] {n_successful_samples} samples successfully generated")
+    
+    elif arguments.sample_parallel == 1:
         for prompt, seed in tqdm(prompts_and_seeds):
             try:
                 sample = client.generate(prompt, num_samples=arguments.num_samples, max_tokens=arguments.max_tokens, temperature=arguments.temperature, model=prompt_model, ignore_cache_samples=arguments.ignore_cache_samples)
