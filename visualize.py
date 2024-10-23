@@ -18,10 +18,23 @@ def highlight_code(code):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--jsonl", type=str, required=True)
+    parser.add_argument("--start", type=int, default=0)
+    parser.add_argument("--size", type=int, default=100)
     args = parser.parse_args()
 
     with open(args.jsonl, "r") as f:
-        data = [json.loads(line) for line in f]
+        lines = f.readlines()
+    
+    print("Reading JSONL file...")
+    from tqdm import tqdm
+    data = [json.loads(line) for line in tqdm(lines)]
+
+    try:
+        print(f"Visualizing the subset from index {args.start} to {args.start + args.size - 1}")
+        data = data[args.start:args.start + args.size]
+    except IndexError:
+        print(f"Error: Not enough problems in the JSONL file starting from index {args.start}")
+        exit()
 
     total_problems = len(data)
     htmls = []
@@ -34,6 +47,9 @@ if __name__ == "__main__":
         code = remove_trailing_code(code)
         
         examples = problem["examples"]
+        if len(examples) < 4:
+            print(f"Skipping problem {idx} with less than 4 examples")
+            continue
         input_grids = [np.array(example[0]) for example in examples[0:4]]
         output_grids = [np.array(example[1]) for example in examples[0:4]]
 
@@ -402,7 +418,7 @@ body {{
 </body>
 </html>
     """
-    file_name = args.jsonl.replace(".jsonl", ".html")
+    file_name = args.jsonl.replace(".jsonl", f"_start_{args.start}_size_{args.start + args.size}.html")
 
     print(f"Writing to {file_name}")
     with open(file_name, "w") as f:
