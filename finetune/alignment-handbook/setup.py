@@ -40,6 +40,7 @@ if stale_egg_info.exists():
 
 # IMPORTANT: all dependencies should be listed here with their version requirements, if any.
 #   * If a dependency is fast-moving (e.g. transformers), pin to the exact version
+
 _deps = [
     "accelerate>=0.29.2",
     "bitsandbytes>=0.43.0",
@@ -51,7 +52,6 @@ _deps = [
     "flake8>=6.0.0",
     "hf-doc-builder>=0.4.0",
     "hf_transfer>=0.1.4",
-    "huggingface-hub>=0.19.2,<1.0",
     "isort>=5.12.0",
     "ninja>=1.11.1",
     "numpy>=1.24.2",
@@ -65,10 +65,13 @@ _deps = [
     "scipy",
     "tensorboard",
     "torch>=2.1.2",
-    "transformers>=4.39.3",
-    "trl>=0.9.6",
+    "transformers @ git+https://github.com/huggingface/transformers.git@c6d2848a23aba42404784ba52e421ae7b8c68eda",
+    "trl==0.10.1",
     "jinja2>=3.0.0",
     "tqdm>=4.64.1",
+    "wandb",
+    "huggingface-hub==0.24.7",
+    "liger-kernel==0.2.1",
 ]
 
 # this is a lookup table with items like:
@@ -114,6 +117,8 @@ install_requires = [
     deps["tqdm"],  # progress bars in model download and training scripts
     deps["transformers"],
     deps["trl"],
+    deps["liger-kernel"],
+    deps["wandb"],
 ]
 
 setup(

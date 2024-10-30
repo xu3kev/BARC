@@ -1,54 +1,71 @@
-# Installation
+# Bootstrapping ARC: Synthetic Problem Generation for ARC Visual Reasoning Tasks
 
-Run `python -m pip install -r requirements.txt` to install Python requirements.
+This repository provides tools for generating synthetic [ARC](https://arcprize.org/) problems, which consist of input/output grid pairs corresponding to a visual transformation rule.
 
-# Viewing ARC problems
+## Seed Problems
+The repository contains 162 manually written solutions corresponding to problems from the [ARC training set](https://github.com/fchollet/ARC/tree/master/data/training). These manually written seeds are under the `seeds/` folder and utilize shared utility functions from `seeds/common.py`, which provides common routines important to multiple ARC problems like grid or objects manipulation operations.
 
-ARC interface hosted by Wen-Ding: [https://www.cs.cornell.edu/~wdli/arc_interface/](https://www.cs.cornell.edu/~wdli/arc_interface/)
+Each seed problem is a Python file with the following structure:
 
-You can view ARC problems by their ID number using the `view_problem.py` script. For example:
-```bash
-$ python view_problem.py 09629e4f
-```
-You will see both a textual representation (as grids of numbers), as well as a graphical representation (using matplotlib).
-
-You can also visit [MC-LARC](https://mc-larc.github.io/) for a more interactive interface.
-
-
-# Solving problems
-
-Your solutions to ARC problems should be under `seeds/` and should consist of a Python file with the ID of the problem.
-For instance, one such file is `seeds/05f2a901.py`, which contains a seed solution to `05f2a901`.
-
-Keep track of which problems you are solving so that you do not overlap with others. The tracking spreadsheet is [https://docs.google.com/spreadsheets/d/1uPeAawNicITtLnT2aEclD5Ee-47gnfdXjuzugtfqceM/edit?usp=sharing](https://docs.google.com/spreadsheets/d/1uPeAawNicITtLnT2aEclD5Ee-47gnfdXjuzugtfqceM/edit?usp=sharing)
-
-
-Seed files should be of this form:
 ```python
-from common import *
-
+from common import *  # Shared utilities for grid manipulation
 import numpy as np
-from typing import *
 
-# concepts:
-# <list of concepts, separated by commas>
+# Concept Labels:
+# <List of core concepts used in this problem, e.g., pattern repetition, scaling, color mapping>
 
-# description:
-# <a couple sentences describing how to solve the problem, including what you'll see in the input>
+# Description:
+# <Natural language description of the transformation rule from input grid to output grid>
 
 def main(input_grid):
-    ... # computes the output grid from the input
+   # Solution: transformation function that solves the problem
+   # Takes a 2D numpy array as input and returns a 2D numpy array as output
+   ...
+   return output_grid
 
 def generate_input():
-    ... # returns a random input grid
-
-
-# ============= remove below this point for prompting =============
-
-if __name__ == '__main__':
-    visualize(generate_input, main)
+   # Input generator: randomly generates valid input grids for this problem
+   # Returns a 2D numpy array representing a valid input grid
+   ...
+   return input_grid
 ```
 
-# Prior knowledge
+## Synthetic Data Generation
+The synthetic data generation pipeline takes the seed problems and remixes them using LLM to generate new problems. Each generated problem includes both a solution (transformation function) and input generator, which are executed to create input/output grid pairs forming an ARC problem.
 
-Common subroutines that are important to multiple ARC problems should go in `seeds/common.py`.
+The pipeline consists of three stages:
+
+- `generate_descriptions.py`: Generate natural language descriptions of synthetic problems from seed descriptions
+- `generate_code.py`: Generate solution and input generator code using the descriptions and similar seed examples (via RAG)
+- `generate_problems.py`: Execute the generated code to create concrete ARC problems
+
+See `data_generation_script.sh` for the complete pipeline execution using GPT-4 for description generation and GPT4o-mini for code generation.
+
+## Finetuning
+
+We adopted https://github.com/huggingface/alignment-handbook.git framework to finetune Llama models. See `finetune/alignment-handbook/README.md` for more details, and `finetune/alignment-handbook/recipes/barc-7b` for example recipes. We provide finetune script and models for both "transduction" and "induction" methods:
+
+* Induction: induction models is finetuned to output the solution code given the ARC problems.
+* Transduction: transduction models is finetuned to directly output the test output grids given the problem.
+
+We finetune with pure text models, and convert the input grids into string format like
+```
+Gray Black Black Gray Black
+Gray Black Black Gray Black
+Gray Black Gray Gray Gray
+Gray Gray Gray Black Black
+Black Black Gray Black Black
+```
+
+For the detail prompt template please see the script which converts the problems to their corresponding prompt format, e.g. `finetune/alignment-handbook/gen_test_prompt.py` and `finetune/alignment-handbook/gen_dataset_both.py`.
+
+## Inference
+
+We provide script using vllm for inference of the model.
+* Induction: See `finetune/inference/vllm_inference_induction.py`
+* Transduction: See `finetune/inference/vllm_inference_transduction.py`
+
+## Evaluation
+
+For transduction, evaluation can be done by directly compare the input grid and output grid.
+For induction, the samples code needed to be executed and get the results. We provide the execution code at `eval_code_samples.py`
