@@ -2,6 +2,7 @@
 
 This repository provides tools for generating synthetic [ARC](https://arcprize.org/) problems, which consist of input/output grid pairs corresponding to transformation rules defined by Python code.
 
+
 ## Seed Problems
 The repository contains 162 manually written solutions corresponding to problems from the [ARC training set](https://github.com/fchollet/ARC/tree/master/data/training). These manually written seeds are under the `seeds/` folder and utilize shared utility functions from `seeds/common.py`, which provides common routines important to multiple ARC problems like grid or objects manipulation operations.
 
@@ -31,6 +32,8 @@ def generate_input():
 ```
 
 ## Synthetic Data Generation
+🤗[[Synthetic Dataset]](https://huggingface.co/collections/barc0/synthetic-arc-dataset-67223d0e7c232af8ed782b37)
+
 The synthetic data generation pipeline takes the seed problems and remixes them using LLM to generate new problems. Each generated problem includes both a solution (transformation function) and input generator, which are executed to create input/output grid pairs forming an ARC problem.
 
 The pipeline consists of three stages:
@@ -41,7 +44,9 @@ The pipeline consists of three stages:
 
 See `data_generation_script.sh` for the complete pipeline execution using GPT-4 for description generation and GPT4o-mini for code generation.
 
+
 ## Finetuning
+🤗[[Models]](https://huggingface.co/collections/barc0/llm-for-arc-672247e813fd817f56c35eee)
 
 We adopted https://github.com/huggingface/alignment-handbook.git framework to finetune Llama models. See `finetune/alignment-handbook/README.md` for more details, and `finetune/alignment-handbook/recipes/barc-7b` for example recipes. We provide finetune script and models for both "transduction" and "induction" methods:
 
