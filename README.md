@@ -117,8 +117,8 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --config_file recipes/accelerate_con
 
 #### Inference setup
 
-* Induction: vllm==0.6.0
-* Transduction: vllm==0.5.4
+* Induction: `vllm==0.6.0`
+* Transduction: `vllm==0.5.4`
 
 ### Inference Samples
 We provide inference samples
