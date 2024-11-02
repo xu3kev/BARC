@@ -95,13 +95,6 @@ conda activate handbook
 # download corresponding package
 cd BARC/finetune/alignment-handbook/
 python -m pip install .
-pip install --upgrade trl
-pip install huggingface-hub==0.24.7 
-pip install liger-kernel==0.2.1
-pip uninstall transformers
-pip install git+https://github.com/huggingface/transformers@2e3f8f74747deeeead6cf1f0c12cf01bd7169b82
-python -m pip install flash-attn --no-build-isolation
-pip install wandb
 ```
 
 Login to wandb and huggingface
