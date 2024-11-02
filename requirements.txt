@@ -1,2 +1,3 @@
 git+https://github.com/xu3kev/arc-py.git
+orjsonl
 func-timeout
