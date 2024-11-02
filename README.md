@@ -134,3 +134,4 @@ We provide inference samples
 
 ### Evaluation
 We provide an example script (`evaluation.py`) that scores inference samples and execution results. The script also demonstrates how we ensemble two models and calculate the scores.
+(requires `pip install -r requirements.txt`)
