@@ -120,7 +120,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --config_file recipes/accelerate_con
 
 ### Inference Samples
 We provide inference samples
-* Induction (ARC-Potpourri) 🤗[[Models]](https://huggingface.co/barc0/induction_sample_execution_results/)
+* Induction (ARC-Potpourri) 🤗[[Samples]](https://huggingface.co/barc0/induction_sample_execution_results/)
 
 
 
