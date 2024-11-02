@@ -47,6 +47,8 @@ See `data_generation_script.sh` for the complete pipeline execution using GPT-4 
 
 ## Finetuning
 🤗[[Models]](https://huggingface.co/collections/barc0/llm-for-arc-672247e813fd817f56c35eee)
+🤗[[Test-Time-Finetune Adapters]](https://huggingface.co/collections/barc0/lora-file-for-transduction-test-time-finetune-6725a8558baabd079b889596)
+
 
 We adopted https://github.com/huggingface/alignment-handbook.git framework to finetune Llama models. See `finetune/alignment-handbook/README.md` for more details, and `finetune/alignment-handbook/recipes/barc-7b` for example recipes. We provide finetune script and models for both "transduction" and "induction" methods:
 
