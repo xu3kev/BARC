@@ -69,8 +69,8 @@ For the detail prompt template please see the script which converts the problems
 
 ## Inference
 
-We provide script using vllm for inference of the model.
-* Induction: See `finetune/alignment/vllm_inference.py`
+We provide an example script using vllm for inference of the model, please edit the script accordingly.
+* Induction: See `finetune/inference/vllm_inference.py`
 
 * Transduction for evaluation dataset: See `finetune/inference/vllm_inference_transduction_evaluation.py`
 
