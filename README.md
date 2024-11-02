@@ -131,3 +131,6 @@ We provide inference samples
 - Transduction output original results for evaluation dataset and ConceptARC dataset 🤗[[Samples]](https://huggingface.co/datasets/barc0/transduction_experimental_results)
 
 - Transduction output examples visualization: 🎊 [[Visualization]](https://naiimic.github.io/content/arc/arc.html) by [Michi](https://naiimic.github.io/) from [basis](https://www.basis.ai/our-work/)
+
+### Evaluation
+We provide an example script (`evaluate.py`) that scores inference samples and execution results. The script also demonstrates how we ensemble two models and calculate the scores.
