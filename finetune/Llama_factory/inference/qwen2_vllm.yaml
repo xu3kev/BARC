@@ -1,4 +1,0 @@
-model_name_or_path: models/Qwen2-7B-Instruct_lora_sft_string/
-template: qwen
-infer_backend: vllm
-vllm_enforce_eager: true

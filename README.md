@@ -67,10 +67,64 @@ For the detail prompt template please see the script which converts the problems
 ## Inference
 
 We provide script using vllm for inference of the model.
-* Induction: See `finetune/inference/vllm_inference_induction.py`
-* Transduction: See `finetune/inference/vllm_inference_transduction.py`
+* Induction: See `finetune/alignment/vllm_inference.py`
+
+* Transduction for evaluation dataset: See `finetune/inference/vllm_inference_transduction_evaluation.py`
+
+* Transduction for conceptARC dataset:
+
+  ``finetune/inference/vllm_inference_transduction_concept_arc.py``
 
 ## Evaluation
 
 For transduction, evaluation can be done by directly compare the input grid and output grid.
 For induction, the samples code needed to be executed and get the results. We provide the execution code at `eval_code_samples.py`
+
+## Environment Setup
+
+#### Finetune model setup
+
+```
+# Set up a new conda environment
+git clone https://github.com/xu3kev/BARC.git
+conda create -n handbook python=3.10
+conda activate handbook
+
+# download corresponding package
+cd BARC/finetune/alignment-handbook/
+python -m pip install .
+pip install --upgrade trl
+pip install huggingface-hub==0.24.7 
+pip install liger-kernel==0.2.1
+pip uninstall transformers
+pip install git+https://github.com/huggingface/transformers@2e3f8f74747deeeead6cf1f0c12cf01bd7169b82
+python -m pip install flash-attn --no-build-isolation
+pip install wandb
+```
+
+Login to wandb and huggingface
+
+```
+huggingface-cli login
+wandb login
+```
+
+Run finetune command, you can change `num_processes` to the gpus you have.
+
+```
+cd BARC/finetune/alignment-handbook/
+ACCELERATE_LOG_LEVEL=info accelerate launch --config_file recipes/accelerate_configs/deepspeed_zero3.yaml --num_processes=8 scripts/run_sft.py recipes/barc/transduction_config_fft_engineer_heavy_model.yaml --load_in_4bit=false
+```
+
+#### Inference mode setup
+
+```
+# Inference and finetune do not use the same transformers version
+conda create -n barc_inference python=3.10
+conda activate barc_inference
+
+pip install vllm==0.5.4
+```
+
+
+
