@@ -55,6 +55,7 @@ push_to_hub: false
 report_to:
 - tensorboard
 - wandb
+save_only_model: true
 save_strategy: "epoch"
 # save_steps: 100
 save_total_limit: 2

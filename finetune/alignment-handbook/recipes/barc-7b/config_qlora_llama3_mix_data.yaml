@@ -9,8 +9,8 @@ attn_implementation: flash_attention_2
 load_in_4bit: true
 use_peft: true
 # use_dora: true
-lora_r: 32
-lora_alpha: 32
+lora_r: 64
+lora_alpha: 64
 lora_dropout: 0.00
 lora_target_modules:
 - q_proj
@@ -20,8 +20,8 @@ lora_target_modules:
 - gate_proj
 - up_proj
 - down_proj
-- embed_tokens
-- lm_head
+# - embed_tokens
+# - lm_head
 
 
 # Data training arguments

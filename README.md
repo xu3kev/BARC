@@ -1,6 +1,34 @@
-# Installation
+# Boostrapping ARC: Synthetic Problem Generation for ARC-AGI Visual Reasoning Tasks
 
-Run `python -m pip install -r requirements.txt` to install Python requirements.
+# Seed problems
+
+The seed problems are manually written "solution" and "input_generator" for the problems in ARC training set.
+
+* solution: including natural language description and the `main` funciton (solution to the task) which takes the input grid and transform it to the output grid which solves the problem.
+* input_generator: The `generate_input` function generates input grids that resemebles the input grids of the corresponding problem.
+
+There are currently 162 solutions/input_generators under `seeds/` folder.
+
+# Synthetic Data Generation
+
+The synthetic data generation pipeline takes the seed problems, remix them with LLM to generate new problems including both the "solution" and "input_generator". Then we instantiate the synthetic ARC problem by execute input_generator to create input grids, and solution to create the corresponding output grids to create a list of input/output pairs as the ARC problem.
+
+The synthetic data generation consist of 3 stages.
+
+* description generations: generate the natural language description of synthetic problems given the manual written descriptions. See `generate_descriptions.py `
+* code generation: generate the solution and input generation code given the description and similar few-shot examples from seeds (by RAG). See `generate_code.py`
+* problem generation: execute the generated code to instantiate the concrete ARC problems. See `generate_problems.py`
+
+Please refer to `data_generation_script.sh` for example usage.
+
+# Finetuning
+
+We use the framework from huggingface-alignmenthandbook.
+
+
+# Inference
+
+# 
 
 # Viewing ARC problems
 
