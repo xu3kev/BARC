@@ -113,13 +113,14 @@ cd BARC/finetune/alignment-handbook/
 ACCELERATE_LOG_LEVEL=info accelerate launch --config_file recipes/accelerate_configs/deepspeed_zero3.yaml --num_processes=8 scripts/run_sft.py recipes/barc/transduction_config_fft_engineer_heavy_model.yaml --load_in_4bit=false
 ```
 
-#### Inference mode setup
+#### Inference setup
 
-### Induction
-Use vllm 0.6.0
-### Transduction
-Use vllm 0.5.4
+* Induction: vllm==0.6.0
+* Transduction: vllm==0.5.4
 
+### Inference Samples
+We provide inference samples
+* Induction (ARC-Potpourri) 🤗[[Models]](https://huggingface.co/barc0/induction_sample_execution_results/)
 
 
 
