@@ -43,7 +43,7 @@ The pipeline consists of three stages:
 - `generate_code.py`: Generate solution and input generator code using the descriptions and similar seed examples (via RAG)
 - `generate_problems.py`: Execute the generated code to create concrete ARC problems
 
-See `data_generation_script.sh` for the complete pipeline execution using GPT-4 for description generation and GPT4o-mini for code generation.
+See `data_generation_script.sh` for an example of complete pipeline execution using GPT-4 for description generation and GPT4o-mini for code generation.
 
 
 ## Finetuning
