@@ -66,7 +66,7 @@ Gray Black Gray Gray Gray
 Gray Gray Gray Black Black
 Black Black Gray Black Black
 ```
-
+Numbers 0-9 are maps are converted to "Black", "Blue", "Red", "Green", "Yellow", "Gray", "Pink", "Orange", "Purple", and "Brown" respectively.
 For the detail prompt template please see the script which converts the problems to their corresponding prompt format, e.g. `finetune/alignment-handbook/gen_test_prompt.py` and `finetune/alignment-handbook/gen_dataset_both.py`.
 
 ## Inference
