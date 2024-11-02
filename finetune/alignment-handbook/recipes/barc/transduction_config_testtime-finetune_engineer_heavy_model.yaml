@@ -27,8 +27,8 @@ chat_template: "{{- bos_token }}\n{%- if custom_tools is defined %}\n    {%- set
 packing: false
 
 dataset_mixer:
-  barc0/transduction_augmented_test_timearc_all_evaluation_new_seperate: 1
-  barc0/transduction_rearc_dataset_400k: 0.05
+  barc0/transduction_formatted_test_time_finetune_for_evaluation: 1
+  barc0/transduction_formatted_rearc_dataset_100k: 0.05
   barc0/transduction_heavy_100k_jsonl: 0.05
 
 dataset_splits:

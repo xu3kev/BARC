@@ -11,7 +11,7 @@ packing: false
 dataset_mixer:
   barc0/transduction_heavy_100k_jsonl: 1.0
   barc0/transduction_heavy_suggestfunction_100k_jsonl: 1.0
-  barc0/transduction_rearc_dataset_400k: 1.0
+  barc0/transduction_formatted_rearc_dataset_100k: 1.0
   barc0/transduction_angmented_100k-gpt4-description-gpt4omini-code_generated_problems: 1.0
   barc0/transduction_angmented_100k_gpt4o-mini_generated_problems: 1.0
 

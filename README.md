@@ -69,6 +69,10 @@ Black Black Gray Black Black
 Numbers 0-9 are maps are converted to "Black", "Blue", "Red", "Green", "Yellow", "Gray", "Pink", "Orange", "Purple", and "Brown" respectively.
 For the detail prompt template please see the script which converts the problems to their corresponding prompt format, e.g. `finetune/alignment-handbook/gen_test_prompt.py` and `finetune/alignment-handbook/gen_dataset_both.py`.
 
+For transduction test-time finetuning and Potpourri version, we include a pseudo evaluation dataset and formatted [RE-ARC](https://github.com/michaelhodel/re-arc)  dataset here: 
+
+🤗[[Supplementary Dataset]](https://huggingface.co/collections/barc0/supplementary-dataset-prompt-formatted-67265caca53d5d0e84330c0e)
+
 ## Inference
 
 We provide an example script using vllm for inference of the model, please edit the script accordingly.
