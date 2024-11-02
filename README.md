@@ -124,5 +124,6 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --config_file recipes/accelerate_con
 We provide inference samples
 * Induction (ARC-Potpourri 20k samples) 🤗[[Samples]](https://huggingface.co/barc0/induction_sample_execution_results/)
 
+- Transduction output original results for evaluation dataset and ConceptARC dataset 🤗[[Samples]](https://huggingface.co/datasets/barc0/transduction_experimental_results)
 
-
+- Transduction output examples visualization: 🎊 [[Visualization]](https://naiimic.github.io/content/arc/arc.html) by [Michi](https://naiimic.github.io/) from [basis](https://www.basis.ai/our-work/)
