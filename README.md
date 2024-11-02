@@ -114,13 +114,11 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --config_file recipes/accelerate_con
 
 #### Inference mode setup
 
-```
-# Inference and finetune do not use the same transformers version
-conda create -n barc_inference python=3.10
-conda activate barc_inference
+### Induction
+Use vllm 0.6.0
+### Transduction
+Use vllm 0.5.4
 
-pip install vllm==0.5.4
-```
 
 
 
