@@ -4,8 +4,10 @@ import os
 from collections import Counter
 from datasets import load_dataset
 from arc import validation_problems
+
+# We provide the samples and execution results on Huggingface. Please check README.md to see the links.
 INDUCTION_SAMPLE_EXEC_RESULTS_DIR = "induction_sample_exeuction_results/ARC-Potpourri/"
-TRANSDUCTION_SAMPLE_FILE = "evaluation_dataset_results/Llama-3.1-ARC-Potpourri-Transduction-8B-test-time-finetune.jsonl"
+TRANSDUCTION_SAMPLE_FILE = "transduction_experimental_results/evaluation_dataset_results/Llama-3.1-ARC-Potpourri-Transduction-8B-test-time-finetune.jsonl"
 
 def grid_2d_to_tuple(grid):
     return tuple(tuple(row) for row in grid)
