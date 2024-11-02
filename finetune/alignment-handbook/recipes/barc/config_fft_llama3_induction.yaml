@@ -13,7 +13,8 @@ chat_template: "{{- bos_token }}\n{%- if custom_tools is defined %}\n    {%- set
 packing: false
 
 dataset_mixer:
-  barc0/induction_100k_gpt4o-mini_generated_problems_seed100.jsonl_messages_format_0.3: 1
+  barc0/induction_heavy_100k_jsonl: 1
+  barc0/induction_heavy_suggestfunction_100k_jsonl: 1
   # barc0/transduction_gpt-4_description_20000_with_gpt-4o-mini_codegen_messages_format_0.3: 1
   # barc0/transduction_gpt-4_description_20000_with_llama_codegen_messages_format_0.3: 1
   # barc0/induction_gpt-4_description_20000_with_gpt-4o-mini_codegen_messages_format_0.3: 1
@@ -38,11 +39,10 @@ preprocessing_num_workers: 32
 bf16: true
 do_eval: true
 eval_strategy: epoch
-gradient_accumulation_steps: 2
+gradient_accumulation_steps: 1
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-hub_model_id: barc0/barc-llama3.1-8b-instruct-fft-induction_gpt4omini100k_lr1e-5_epoch2
 hub_strategy: every_save
 learning_rate: 1.0e-05
 log_level: info
@@ -52,11 +52,12 @@ lr_scheduler_type: cosine
 max_seq_length: 8192
 max_steps: -1
 num_train_epochs: 2
-output_dir: data/barc-llama3.1-8b-instruct-fft-induction_gpt4omini100k_lr1e-5_epoch2
+hub_model_id: barc0/l3.1-8b-inst-fft-induction-barc-heavy-200k-lr1e-5-ep2
+output_dir: barc0/l3.1-8b-inst-fft-induction-barc-heavy-200k-lr1e-5-ep2
 overwrite_output_dir: true
-per_device_eval_batch_size: 4
-per_device_train_batch_size: 8
-push_to_hub: false
+per_device_eval_batch_size: 16
+per_device_train_batch_size: 16
+push_to_hub: true
 report_to:
 - tensorboard
 - wandb
@@ -67,4 +68,4 @@ save_total_limit: 2
 seed: 42
 warmup_ratio: 0.1
 use_liger_kernel: true
-weight_decay: 0.01
+weight_decay: 0
