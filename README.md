@@ -2,6 +2,8 @@
 
 This repository provides tools for generating synthetic [ARC](https://arcprize.org/) problems, which consist of input/output grid pairs corresponding to transformation rules defined by Python code.
 
+🤗[[Synthetic Dataset]](https://huggingface.co/collections/barc0/synthetic-arc-dataset-6725aa6031376d3bacc34f76)
+🤗[[Synthetic Dataset in Instruction Format]](https://huggingface.co/collections/barc0/synthetic-arc-dataset-prompt-formatted-67223d0e7c232af8ed782b37)
 
 ## Seed Problems
 The repository contains 162 manually written solutions corresponding to problems from the [ARC training set](https://github.com/fchollet/ARC/tree/master/data/training). These manually written seeds are under the `seeds/` folder and utilize shared utility functions from `seeds/common.py`, which provides common routines important to multiple ARC problems like grid or objects manipulation operations.
