@@ -1,5 +1,0 @@
-model_name_or_path: models/Meta-Llama-3.1-8B-Instruct_lora_sft/
-template: llama3
-infer_backend: vllm
-vllm_maxlen: 10000
-vllm_enforce_eager: true
