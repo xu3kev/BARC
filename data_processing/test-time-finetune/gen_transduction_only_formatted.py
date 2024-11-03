@@ -322,7 +322,26 @@ def main():
         })
         dataset_dict.push_to_hub(dataset_name, private=True)
 
-    push_to_huggingface(filtered_train_data_transduction, 'transduction', output_huggingface_dataset)
+    def save_disk_file(filter_data, name, dataset_name):
+        random.seed(0)
+        random.shuffle(filter_data)
+        
+        # Calculate split index (95% train, 5% test)
+        split_index = int(0.95 * len(filter_data))
+
+        # Split the data
+        train_data = filter_data[:split_index]
+        test_data = filter_data[split_index:]
+        
+        # Create Hugging Face datasets
+        train_dataset = Dataset.from_list(train_data)
+        test_dataset = Dataset.from_list(test_data)
+
+        os.makedirs('testtime-ft/', exist_ok=True)
+        train_dataset.save_to_disk('testtime-ft/train_sft/')
+        test_dataset.save_to_disk('testtime-ft/test_sft/')
+
+    save_disk_file(filtered_train_data_transduction, 'transduction', output_huggingface_dataset)
 
 if __name__ == "__main__":
     main()

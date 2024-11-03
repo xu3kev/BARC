@@ -105,6 +105,12 @@ cd BARC/finetune/alignment-handbook/
 python -m pip install .
 ```
 
+If there is an error when build flash-attn, try this instead, you may need to modify the package pytorch/python/cuda version
+```
+wget https://github.com/Dao-AILab/flash-attention/releases/download/v2.5.8/flash_attn-2.5.8+cu118torch2.3cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
+pip install flash_attn-2.5.8+cu118torch2.3cxx11abiFALSE-cp310-cp310-linux_x86_64.whl --no-build-isolation
+```
+
 Login to wandb and huggingface
 
 ```
