@@ -1,0 +1,3 @@
+python get_pseudo_eval_task.py
+python data_augmentation.py
+python gen_transduction_only_formatted.py --load_file dataset/augmented_test_time_arc_all_evaluation_new_seperate.jsonl --output_huggingface_dataset test-ttft

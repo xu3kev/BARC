@@ -124,7 +124,7 @@ def process_all_data(dataset_name, aug_time, prob_if_flip=0, prob_if_mirror=0, p
         
     print(len(augmented_data))
     dataset_name += 'l'
-    with open(f'augmented_test_time{dataset_name}', 'w') as f:
+    with open(f'dataset/augmented_test_time_{dataset_name}', 'w') as f:
         for data in augmented_data:
             f.write(json.dumps(data) + '\n') 
 
