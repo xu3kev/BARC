@@ -320,8 +320,6 @@ def main():
             "train_sft": train_dataset,
             "test_sft": test_dataset
         })
-
-        dataset_name = 'barc0/' + name + '_' + dataset_name
         dataset_dict.push_to_hub(dataset_name, private=True)
 
     push_to_huggingface(filtered_train_data_transduction, 'transduction', output_huggingface_dataset)
