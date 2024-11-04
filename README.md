@@ -98,11 +98,11 @@ For induction, the samples code needed to be executed and get the results. We pr
 git clone https://github.com/xu3kev/BARC.git
 conda create -n handbook python=3.10
 conda activate handbook
-pip install flash-attn --no-build-isolation
 
 # download corresponding package
 cd BARC/finetune/alignment-handbook/
 python -m pip install .
+pip install flash-attn --no-build-isolation
 ```
 
 If there is an error when build flash-attn, try this instead, you may need to modify the package pytorch/python/cuda version
