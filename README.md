@@ -37,6 +37,8 @@ def generate_input():
 🤗[[Synthetic Dataset]](https://huggingface.co/collections/barc0/synthetic-arc-dataset-6725aa6031376d3bacc34f76)
 🤗[[Synthetic Dataset in Instruction Format]](https://huggingface.co/collections/barc0/synthetic-arc-dataset-prompt-formatted-67223d0e7c232af8ed782b37)
 
+Visualization examples of our synthetic dataset: 🎊[[BARC Dataset Examples]](https://naiimic.github.io/content/arc/examples.html)
+
 The synthetic data generation pipeline takes the seed problems and remixes them using LLM to generate new problems. Each generated problem includes both a solution (transformation function) and input generator, which are executed to create input/output grid pairs forming an ARC problem.
 
 The pipeline consists of three stages:
