@@ -134,7 +134,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --config_file recipes/accelerate_con
 
 ### Inference Samples
 We provide inference samples
-* Induction (ARC-Potpourri 20k samples) 🤗[[Samples]](https://huggingface.co/barc0/induction_sample_execution_results/)
+* Induction (ARC-Potpourri 20k samples) 🤗[[Samples]](https://huggingface.co/barc0/induction_samples_with_execution_results/tree/main)
 
 - Transduction output original results for evaluation dataset and ConceptARC dataset 🤗[[Samples]](https://huggingface.co/datasets/barc0/transduction_experimental_results)
 
