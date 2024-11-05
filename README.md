@@ -55,7 +55,7 @@ See `data_generation_script.sh` for an example of complete pipeline execution us
 🤗[[Test-Time-Finetune Adapters]](https://huggingface.co/collections/barc0/lora-file-for-transduction-test-time-finetune-6725a8558baabd079b889596)
 
 
-We adopted https://github.com/huggingface/alignment-handbook.git framework to finetune Llama models. See `finetune/alignment-handbook/README.md` for more details, and `finetune/alignment-handbook/recipes/barc-7b` for example recipes. We provide finetune script and models for both "transduction" and "induction" methods:
+We adopted https://github.com/huggingface/alignment-handbook.git framework to finetune Llama models. See `finetune/alignment-handbook/README.md` for more details, and `finetune/alignment-handbook/recipes/barc` for example recipes. We provide finetune script and models for both "transduction" and "induction" methods:
 
 * Induction: induction models is finetuned to output the solution code given the ARC problems.
 * Transduction: transduction models is finetuned to directly output the test output grids given the problem.
@@ -72,6 +72,8 @@ Numbers 0-9 are maps are converted to "Black", "Blue", "Red", "Green", "Yellow",
 For the detail prompt template please see the script which converts the problems to their corresponding prompt format, e.g. `finetune/alignment-handbook/gen_test_prompt.py` and `finetune/alignment-handbook/gen_dataset_both.py`.
 
 For transduction test-time finetuning and Potpourri version, we include a pseudo evaluation dataset and formatted [RE-ARC](https://github.com/michaelhodel/re-arc)  dataset here: 
+
+The script for generating test-time finetuning can be found here: https://github.com/xu3kev/BARC/blob/master/data_processing/test-time-finetune/gen_test-time-dataset.sh
 
 🤗[[Supplementary Dataset]](https://huggingface.co/collections/barc0/supplementary-dataset-prompt-formatted-67265caca53d5d0e84330c0e)
 
