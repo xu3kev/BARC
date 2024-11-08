@@ -90,6 +90,8 @@ def main():
     all_data = []
     
     print(f"Loading {len(jsonl_files)} jsonl files")
+    # sort json_files to make sure the order is consistent
+    jsonl_files.sort()
     for file in tqdm(jsonl_files):
         all_data.append(orjsonl.load(path=os.path.join(INDUCTION_SAMPLE_EXEC_RESULTS_DIR, file)))
 
