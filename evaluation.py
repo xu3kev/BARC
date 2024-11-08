@@ -9,6 +9,8 @@ from arc import validation_problems
 INDUCTION_SAMPLE_EXEC_RESULTS_DIR = "induction_sample_exeuction_results/ARC-Potpourri/"
 TRANSDUCTION_SAMPLE_FILE = "transduction_experimental_results/evaluation_dataset_results/Llama-3.1-ARC-Potpourri-Transduction-8B-test-time-finetune.jsonl"
 
+NUM_INDUCTION_SAMPLES_USED = 20000
+
 def grid_2d_to_tuple(grid):
     return tuple(tuple(row) for row in grid)
 
@@ -105,6 +107,12 @@ def main():
             data[uid]["train_verdicts"].extend(problem["train_verdicts"])
             data[uid]["output_grids"].extend(problem["output_grids"])
 
+    for uid, d in data.items():
+        # cap the number of samples used for induction
+        data[uid]["train_verdicts"] = d["train_verdicts"][0:NUM_INDUCTION_SAMPLES_USED]
+        data[uid]["output_grids"] = d["output_grids"][0:NUM_INDUCTION_SAMPLES_USED]
+        assert len(d["train_verdicts"]) == len(d["output_grids"]) == NUM_INDUCTION_SAMPLES_USED
+
 
     induction_submission = {p.uid:[] for p in validation_problems}
 
@@ -131,7 +139,6 @@ def main():
             assert len(test_outputs) <= 2
             if any(output == ground_truth for output in test_outputs):
                 induction_pass_at_2_counter += 1.0/len(uid_to_problem[uid].test_pairs)
-            
 
     print(f"Induction pass@2: {induction_pass_at_2_counter}/{len(validation_problems)} = {induction_pass_at_2_counter/len(validation_problems)}")
 
