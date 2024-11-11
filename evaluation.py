@@ -6,10 +6,12 @@ from datasets import load_dataset
 from arc import validation_problems
 
 # We provide the samples and execution results on Huggingface. Please check README.md to see the links.
-INDUCTION_SAMPLE_EXEC_RESULTS_DIR = "induction_sample_exeuction_results/ARC-Potpourri/"
+
+MAX_FILES_TO_LOAD = 10000 # Very large number to load all the files
+INDUCTION_SAMPLE_EXEC_RESULTS_DIRS_AND_SAMPLE_SIZE = [("induction_sample_exeuction_results/ARC-Potpourri/", 20000),
+                                                      ("induction_sample_exeuction_results/ARC-Potpourri-AugmentedPrompt/", 20000),]
 TRANSDUCTION_SAMPLE_FILE = "transduction_experimental_results/evaluation_dataset_results/Llama-3.1-ARC-Potpourri-Transduction-8B-test-time-finetune.jsonl"
 
-NUM_INDUCTION_SAMPLES_USED = 20000
 
 def grid_2d_to_tuple(grid):
     return tuple(tuple(row) for row in grid)
@@ -88,31 +90,49 @@ def main():
     print(f"Transduction pass@2: {transduction_pass_at_2_counter}/{len(validation_problems)} = {transduction_pass_at_2_counter/len(validation_problems)}")
     
     # get all the jsonl files in the directory
-    jsonl_files = [f for f in os.listdir(INDUCTION_SAMPLE_EXEC_RESULTS_DIR) if f.endswith(".jsonl")]
-    all_data = []
-    
-    print(f"Loading {len(jsonl_files)} jsonl files")
-    # sort json_files to make sure the order is consistent
-    jsonl_files.sort()
-    for file in tqdm(jsonl_files):
-        all_data.append(orjsonl.load(path=os.path.join(INDUCTION_SAMPLE_EXEC_RESULTS_DIR, file)))
+    data_from_each_folder = []
+    for induction_sample_exec_results_dir, num_induction_samples_used in INDUCTION_SAMPLE_EXEC_RESULTS_DIRS_AND_SAMPLE_SIZE:
+        jsonl_files = [f for f in os.listdir(induction_sample_exec_results_dir) if f.endswith(".jsonl")]
+        all_data = []
+        
+        # sort json_files to make sure the order is consistent
+        jsonl_files.sort()
+        jsonl_files = jsonl_files[:MAX_FILES_TO_LOAD]
+        print(f"Loading {len(jsonl_files)} jsonl files from {induction_sample_exec_results_dir}")
+        for file in tqdm(jsonl_files):
+            all_data.append(orjsonl.load(path=os.path.join(induction_sample_exec_results_dir, file)))
 
+        data = {}
+        print("gathering induction samples")
+        for d in tqdm(all_data):
+            for problem in d:
+                uid = problem["uid"]
+                if uid not in data:
+                    data[uid] = {"train_verdicts":[], "output_grids":[]}
+                data[uid]["train_verdicts"].extend(problem["train_verdicts"])
+                data[uid]["output_grids"].extend(problem["output_grids"])
+
+        for uid, d in data.items():
+            # cap the number of samples used for induction
+            data[uid]["train_verdicts"] = d["train_verdicts"][0:num_induction_samples_used]
+            data[uid]["output_grids"] = d["output_grids"][0:num_induction_samples_used]
+            assert len(d["train_verdicts"]) == len(d["output_grids"]) == num_induction_samples_used
+
+        data_from_each_folder.append(data)
+
+    # merge the data from each folder
     data = {}
-    print("gathering induction samples")
-    for d in tqdm(all_data):
-        for problem in d:
-            uid = problem["uid"]
+    for d in data_from_each_folder:
+        for uid, v in d.items():
             if uid not in data:
                 data[uid] = {"train_verdicts":[], "output_grids":[]}
-            data[uid]["train_verdicts"].extend(problem["train_verdicts"])
-            data[uid]["output_grids"].extend(problem["output_grids"])
+            data[uid]["train_verdicts"].extend(v["train_verdicts"])
+            data[uid]["output_grids"].extend(v["output_grids"])
 
-    for uid, d in data.items():
-        # cap the number of samples used for induction
-        data[uid]["train_verdicts"] = d["train_verdicts"][0:NUM_INDUCTION_SAMPLES_USED]
-        data[uid]["output_grids"] = d["output_grids"][0:NUM_INDUCTION_SAMPLES_USED]
-        assert len(d["train_verdicts"]) == len(d["output_grids"]) == NUM_INDUCTION_SAMPLES_USED
 
+    for _, d in data.items():
+        assert len(d["train_verdicts"]) == len(d["output_grids"])
+        assert len(d["train_verdicts"]) == sum(size for _, size in INDUCTION_SAMPLE_EXEC_RESULTS_DIRS_AND_SAMPLE_SIZE)
 
     induction_submission = {p.uid:[] for p in validation_problems}
 
