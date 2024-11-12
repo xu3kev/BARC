@@ -8,8 +8,8 @@ from arc import validation_problems
 # We provide the samples and execution results on Huggingface. Please check README.md to see the links.
 
 MAX_FILES_TO_LOAD = 10000 # Very large number to load all the files
-INDUCTION_SAMPLE_EXEC_RESULTS_DIRS_AND_SAMPLE_SIZE = [("induction_sample_exeuction_results/ARC-Potpourri/", 20000),
-                                                      ("induction_sample_exeuction_results/ARC-Potpourri-AugmentedPrompt/", 20000),]
+INDUCTION_SAMPLE_EXEC_RESULTS_DIRS_AND_SAMPLE_SIZE = [("induction_samples_with_execution_results/ARC-Potpourri/", 20000),
+                                                      ("induction_samples_with_execution_results/ARC-Potpourri-AugmentedPrompt/", 20000),]
 TRANSDUCTION_SAMPLE_FILE = "transduction_experimental_results/evaluation_dataset_results/Llama-3.1-ARC-Potpourri-Transduction-8B-test-time-finetune.jsonl"
 
 
