@@ -149,3 +149,19 @@ We provide inference samples
 ### Evaluation
 We provide an example script (`evaluation.py`) that scores inference samples and execution results. The script also demonstrates how we ensemble two models and calculate the scores.
 (requires `pip install -r requirements.txt`)
+
+### Citation
+
+If you find our method, models, and dataset helpful, please kindly cite our paper :)
+
+```
+@misc{li2024combininginductiontransductionabstract,
+      title={Combining Induction and Transduction for Abstract Reasoning}, 
+      author={Wen-Ding Li and Keya Hu and Carter Larsen and Yuqing Wu and Simon Alford and Caleb Woo and Spencer M. Dunn and Hao Tang and Michelangelo Naim and Dat Nguyen and Wei-Long Zheng and Zenna Tavares and Yewen Pu and Kevin Ellis},
+      year={2024},
+      eprint={2411.02272},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2411.02272}, 
+}
+```
