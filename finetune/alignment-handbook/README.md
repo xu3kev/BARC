@@ -39,3 +39,7 @@ wandb login
 ## Recipe
 
 Please see the yaml files under `recipes` for example of training induction and transduction models.
+
+```bash
+ACCCELERATE_LOG_LEVEL=info accelerate launch --config_file recipes/accelerate_configs/deepspeed_zero3.yaml --num_processes=8 scripts/run_sft.py recipes/$RECEIPE.yaml --load_in_4bit=false
+```
